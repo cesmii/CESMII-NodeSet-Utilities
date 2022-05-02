@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  dotnet-format:
+  dotnet-build:
     runs-on: windows-latest
     steps:
       - name: 🤘 checkout
@@ -21,13 +21,13 @@ jobs:
           dotnet-version: '6.0.x'
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.9
+        uses: gittools/actions/gitversion/setup@v0.9.13
         with:
-          versionSpec: '5.6.6'
+          versionSpec: '5.x'
 
       - name: Use GitVersion
         id: gitversion # step id used as reference for output values
-        uses: gittools/actions/gitversion/execute@v0.9.9
+        uses: gittools/actions/gitversion/execute@v0.9.13
 
       - name: Gitversion info
         run: |
@@ -62,24 +62,13 @@ jobs:
           echo "CommitsSinceVersionSourcePadded: ${{ steps.gitversion.outputs.commitsSinceVersionSourcePadded }}"
           echo "CommitDate: ${{ steps.gitversion.outputs.commitDate }}"
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - name: 🤘 checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: ⚙ dotnet
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: '6.0.x'
-    - name: Restore dependencies
-      run: dotnet restore "src/CESMII NodeSet Utilities.sln"
-    - name: Build
-      run: dotnet build "src/CESMII NodeSet Utilities.sln" --configuration Release --no-restore
-    - name: Test
-      run: dotnet test ""src/CESMII NodeSet Utilities.sln" --no-build --verbosity normal
-    - name: Push NuGet Packages
-      # Only publish if the commit was tagged
-      if: steps.gitversion.outputs.VersionSourceSha == steps.gitversion.outputs.Sha
-      run: dotnet nuget push './bin/**/*.nupkg' -s Source -k ${{secrets.GITHUB_TOKEN}}
+      - name: Restore dependencies
+        run: dotnet restore "src/CESMII NodeSet Utilities.sln"
+      - name: Build
+        run: dotnet build "src/CESMII NodeSet Utilities.sln" --configuration Release --no-restore
+      - name: Test
+        run: dotnet test ""src/CESMII NodeSet Utilities.sln" --no-build --verbosity normal
+      - name: Push NuGet Packages
+        # Only publish if the commit was tagged
+        if: steps.gitversion.outputs.VersionSourceSha == steps.gitversion.outputs.Sha
+        run: dotnet nuget push './bin/**/*.nupkg' -s Source -k ${{secrets.GITHUB_TOKEN}}
