@@ -1,0 +1,63 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel", "CESMII.OpcUa.NodeSetModel\CESMII.OpcUa.NodeSetModel.csproj", "{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel.EF", "CESMII.OpcUa.NodeSetModel.EF\CESMII.OpcUa.NodeSetModel.EF.csproj", "{F86DCA51-30D1-4F86-8374-33AEF4686345}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetModel.Factory.Opc", "CESMII.OpcUa.NodeSetModel.Factory.Opc\CESMII.OpcUa.NodeSetModel.Factory.Opc.csproj", "{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetImporter", "CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj", "{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{9B858C20-B82D-459E-88CD-9EA79CCCC0C7}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitignore = ..\.gitignore
+		..\Directory.Build.props = ..\Directory.Build.props
+		..\Directory.Build.targets = ..\Directory.Build.targets
+		..\.github\workflows\dotnet.yml = ..\.github\workflows\dotnet.yml
+		..\GitVersion.yml = ..\GitVersion.yml
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+		Staging|Any CPU = Staging|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
+		{F0AA72E2-28B5-4313-9198-DB3C0E6E44D9}.Staging|Any CPU.Build.0 = Staging|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
+		{F86DCA51-30D1-4F86-8374-33AEF4686345}.Staging|Any CPU.Build.0 = Staging|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
+		{9BAE1C15-DE96-4B7E-8FA8-59B7CDEE9887}.Staging|Any CPU.Build.0 = Staging|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
+		{F2AE4FFF-83E7-4269-A0F6-ED68F31B1A80}.Staging|Any CPU.Build.0 = Staging|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE2ACABF-E99E-4A6D-9B63-9DA9B246BE9E}
+	EndGlobalSection
+EndGlobal

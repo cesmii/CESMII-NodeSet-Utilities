@@ -1,0 +1,31 @@
+<Project>
+  <PropertyGroup>
+    <OutputPath>$(BaseOutputPath)</OutputPath>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(BuildingInsideVisualStudio)' == 'true'">
+      <PropertyGroup>
+        <SourceRevisionId>private-$([System.DateTime]::Now.ToString("yyyyMMdd"))-$(Computername.ToLowerInvariant())-$([System.DateTime]::Now.ToString("HHmmss"))</SourceRevisionId>
+        <cdeNugetSuffix>-$(SourceRevisionId.SubString(0, 20))</cdeNugetSuffix>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <SourceRevisionId>$(cdeBuildQualityPrefix.ToLowerInvariant())$(BUILD_BUILDNUMBER)</SourceRevisionId>
+        <RepositoryUrl>https://github.com/cesmii/CESMII-NodeSet-Utilities</RepositoryUrl>
+        <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+        <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+        <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+      </PropertyGroup>
+      <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.*" PrivateAssets="All"/>
+      </ItemGroup>
+    </Otherwise>
+  </Choose>
+</Project>
