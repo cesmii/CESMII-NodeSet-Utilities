@@ -1,8 +1,5 @@
-# SPDX-FileCopyrightText: 2009-2020 TRUMPF Laser GmbH, authors: C-Labs
-# SPDX-License-Identifier: MPL-2.0
-
 mode: ContinuousDelivery
-assembly-informational-format: '{SemVer}+{env:cdeBuildDate ?? private}.{FullBuildMetaData}'
+assembly-informational-format: '{SemVer}.{FullBuildMetaData}'
 ignore:
   sha: []
 merge-message-formats: {}
@@ -14,7 +11,7 @@ branches:
     increment: Patch
     prevent-increment-of-merged-branch-version: true
     track-merge-target: false
-    regex: ^master$|^main$
+    regex: ^main$
     source-branches:
     - develop
     - release

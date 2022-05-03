@@ -72,4 +72,7 @@ jobs:
       - name: Push NuGet Packages
         # Only publish if the commit was tagged
         if: steps.gitversion.outputs.VersionSourceSha == steps.gitversion.outputs.Sha
-        run: dotnet nuget push './bin/**/*.nupkg' -s Source -k ${{secrets.GITHUB_TOKEN}}
+        # this should work, but doesn't:
+        #run: dotnet nuget push './bin/**/*.nupkg' -s Source -k ${{secrets.NUGETORG_APIKEY}}
+        # workaround:
+        run: "Get-ChildItem ./artifacts/*.nupkg -File -Recurse | Foreach { $retryCount=0; do { if ($retryCount -gt 0) {start-sleep 30}; dotnet nuget push $_.fullname -s https://api.nuget.org/v3/index.json -k ${{secrets.NUGETORG_APIKEY}}; $retryCount = $retryCount + 1 } while (($retryCount -lt 10) -and ($LastExitCode -ne 0)); if ($retryCount -ge 10) { throw(\"Error pushing to NuGet: \"+$LastExitCode) } }"
