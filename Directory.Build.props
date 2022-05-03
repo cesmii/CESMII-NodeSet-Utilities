@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
-    <OutputPath>$(BaseOutputPath)</OutputPath>
+	  <BaseOutputPath>$(SolutionDir)..\bin\$(Configuration)\$(MSBuildProjectName)\</BaseOutputPath>
+	  <OutputPath>$(BaseOutputPath)</OutputPath>
   </PropertyGroup>
   <Choose>
     <When Condition="'$(BuildingInsideVisualStudio)' == 'true'">
