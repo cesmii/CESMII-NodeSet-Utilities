@@ -165,6 +165,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 opcContext.Logger.LogError(ex.Message);
                 throw ex;
             }
+
+            // Find all models that are used by another nodeset
+            var requiredModels = nodeSet.Models.Where(m => m.RequiredModel != null).SelectMany(m => m.RequiredModel).Select(m => m?.ModelUri).Distinct().ToList();
+            var missingModels = requiredModels.Where(rm => !NodesetModels.ContainsKey(rm)).ToList();
+            if (missingModels.Any())
+            {
+                throw new Exception($"Missing dependent node sets: {string.Join(", ", missingModels)}");
+            }
+
             var loadedModels = new List<NodeSetModel>();
 
             foreach (var model in nodeSet.Models)
@@ -174,7 +183,24 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodesetModel.Version = model.Version;
                 nodesetModel.PublicationDate = model.PublicationDate;
                 nodesetModel.CustomState = customState;
+                if (model.RequiredModel != null)
+                {
 
+                    foreach (var requiredModel in model.RequiredModel)
+                    {
+                        var requiredModelInfo = new RequiredModelInfo
+                        {
+                            ModelUri = requiredModel.ModelUri,
+                            PublicationDate = requiredModel.PublicationDate,
+                            Version = requiredModel.Version,
+                        };
+                        if (NodesetModels.TryGetValue(requiredModel.ModelUri, out var requiredNodesetModel))
+                        {
+                            requiredModelInfo.Model = requiredNodesetModel;
+                        }
+                        nodesetModel.RequiredModels.Add(requiredModelInfo);
+                    }
+                }
                 if (nodeSet.Aliases?.Length > 0)
                 {
                     foreach (var alias in nodeSet.Aliases)
@@ -203,13 +229,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                 }
                 loadedModels.Add(nodesetModel);
-            }
-            // Find all models that are used by another nodeset
-            var requiredModels = nodeSet.Models.Where(m => m.RequiredModel != null).SelectMany(m => m.RequiredModel).Select(m => m?.ModelUri).Distinct().ToList();
-            var missingModels = requiredModels.Where(rm => !NodesetModels.ContainsKey(rm)).ToList();
-            if (missingModels.Any())
-            {
-                throw new Exception($"Missing dependent node sets: {string.Join(", ", missingModels)}");
             }
             if (nodeSet.Items == null)
             {

@@ -33,12 +33,16 @@ namespace CESMII.OpcUa.NodeSetModel
             modelBuilder.Owned<VariableModel.EngineeringUnitInfo>();
             modelBuilder.Owned<DataTypeModel.StructureField>();
             modelBuilder.Owned<DataTypeModel.UaEnumField>();
+            modelBuilder.Owned<RequiredModelInfo>();
 
             modelBuilder.Entity<NodeSetModel>()
                 .ToTable("NodeSets")
                 .Ignore(nsm => nsm.AllNodesByNodeId)
                 .Ignore(nsm => nsm.CustomState)
                 .HasKey(nsm => new { nsm.ModelUri, nsm.PublicationDate })
+                ;
+            modelBuilder.Entity<NodeSetModel>()
+                .OwnsMany(nsm => nsm.RequiredModels).WithOwner()
                 ;
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
@@ -94,6 +98,7 @@ namespace CESMII.OpcUa.NodeSetModel
         }
 
         public DbSet<NodeSetModel> NodeSets { get; set; }
+        public DbSet<NodeModel> NodeModels { get; set; }
     }
 
 }

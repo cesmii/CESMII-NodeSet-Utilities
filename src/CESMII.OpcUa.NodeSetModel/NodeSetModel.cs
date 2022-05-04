@@ -10,12 +10,19 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ModelUri { get; set; }
         public string Version { get; set; }
         public DateTime? PublicationDate { get; set; }
+
         // RequiredModels
+        public virtual List<RequiredModelInfo> RequiredModels { get; set; } = new List<RequiredModelInfo>();
         // NamespaceUris
         // ServerUris
         // DefaultAccessRules
 
         public override string ToString() => $"{ModelUri} {Version} ({PublicationDate})";
+
+        /// <summary>
+        /// Unique identifier for this nodeset, optionally assigned by the managing application. Not used in the nodeset model classes
+        /// </summary>
+        public string Identifier { get; set; }
 
         // SequenceNumber/IsUpdate
         public object CustomState { get; set; }
@@ -137,6 +144,13 @@ namespace CESMII.OpcUa.NodeSetModel
                 node.UpdateIndices(_this, updatedNodes);
             }
         }
+    }
+    public class RequiredModelInfo
+    {
+        public string ModelUri { get; set; }
+        public string Version { get; set; }
+        public DateTime? PublicationDate { get; set; }
+        virtual public NodeSetModel Model { get; set; }
     }
 
     public class NodeModel
