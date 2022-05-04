@@ -36,7 +36,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
             modelBuilder.Entity<NodeSetModel>()
                 .ToTable("NodeSets")
-                .Ignore(nsm => nsm.AllNodes)
+                .Ignore(nsm => nsm.AllNodesByNodeId)
                 .Ignore(nsm => nsm.CustomState)
                 .HasKey(nsm => new { nsm.ModelUri, nsm.PublicationDate })
                 ;

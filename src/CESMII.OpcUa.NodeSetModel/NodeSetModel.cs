@@ -52,87 +52,89 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual List<DataVariableModel> DataVariables { get; set; } = new List<DataVariableModel>();
 
         public virtual List<NodeModel> UnknownNodes { get; set; } = new List<NodeModel>();
-        
-        public Dictionary<string, NodeModel> AllNodes = new Dictionary<string, NodeModel>();
 
-        public void UpdateAllNodes()
+        public Dictionary<string, NodeModel> AllNodesByNodeId = new Dictionary<string, NodeModel>();
+    }
+    public static class NodeSetModelExtensions
+    { 
+        public static void UpdateAllNodes(this NodeSetModel _this)
         {
-            AllNodes.Clear();
-            foreach (var dataType in DataTypes)
+            _this.AllNodesByNodeId.Clear();
+            foreach (var dataType in _this.DataTypes)
             {
-                if (!AllNodes.TryAdd(/*NodeId.Parse*/(dataType.NodeId), dataType))
+                if (!_this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(dataType.NodeId), dataType))
                 {
                     // Duplicate node id!
                 }
             }
-            foreach (var variableType in VariableTypes)
+            foreach (var variableType in _this.VariableTypes)
             {
-                if (!AllNodes.TryAdd(/*NodeId.Parse*/(variableType.NodeId), variableType))
+                if (!_this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(variableType.NodeId), variableType))
                 {
 
                 }
             }
-            foreach (var uaInterface in Interfaces)
+            foreach (var uaInterface in _this.Interfaces)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(uaInterface.NodeId), uaInterface);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(uaInterface.NodeId), uaInterface);
             }
-            foreach (var objectType in ObjectTypes)
+            foreach (var objectType in _this.ObjectTypes)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(objectType.NodeId), objectType);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(objectType.NodeId), objectType);
             }
-            foreach (var uaObject in Objects)
+            foreach (var uaObject in _this.Objects)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(uaObject.NodeId), uaObject);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(uaObject.NodeId), uaObject);
             }
-            foreach (var property in Properties)
+            foreach (var property in _this.Properties)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(property.NodeId), property);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(property.NodeId), property);
             }
-            foreach (var dataVariable in DataVariables)
+            foreach (var dataVariable in _this.DataVariables)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(dataVariable.NodeId), dataVariable);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(dataVariable.NodeId), dataVariable);
             }
-            foreach (var node in UnknownNodes)
+            foreach (var node in _this.UnknownNodes)
             {
-                AllNodes.TryAdd(/*NodeId.Parse*/(node.NodeId), node);
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(node.NodeId), node);
             }
         }
 
-        public void UpdateIndices()
+        public static void UpdateIndices(this NodeSetModel _this)
         {
-            AllNodes.Clear();
+            _this.AllNodesByNodeId.Clear();
             var updatedNodes = new List<NodeModel>();
-            foreach (var dataType in DataTypes)
+            foreach (var dataType in _this.DataTypes)
             {
-                dataType.UpdateIndices(this, updatedNodes);
+                dataType.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var variableType in VariableTypes)
+            foreach (var variableType in _this.VariableTypes)
             {
-                variableType.UpdateIndices(this, updatedNodes);
+                variableType.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var uaInterface in Interfaces)
+            foreach (var uaInterface in _this.Interfaces)
             {
-                uaInterface.UpdateIndices(this, updatedNodes);
+                uaInterface.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var objectType in ObjectTypes)
+            foreach (var objectType in _this.ObjectTypes)
             {
-                objectType.UpdateIndices(this, updatedNodes);
+                objectType.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var property in Properties)
+            foreach (var property in _this.Properties)
             {
-                property.UpdateIndices(this, updatedNodes);
+                property.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var dataVariable in DataVariables)
+            foreach (var dataVariable in _this.DataVariables)
             {
-                dataVariable.UpdateIndices(this, updatedNodes);
+                dataVariable.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var uaObject in Objects)
+            foreach (var uaObject in _this.Objects)
             {
-                uaObject.UpdateIndices(this, updatedNodes);
+                uaObject.UpdateIndices(_this, updatedNodes);
             }
-            foreach (var node in UnknownNodes)
+            foreach (var node in _this.UnknownNodes)
             {
-                node.UpdateIndices(this, updatedNodes);
+                node.UpdateIndices(_this, updatedNodes);
             }
         }
     }
@@ -212,7 +214,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<ChildAndReference> OtherChilden { get; set; } = new List<ChildAndReference>();
 
-        public virtual bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal virtual bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
             if (updatedNodes.Contains(this))
             {
@@ -222,7 +224,7 @@ namespace CESMII.OpcUa.NodeSetModel
             updatedNodes.Add(this);
             if (model.ModelUri == this.Namespace)
             {
-                model.AllNodes.TryAdd(this.NodeId, this);
+                model.AllNodesByNodeId.TryAdd(this.NodeId, this);
             }
             foreach (var node in Objects)
             {
@@ -348,7 +350,7 @@ namespace CESMII.OpcUa.NodeSetModel
             }
         }
 
-        public override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated)
@@ -461,7 +463,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public override string ToString() => $"{Name} = {Value}";
         }
 
-        public override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated)

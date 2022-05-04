@@ -106,7 +106,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 return null;
             }
-            if (nodeSetModel.AllNodes.TryGetValue(nodeId, out var nodeModel))
+            if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
             {
                 return nodeModel;
             }
@@ -238,7 +238,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var nodeIdString = new ExpandedNodeId(node.NodeId, namespaceUri).ToString();
                     if (NodesetModels.TryGetValue(nodeModel.Namespace, out var nodesetModel))// TODO support multiple models per namespace
                     {
-                        if (!nodesetModel.AllNodes.ContainsKey(nodeIdString))
+                        if (!nodesetModel.AllNodesByNodeId.ContainsKey(nodeIdString))
                         {
                             nodesetModel.UnknownNodes.Add(nodeModel);
                         }
@@ -699,9 +699,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 created = true;
 
                 var nodesetModel = opcContext.GetOrAddNodesetModel(nodeModel);
-                if (!nodesetModel.AllNodes.ContainsKey(nodeModel.NodeId))
+                if (!nodesetModel.AllNodesByNodeId.ContainsKey(nodeModel.NodeId))
                 {
-                    nodesetModel.AllNodes.Add(nodeModel.NodeId, nodeModel);
+                    nodesetModel.AllNodesByNodeId.Add(nodeModel.NodeId, nodeModel);
                     if (nodeModel is InterfaceModel uaInterface)
                     {
                         nodesetModel.Interfaces.Add(uaInterface);
