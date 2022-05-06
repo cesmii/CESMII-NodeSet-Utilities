@@ -18,44 +18,48 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
     public class NodeModelExportOpc<T> where T : NodeModel, new()
     {
         public T _model;
-
+        public HashSet<string> _nodeIdsUsed;
         public static (uaExport.UANode, List<uaExport.UANode>) GetUANode(NodeModel model, NamespaceTable namespaces, Dictionary<string, string> aliases)
+        {
+            return GetUANode(model, namespaces, aliases, null);
+        }
+        public static (uaExport.UANode, List<uaExport.UANode>) GetUANode(NodeModel model, NamespaceTable namespaces, Dictionary<string, string> aliases, HashSet<string> nodeIdsUsed)
         {
             if (model is InterfaceModel uaInterface)
             {
-                return new InterfaceModelExportOpc { _model = uaInterface }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new InterfaceModelExportOpc { _model = uaInterface, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is ObjectTypeModel objectType)
             {
-                return new ObjectTypeModelExportOpc { _model = objectType }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new ObjectTypeModelExportOpc { _model = objectType, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is VariableTypeModel variableType)
             {
-                return new VariableTypeModelExportOpc { _model = variableType }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new VariableTypeModelExportOpc { _model = variableType, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is DataTypeModel dataType)
             {
-                return new DataTypeModelExportOpc { _model = dataType }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new DataTypeModelExportOpc { _model = dataType, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is DataVariableModel dataVariable)
             {
-                return new DataVariableModelExportOpc { _model = dataVariable }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new DataVariableModelExportOpc { _model = dataVariable, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is PropertyModel property)
             {
-                return new PropertyModelExportOpc { _model = property }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new PropertyModelExportOpc { _model = property, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is VariableModel variable)
             {
-                return new VariableModelExportOpc<VariableModel> { _model = variable}.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new VariableModelExportOpc<VariableModel> { _model = variable, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is ObjectModel uaObject)
             {
-                return new ObjectModelExportOpc { _model = uaObject }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new ObjectModelExportOpc { _model = uaObject, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             else if (model is MethodModel uaMethod)
             {
-                return new MethodModelExportOpc { _model = uaMethod }.GetUANode<uaExport.UANode>(namespaces, aliases);
+                return new MethodModelExportOpc { _model = uaMethod, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
             throw new Exception($"Unexpected node model {model.GetType()}");
         }
@@ -145,11 +149,12 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             return (node, null);
         }
 
-        protected static string GetNodeIdForExport(string nodeId, NamespaceTable namespaces, Dictionary<string, string> aliases)
+        protected string GetNodeIdForExport(string nodeId, NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
             if (nodeId == null) return null;
             var expandedNodeId = ExpandedNodeId.Parse(nodeId, namespaces);
-            if (expandedNodeId.NamespaceIndex == 0 && aliases.TryGetValue(expandedNodeId.ToString(), out var alias))
+            _nodeIdsUsed?.Add(expandedNodeId.ToString());
+            if (aliases.TryGetValue(expandedNodeId.ToString(), out var alias))
             {
                 return alias;
             }
