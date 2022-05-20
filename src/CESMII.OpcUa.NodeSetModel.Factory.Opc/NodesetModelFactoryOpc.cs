@@ -188,17 +188,28 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
                     foreach (var requiredModel in model.RequiredModel)
                     {
-                        var requiredModelInfo = new RequiredModelInfo
+                        bool bCreated = false;
+                        var requiredModelInfo = nodesetModel.RequiredModels.FirstOrDefault(rm => rm.ModelUri == requiredModel.ModelUri);
+                        if (requiredModelInfo == null)
                         {
-                            ModelUri = requiredModel.ModelUri,
-                            PublicationDate = requiredModel.PublicationDate,
-                            Version = requiredModel.Version,
-                        };
+                            requiredModelInfo = new RequiredModelInfo();
+                            bCreated = true;
+                        }
+                        else
+                        {
+
+                        }
+                        requiredModelInfo.ModelUri = requiredModel.ModelUri;
+                        requiredModelInfo.PublicationDate = requiredModel.PublicationDate;
+                        requiredModelInfo.Version = requiredModel.Version;
                         if (NodesetModels.TryGetValue(requiredModel.ModelUri, out var requiredNodesetModel))
                         {
                             requiredModelInfo.Model = requiredNodesetModel;
                         }
-                        nodesetModel.RequiredModels.Add(requiredModelInfo);
+                        if (bCreated)
+                        {
+                            nodesetModel.RequiredModels.Add(requiredModelInfo);
+                        }
                     }
                 }
                 if (nodeSet.Aliases?.Length > 0)
