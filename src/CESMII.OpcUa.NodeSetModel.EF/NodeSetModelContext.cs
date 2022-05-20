@@ -95,6 +95,9 @@ namespace CESMII.OpcUa.NodeSetModel
             modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")
                 ;
+            modelBuilder.Entity<ReferenceTypeModel>()
+                .ToTable("ReferenceTypes")
+                ;
         }
 
         public DbSet<NodeSetModel> NodeSets { get; set; }

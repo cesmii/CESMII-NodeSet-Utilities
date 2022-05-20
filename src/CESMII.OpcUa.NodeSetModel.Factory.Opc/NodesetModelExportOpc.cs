@@ -61,6 +61,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             {
                 return new MethodModelExportOpc { _model = uaMethod, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
             }
+            else if (model is ReferenceTypeModel referenceType)
+            {
+                return new ReferenceTypeModelExportOpc { _model = referenceType, _nodeIdsUsed = nodeIdsUsed }.GetUANode<uaExport.UANode>(namespaces, aliases);
+            }
             throw new Exception($"Unexpected node model {model.GetType()}");
         }
 
@@ -654,6 +658,15 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             return (dataType as T, result.Item2);
         }
 
+    }
+
+    public class ReferenceTypeModelExportOpc : NodeModelExportOpc<ReferenceTypeModel>
+    {
+        public override (T, List<uaExport.UANode>) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
+        {
+            var result = base.GetUANode<uaExport.UAReferenceType>(namespaces, aliases);
+            return (result.Item1 as T, result.Item2);
+        }
     }
 
     public static class LocalizedTextExtension

@@ -60,6 +60,8 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<NodeModel> UnknownNodes { get; set; } = new List<NodeModel>();
 
+        public virtual List<ReferenceTypeModel> ReferenceTypes { get; set; } = new List<ReferenceTypeModel>();
+
         public Dictionary<string, NodeModel> AllNodesByNodeId = new Dictionary<string, NodeModel>();
     }
     public static class NodeSetModelExtensions
@@ -101,6 +103,10 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(dataVariable.NodeId), dataVariable);
             }
+            foreach (var referenceType in _this.ReferenceTypes)
+            {
+                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(referenceType.NodeId), referenceType);
+            }
             foreach (var node in _this.UnknownNodes)
             {
                 _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(node.NodeId), node);
@@ -138,6 +144,10 @@ namespace CESMII.OpcUa.NodeSetModel
             foreach (var uaObject in _this.Objects)
             {
                 uaObject.UpdateIndices(_this, updatedNodes);
+            }
+            foreach (var referenceType in _this.ReferenceTypes)
+            {
+                referenceType.UpdateIndices(_this, updatedNodes);
             }
             foreach (var node in _this.UnknownNodes)
             {
@@ -447,6 +457,11 @@ namespace CESMII.OpcUa.NodeSetModel
     public class MethodModel : InstanceModel<BaseTypeModel>
     {
     }
+
+    public class ReferenceTypeModel : NodeModel
+    {
+    }
+
 
     public class VariableTypeModel : BaseTypeModel
     {

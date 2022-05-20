@@ -530,7 +530,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     throw new Exception($"Unexpected event type {referencedNode}");
                 }
             }
-            else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HierarchicalReferences))
+            else
             {
                 var parent = parentFactory();
                 var referencedModel = Create(opcContext, referencedNode, parent?.CustomState, out _);
@@ -539,7 +539,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var childAndReference = new NodeModel.ChildAndReference { Child = referencedModel, Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _) };
                     AddChildIfNotExists(parent, parent?.OtherChilden, childAndReference, opcContext.Logger);
 
-                    if (referencedModel is InstanceModelBase referencedInstanceModel)
+                    if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HierarchicalReferences) && referencedModel is InstanceModelBase referencedInstanceModel)
                     {
                         if (referencedInstanceModel.Parent == null)
                         {
@@ -556,18 +556,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     //throw new Exception($"Failed to resolve referenced node {referencedNode} for {parent}");
                     opcContext.Logger.LogWarning($"Ignoring reference {referenceTypes.FirstOrDefault()} from {parent} to {referencedNode}: unable to resolve node.");
                 }
-                // {ns=1;i=6030} - ConnectsTo / Hierarchical
-                // {ns=2;i=18179} - Requires / Hierarchical
-                // {ns=2;i=18178} - Moves / Hierarchical
-                // {ns=2;i=18183} - HasSlave / Hierachical
-                // {ns=2;i=18180} - IsDrivenBy / Hierarchical
-                // {ns=2;i=18182} - HasSafetyStates - Hierarchical
-                // {ns=2;i=4002}  - Controls / Hierarchical
-            }
-            else
-            {
-                var parent = parentFactory();
-                opcContext.Logger.LogWarning($"Ignoring unknown reference type {referenceTypes.FirstOrDefault()} from {parent} to {referencedNode}");
+                // Potential candidates for first class representation in the model:
                 // {ns=1;i=6030} - ConnectsTo / Hierarchical
                 // {ns=2;i=18179} - Requires / Hierarchical
                 // {ns=2;i=18178} - Moves / Hierarchical
@@ -638,15 +627,19 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 nodeModel = Create<MethodModelFactoryOpc, MethodModel>(opcContext, methodState, customState);
             }
+            else if (node is ReferenceTypeState referenceState)
+            {
+                nodeModel = Create<ReferenceTypeModelFactoryOpc, ReferenceTypeModel>(opcContext, referenceState, customState);
+            }
             else
             {
-                if (!(node is ReferenceTypeState) && !(node is ViewState))
+                if (!(node is ViewState))
                 {
                     nodeModel = Create<NodeModelFactoryOpc<T>, T>(opcContext, node, customState);
                 }
                 else
                 {
-                    // TODO support Views and Custom References
+                    // TODO support Views
                     nodeModel = null;
                 }
                 added = false;
@@ -752,6 +745,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     else if (nodeModel is MethodModel method)
                     {
                         //nodesetModel.Methods.Add(method);
+                    }
+                    else if (nodeModel is ReferenceTypeModel referenceType)
+                    {
+                        nodesetModel.ReferenceTypes.Add(referenceType);
                     }
                     else
                     {
@@ -1037,6 +1034,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
             }
         }
+    }
+
+    public class ReferenceTypeModelFactoryOpc : NodeModelFactoryOpc<ReferenceTypeModel>
+    {
     }
 
 }
