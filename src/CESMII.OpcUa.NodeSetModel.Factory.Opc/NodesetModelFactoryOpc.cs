@@ -181,7 +181,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var nodesetModel = new NodeSetModel();
                 nodesetModel.ModelUri = model.ModelUri;
                 nodesetModel.Version = model.Version;
-                nodesetModel.PublicationDate = model.PublicationDate;
+                nodesetModel.PublicationDate = model.PublicationDateSpecified ? model.PublicationDate : null;
                 nodesetModel.CustomState = customState;
                 if (model.RequiredModel != null)
                 {
@@ -200,11 +200,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
                         }
                         requiredModelInfo.ModelUri = requiredModel.ModelUri;
-                        requiredModelInfo.PublicationDate = requiredModel.PublicationDate;
+                        requiredModelInfo.PublicationDate = requiredModel.PublicationDateSpecified ? requiredModel.PublicationDate : null;
                         requiredModelInfo.Version = requiredModel.Version;
                         if (NodesetModels.TryGetValue(requiredModel.ModelUri, out var requiredNodesetModel))
                         {
-                            requiredModelInfo.Model = requiredNodesetModel;
+                            requiredModelInfo.AvailableModel = requiredNodesetModel;
                         }
                         if (bCreated)
                         {
