@@ -160,7 +160,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ModelUri { get; set; }
         public string Version { get; set; }
         public DateTime? PublicationDate { get; set; }
-        virtual public NodeSetModel Model { get; set; }
+        virtual public NodeSetModel AvailableModel { get; set; }
     }
 
     public class NodeModel
