@@ -156,7 +156,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class NodeModelFactoryOpc : NodeModelFactoryOpc<NodeModel>
     {
-        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, NodeSetModel> NodesetModels, ISystemContext systemContext, 
+        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, NodeSetModel> NodesetModels, ISystemContext systemContext,
                 NodeStateCollection allImportedNodes, out List<NodeState> importedNodes, Dictionary<string, string> Aliases, bool doNotReimport = false)
         {
             if (!nodeSet.Models.Any())
@@ -362,7 +362,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     if (parent.Namespace != uaChildObject.Namespace)
                     {
                         // TODO If parent is in another nodeset/namespace, the reference may not be stored (Example: Server/Namespaces node (OPC i=11715): nodesets add themselves to that global node).
-                       opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
+                        opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
                     }
                     AddChildIfNotExists(parent, parent?.Objects, uaChildObject, opcContext.Logger);
                 }
@@ -797,8 +797,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
     }
 
-    public class InstanceModelFactoryOpc<TInstanceModel, TBaseTypeModel, TBaseTypeModelFactoryOpc> : NodeModelFactoryOpc<TInstanceModel> 
-        where TInstanceModel : InstanceModel<TBaseTypeModel>, new() 
+    public class InstanceModelFactoryOpc<TInstanceModel, TBaseTypeModel, TBaseTypeModelFactoryOpc> : NodeModelFactoryOpc<TInstanceModel>
+        where TInstanceModel : InstanceModel<TBaseTypeModel>, new()
         where TBaseTypeModel : BaseTypeModel, new()
         where TBaseTypeModelFactoryOpc : NodeModelFactoryOpc<TBaseTypeModel>, new()
     {
@@ -816,6 +816,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 var modelingRuleId = uaInstance.ModellingRuleId;
                 var modelingRule = opcContext.GetNode(modelingRuleId);
+                if (modelingRule == null)
+                {
+                    throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                }
                 _model.ModelingRule = modelingRule.DisplayName.Text;
             }
             if (uaInstance.Parent != null)
@@ -1047,8 +1051,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
     }
 
-    public class ReferenceTypeModelFactoryOpc : NodeModelFactoryOpc<ReferenceTypeModel>
+    public class ReferenceTypeModelFactoryOpc : BaseTypeModelFactoryOpc<ReferenceTypeModel>
     {
-    }
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        {
+            base.Initialize(opcContext, opcNode);
+            var referenceTypeState = opcNode as ReferenceTypeState;
 
+            _model.InverseName = referenceTypeState.InverseName?.ToModel();
+            _model.Symmetric = referenceTypeState.Symmetric;
+        }
+    }
 }

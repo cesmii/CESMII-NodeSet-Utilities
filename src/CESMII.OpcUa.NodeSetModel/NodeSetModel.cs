@@ -458,8 +458,16 @@ namespace CESMII.OpcUa.NodeSetModel
     {
     }
 
-    public class ReferenceTypeModel : NodeModel
+    public class ReferenceTypeModel : BaseTypeModel
     {
+        /// <summary>
+        /// The inverse name for the reference.
+        /// </summary>
+        public List<LocalizedText> InverseName { get; set; }
+        /// <summary>
+        /// Whether the reference is symmetric.
+        /// </summary>
+        public bool Symmetric { get; set; }
     }
 
 

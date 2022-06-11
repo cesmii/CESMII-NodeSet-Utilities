@@ -647,6 +647,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         DisplayName = field.DisplayName?.ToExport().ToArray(),
                         Description = field.Description?.ToExport().ToArray(),
                         Value = (int) field.Value,
+                        // TODO: 
+                        //SymbolicName = ,
+                        //DataType = ,                         
                     });
                 }
                 dataType.Definition = new uaExport.DataTypeDefinition
@@ -660,11 +663,13 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
     }
 
-    public class ReferenceTypeModelExportOpc : NodeModelExportOpc<ReferenceTypeModel>
+    public class ReferenceTypeModelExportOpc : BaseTypeModelExportOpc<ReferenceTypeModel>
     {
         public override (T, List<uaExport.UANode>) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
             var result = base.GetUANode<uaExport.UAReferenceType>(namespaces, aliases);
+            result.Item1.IsAbstract = _model.IsAbstract;
+            result.Item1.InverseName = _model.InverseName?.ToExport().ToArray();
             return (result.Item1 as T, result.Item2);
         }
     }
