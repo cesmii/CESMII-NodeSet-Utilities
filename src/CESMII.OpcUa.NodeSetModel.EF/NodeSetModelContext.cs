@@ -29,7 +29,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public static void CreateModel(ModelBuilder modelBuilder)
         {
             modelBuilder.Owned<NodeModel.LocalizedText>();
-            modelBuilder.Owned<NodeModel.ChildAndReference>();
+            modelBuilder.Owned<NodeModel.NodeAndReference>();
             modelBuilder.Owned<VariableModel.EngineeringUnitInfo>();
             modelBuilder.Owned<DataTypeModel.StructureField>();
             modelBuilder.Owned<DataTypeModel.UaEnumField>();
@@ -46,6 +46,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 ;
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
+                .Ignore(nsm => nsm.OtherReferencingNodes) // Populated from nsm.OtherChildren in the NodeSetModel factories
                 .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
                 ;
             modelBuilder.Entity<NodeModel>()
@@ -57,7 +58,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 ;
 
             modelBuilder.Entity<NodeModel>()
-                .OwnsMany<NodeModel.ChildAndReference>(nm => nm.OtherChilden).WithOwner()
+                .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes).WithOwner()
                 ;
 
             modelBuilder.Entity<ObjectTypeModel>()

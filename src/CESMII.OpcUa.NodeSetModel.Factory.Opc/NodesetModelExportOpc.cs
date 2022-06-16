@@ -8,6 +8,7 @@ using System.Linq;
 
 using CESMII.OpcUa.NodeSetModel;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
+using Opc.Ua.Export;
 
 namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 {
@@ -17,8 +18,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
     }
     public class NodeModelExportOpc<T> where T : NodeModel, new()
     {
-        public T _model;
-        public HashSet<string> _nodeIdsUsed;
+        protected T _model;
+        private HashSet<string> _nodeIdsUsed;
         public static (uaExport.UANode, List<uaExport.UANode>) GetUANode(NodeModel model, NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
             return GetUANode(model, namespaces, aliases, null);
@@ -99,13 +100,13 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     Value = GetNodeIdForExport(uaObject.NodeId, namespaces, aliases),
                 });
             }
-            foreach (var childRef in this._model.OtherChilden)
+            foreach (var nodeRef in this._model.OtherReferencedNodes)
             {
-                namespaces.GetIndexOrAppend(childRef.Child.Namespace);
+                namespaces.GetIndexOrAppend(nodeRef.Node.Namespace);
                 references.Add(new uaExport.Reference
                 {
-                    ReferenceType = GetNodeIdForExport(childRef.Reference, namespaces, aliases),
-                    Value = GetNodeIdForExport(childRef.Child.NodeId, namespaces, aliases),
+                    ReferenceType = GetNodeIdForExport(nodeRef.Reference, namespaces, aliases),
+                    Value = GetNodeIdForExport(nodeRef.Node.NodeId, namespaces, aliases),
                 });
             }
             foreach (var uaInterface in this._model.Interfaces)
@@ -198,10 +199,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
         }
     }
 
-    public class InstanceModelExportOpc<TInstanceModel, TBaseTypeModel, TBaseTypeModelExportOpc> : NodeModelExportOpc<TInstanceModel> 
+    public class InstanceModelExportOpc<TInstanceModel, TBaseTypeModel> : NodeModelExportOpc<TInstanceModel> 
         where TInstanceModel : InstanceModel<TBaseTypeModel>, new() 
         where TBaseTypeModel : BaseTypeModel, new()
-        where TBaseTypeModelExportOpc : NodeModelExportOpc<TBaseTypeModel>, new()
     {
 
         public override (T, List<uaExport.UANode>) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
@@ -235,9 +235,6 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 {
                     typeDefinitionNodeId = ObjectTypeIds.BaseObjectType;
                 }
-                else
-                {
-                }
 
                 typeDefinitionNodeIdForExport = GetNodeIdForExport(typeDefinitionNodeId?.ToString(), namespaces, aliases);
             }
@@ -250,9 +247,18 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 };
                 references.Add(reference);
             }
-            if (_model.ModelingRule != null)
+
+            AddModelingRuleReference(_model.ModelingRule, references, namespaces, aliases);
+
+            instance.References = references.ToArray();
+            return result;
+        }
+
+        protected List<Reference> AddModelingRuleReference(string modelingRule, List<Reference> references, NamespaceTable namespaces, Dictionary<string, string> aliases)
+        {
+            if (modelingRule != null)
             {
-                var modelingRuleId = _model.ModelingRule switch
+                var modelingRuleId = modelingRule switch
                 {
                     "Optional" => ObjectIds.ModellingRule_Optional,
                     "Mandatory" => ObjectIds.ModellingRule_Mandatory,
@@ -270,12 +276,11 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     });
                 }
             }
-            instance.References = references.ToArray();
-            return result;
+            return references;
         }
     }
 
-    public class ObjectModelExportOpc : InstanceModelExportOpc<ObjectModel, ObjectTypeModel, ObjectTypeModelExportOpc>
+    public class ObjectModelExportOpc : InstanceModelExportOpc<ObjectModel, ObjectTypeModel>
     {
         public override (T, List<uaExport.UANode>) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
@@ -288,9 +293,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             {
                 uaObject.ParentNodeId = GetNodeIdForExport(_model.Parent.NodeId, namespaces, aliases);
                 bool bAdded = false;
-                foreach (var reference in _model.Parent.OtherChilden.Where(cr => cr.Child == _model))
+                foreach (var referencingNode in _model.Parent.OtherReferencedNodes.Where(cr => cr.Node == _model))
                 {
-                    references.Add(new uaExport.Reference { IsForward = false, ReferenceType = GetNodeIdForExport( reference.Reference, namespaces, aliases), Value = uaObject.ParentNodeId });
+                    references.Add(new uaExport.Reference { IsForward = false, ReferenceType = GetNodeIdForExport( referencingNode.Reference, namespaces, aliases), Value = uaObject.ParentNodeId });
                     bAdded = true;
                 }
                 if (_model.Parent.Objects.Contains(_model))
@@ -306,9 +311,13 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     }
                 }
             }
+            foreach (var reference in _model.OtherReferencingNodes)
+            {
+                references.Add(new uaExport.Reference { IsForward = false, ReferenceType = GetNodeIdForExport(reference.Reference, namespaces, aliases), Value = GetNodeIdForExport(reference.Node.NodeId, namespaces, aliases), });
+            }
             if (references.Any())
             {
-                uaObject.References = references.ToArray();
+                uaObject.References = references.Distinct(new ReferenceComparer()).ToArray();
             }
 
             return (uaObject as T, result.Item2);
@@ -353,7 +362,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             {
                 throw new Exception("Must be UAType or derived");
             }
-            return (objectType as T, result.Item2);
+            return (objectType, result.Item2);
         }
     }
 
@@ -375,7 +384,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
     {
     }
 
-    public class VariableModelExportOpc<TVariableModel> : InstanceModelExportOpc<TVariableModel, VariableTypeModel, VariableTypeModelExportOpc>
+    public class VariableModelExportOpc<TVariableModel> : InstanceModelExportOpc<TVariableModel, VariableTypeModel>
         where TVariableModel : VariableModel, new()
     {
         public override (T, List<uaExport.UANode>) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
@@ -415,17 +424,16 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                              Value = GetNodeIdForExport(VariableTypeIds.PropertyType.ToString(), namespaces, aliases)
                          },
                          new uaExport.Reference {
-                             ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasModellingRule.ToString(), namespaces, aliases),
-                             Value = GetNodeIdForExport(ObjectIds.ModellingRule_Mandatory.ToString(), namespaces, aliases),
-                         }, // TODO Does this need to be preserved?
-                         new uaExport.Reference {
                              ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
                              IsForward = false, 
                              Value = GetNodeIdForExport(dataVariable.NodeId, namespaces, aliases),
                          },
-
                     }
                 };
+                if (_model.EngUnitModelingRule != null)
+                {
+                    engUnitProp.References = AddModelingRuleReference(_model.EngUnitModelingRule, engUnitProp.References.ToList(), namespaces, aliases).ToArray();
+                }
                 if (_model.EngineeringUnit != null)
                 {
                     EUInformation engUnits = NodeModelOpcExtensions.GetEUInformation(_model.EngineeringUnit);

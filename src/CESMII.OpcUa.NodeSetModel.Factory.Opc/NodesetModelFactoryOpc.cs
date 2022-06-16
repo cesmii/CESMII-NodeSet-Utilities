@@ -32,12 +32,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         string GetNodeIdWithUri(NodeId nodeId, out string namespaceUri);
 
         // OPC NodeState cache
-        NodeState GetNode(NodeId referenceTypeId);
+        NodeState GetNode(NodeId nodeId);
         NodeState GetNode(ExpandedNodeId expandedNodeId);
         List<NodeStateHierarchyReference> GetHierarchyReferences(NodeState nodeState);
 
         // NodesetModel cache
-        NodeSetModel GetOrAddNodesetModel(NodeModel node);
+        NodeSetModel GetOrAddNodesetModel(NodeModel nodeModel);
         NodeModel GetModelForNode(string nodeId);
         ILogger Logger { get; }
         string JsonEncodeVariant(Variant wrappedValue);
@@ -78,17 +78,16 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return GetNode(nodeId);
         }
 
-        public NodeState GetNode(NodeId expandedNodeId)
+        public NodeState GetNode(NodeId nodeId)
         {
             if (_importedNodesByNodeId == null)
             {
                 _importedNodesByNodeId = _importedNodes.ToDictionary(n => n.NodeId);
             }
-            //var nodeState = _importedNodes.FirstOrDefault(n => n.NodeId == expandedNodeId);
             NodeState nodeStateDict = null;
-            if (expandedNodeId != null)
+            if (nodeId != null)
             {
-                _importedNodesByNodeId.TryGetValue(expandedNodeId, out nodeStateDict);
+                _importedNodesByNodeId.TryGetValue(nodeId, out nodeStateDict);
             }
             return nodeStateDict;
         }
@@ -195,10 +194,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             requiredModelInfo = new RequiredModelInfo();
                             bCreated = true;
                         }
-                        else
-                        {
-
-                        }
                         requiredModelInfo.ModelUri = requiredModel.ModelUri;
                         requiredModelInfo.PublicationDate = requiredModel.PublicationDateSpecified ? requiredModel.PublicationDate : null;
                         requiredModelInfo.Version = requiredModel.Version;
@@ -251,9 +246,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             importedNodes = allImportedNodes.Except(previousNodes).ToList();
 
             // TODO Read nodeset poperties like author etc. and expose them in Profile editor
-
             //var nodesInModel = _importedNodes.Where(n => nodeSet.Models.Any(m => m.ModelUri == GetNamespaceUri(n.NodeId))).ToList();
-
             //if (nodesInModel.Count != nodeSet.Items.Count())
             //{
             //    //  Model defines nodes outside of it's namespace: TODO - investigate if his is allowed and if so how to cleanly support it.
@@ -301,8 +294,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     public class NodeModelFactoryOpc<T> where T : NodeModel, new()
     {
 
-        public T _model;
-        public ILogger Logger;
+        protected T _model;
+        protected ILogger Logger;
 
         protected virtual void Initialize(IOpcUaContext opcContext, NodeState opcNode)
         {
@@ -359,7 +352,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     var parent = parentFactory();
                     var uaChildObject = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, objectState, parent?.CustomState);
-                    if (parent.Namespace != uaChildObject.Namespace)
+                    if (parent?.Namespace != uaChildObject.Namespace)
                     {
                         // TODO If parent is in another nodeset/namespace, the reference may not be stored (Example: Server/Namespaces node (OPC i=11715): nodesets add themselves to that global node).
                         opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
@@ -368,7 +361,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
                 else if (referencedNode is BaseObjectTypeState objectTypeState)
                 {
-
+                    // TODO
                 }
                 else if (referencedNode is BaseDataVariableState variableState)
                 {
@@ -395,6 +388,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     if (parent is VariableModel parentVariable && parentVariable != null)
                     {
                         parentVariable.EngUnitNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
+
+                        var modelingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
+                        if (modelingRuleId != null)
+                        {
+                            var modelingRule = opcContext.GetNode(modelingRuleId);
+                            if (modelingRule == null)
+                            {
+                                throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                            }
+                            parentVariable.EngUnitModelingRule = modelingRule.DisplayName.Text;
+                        }
                         var euInfo = ((referencedNode as BaseVariableState)?.Value as ExtensionObject)?.Body as EUInformation;
                         if (euInfo != null)
                         {
@@ -403,8 +407,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         }
                         else
                         {
-                            // Nodesets commonly indicate that EUs are required on instances by specifying an enpty EU in the class
-                            //opcContext.Logger.LogInformation($"No or invalid engineering units in {parent} for {referencedNode}");
+                            // Nodesets commonly indicate that EUs are required on instances by specifying an empty EU in the class
                         }
                     }
                     else
@@ -426,7 +429,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         else
                         {
                             // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
-                            //opcContext.Logger.LogWarning($"No or invalid EURange in {parent} for {referencedNode}");
                         }
                     }
                     else
@@ -449,7 +451,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         else
                         {
                             // Nodesets commonly indicate that an Instrument Range is required on instances by specifying an enpty Instrument Range in the class
-                            //opcContext.Logger.LogInformation($"No or invalid Instrument Range in {parent} for {referencedNode}");
                         }
                     }
                     else
@@ -504,7 +505,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedNode is BaseObjectTypeState interfaceTypeState)
                 {
                     var parent = parentFactory();
-                    AddChildIfNotExists(parent, parent?.Interfaces, Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent.CustomState), opcContext.Logger);
+                    AddChildIfNotExists(parent, parent?.Interfaces, Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent?.CustomState), opcContext.Logger);
                 }
                 else
                 {
@@ -547,8 +548,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var referencedModel = Create(opcContext, referencedNode, parent?.CustomState, out _);
                 if (referencedModel != null)
                 {
-                    var childAndReference = new NodeModel.ChildAndReference { Child = referencedModel, Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _) };
-                    AddChildIfNotExists(parent, parent?.OtherChilden, childAndReference, opcContext.Logger);
+                    var nodeAndReference = new NodeModel.NodeAndReference { Node = referencedModel, Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _) };
+                    AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+
+                    // Add the reverse reference to the referencing node (parent)
+                    var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = nodeAndReference.Reference, };
+                    AddChildIfNotExists(referencedModel, referencedModel.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger);
 
                     if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HierarchicalReferences) && referencedModel is InstanceModelBase referencedInstanceModel)
                     {
@@ -564,7 +569,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
                 else
                 {
-                    //throw new Exception($"Failed to resolve referenced node {referencedNode} for {parent}");
                     opcContext.Logger.LogWarning($"Ignoring reference {referenceTypes.FirstOrDefault()} from {parent} to {referencedNode}: unable to resolve node.");
                 }
                 // Potential candidates for first class representation in the model:
@@ -588,11 +592,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     logger.LogWarning($"{uaInstance} has more than one parent. Ignored parent: {parent}, using {uaInstance.Parent}");
                 }
             }
-            if (collection == null)
-            {
-                return;
-            }
-            if (collection.Contains(uaChildObject) == false)
+            if (collection?.Contains(uaChildObject) == false)
             {
                 collection.Add(uaChildObject);
             }
@@ -700,9 +700,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return nodeModel;
         }
 
-        //protected NodeState _opcNode;
-
-        // TODO Move to a different (static?) class or extension method
         public static TNodeModel Create<TNodeModel>(IOpcUaContext opcContext, string nodeId, string opcNamespace, object customState, out bool created) where TNodeModel : NodeModel, new()
         {
             created = false;
@@ -716,8 +713,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     throw new Exception("Internal error - Type mismatch: NodeModel was previously created with a different, incompatible type");
                 }
                 nodeModel = new TNodeModel();
-                nodeModel.Namespace = opcNamespace;//opcContext.GetNamespaceUri(opcNode.NodeId.NamespaceIndex);
-                nodeModel.NodeId = nodeId;//new ExpandedNodeId(opcNode.NodeId, Namespace).ToString();
+                nodeModel.Namespace = opcNamespace;
+                nodeModel.NodeId = nodeId;
                 nodeModel.CustomState = customState;
                 created = true;
 
@@ -755,7 +752,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                     else if (nodeModel is MethodModel method)
                     {
-                        //nodesetModel.Methods.Add(method);
+                        // TODO nodesetModel.Methods.Add(method);
                     }
                     else if (nodeModel is ReferenceTypeModel referenceType)
                     {
@@ -782,7 +779,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     }
 
-    public class NodeModelUtils
+    public static class NodeModelUtils
     {
         public static string GetNodeIdIdentifier(string nodeId)
         {
@@ -837,10 +834,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class ObjectModelFactoryOpc : InstanceModelFactoryOpc<ObjectModel, ObjectTypeModel, ObjectTypeModelFactoryOpc>
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
-        {
-            base.Initialize(opcContext, opcNode);
-        }
     }
 
     public class BaseTypeModelFactoryOpc<TBaseTypeModel> : NodeModelFactoryOpc<TBaseTypeModel> where TBaseTypeModel : BaseTypeModel, new()
@@ -859,7 +852,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var superTypeState = opcContext.GetNode(uaType.SuperTypeId) as BaseTypeState;
                     if (superTypeState != null)
                     {
-                        superTypeModel = NodeModelFactoryOpc.Create(opcContext, superTypeState, this._model.CustomState, out _) as BaseTypeModel; //  BaseTypeModelFactoryOpc<TBaseTypeModel>.Create(opcContext, superTypeState, this._model.CustomState);
+                        superTypeModel = NodeModelFactoryOpc.Create(opcContext, superTypeState, this._model.CustomState, out _) as BaseTypeModel;
                         if (superTypeModel == null)
                         {
                             throw new Exception($"Invalid node {superTypeState} is not a Base Type");
@@ -895,7 +888,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 return Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, opcNode, customState);
             }
             throw new Exception("Unexpected/unsupported node type");
-            //return Create<BaseTypeModel>(opcContext, opcNode);
         }
     }
 
@@ -938,7 +930,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             if (variableNode.ValueRank != -1)
             {
                 _model.ValueRank = variableNode.ValueRank;
-                if (variableNode.ArrayDimensions != null && variableNode.ArrayDimensions.Count() > 0)
+                if (variableNode.ArrayDimensions != null && variableNode.ArrayDimensions.Any())
                 {
                     _model.ArrayDimensions = String.Join(",", variableNode.ArrayDimensions);
                 }

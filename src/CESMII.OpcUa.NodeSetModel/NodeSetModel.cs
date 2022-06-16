@@ -62,7 +62,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<ReferenceTypeModel> ReferenceTypes { get; set; } = new List<ReferenceTypeModel>();
 
-        public Dictionary<string, NodeModel> AllNodesByNodeId = new Dictionary<string, NodeModel>();
+        public Dictionary<string, NodeModel> AllNodesByNodeId { get; } = new Dictionary<string, NodeModel>();
     }
     public static class NodeSetModelExtensions
     { 
@@ -71,45 +71,42 @@ namespace CESMII.OpcUa.NodeSetModel
             _this.AllNodesByNodeId.Clear();
             foreach (var dataType in _this.DataTypes)
             {
-                if (!_this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(dataType.NodeId), dataType))
+                if (!_this.AllNodesByNodeId.TryAdd(dataType.NodeId, dataType))
                 {
                     // Duplicate node id!
                 }
             }
             foreach (var variableType in _this.VariableTypes)
             {
-                if (!_this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(variableType.NodeId), variableType))
-                {
-
-                }
+                _this.AllNodesByNodeId.TryAdd(variableType.NodeId, variableType);
             }
             foreach (var uaInterface in _this.Interfaces)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(uaInterface.NodeId), uaInterface);
+                _this.AllNodesByNodeId.TryAdd(uaInterface.NodeId, uaInterface);
             }
             foreach (var objectType in _this.ObjectTypes)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(objectType.NodeId), objectType);
+                _this.AllNodesByNodeId.TryAdd(objectType.NodeId, objectType);
             }
             foreach (var uaObject in _this.Objects)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(uaObject.NodeId), uaObject);
+                _this.AllNodesByNodeId.TryAdd(uaObject.NodeId, uaObject);
             }
             foreach (var property in _this.Properties)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(property.NodeId), property);
+                _this.AllNodesByNodeId.TryAdd(property.NodeId, property);
             }
             foreach (var dataVariable in _this.DataVariables)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(dataVariable.NodeId), dataVariable);
+                _this.AllNodesByNodeId.TryAdd(dataVariable.NodeId, dataVariable);
             }
             foreach (var referenceType in _this.ReferenceTypes)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(referenceType.NodeId), referenceType);
+                _this.AllNodesByNodeId.TryAdd(referenceType.NodeId, referenceType);
             }
             foreach (var node in _this.UnknownNodes)
             {
-                _this.AllNodesByNodeId.TryAdd(/*NodeId.Parse*/(node.NodeId), node);
+                _this.AllNodesByNodeId.TryAdd(node.NodeId, node);
             }
         }
 
@@ -230,13 +227,14 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public virtual List<ObjectTypeModel> Events { get; set; } = new List<ObjectTypeModel>();
 
-        public class ChildAndReference
+        public class NodeAndReference
         {
-            public virtual NodeModel Child { get; set; }
+            public virtual NodeModel Node { get; set; }
             public string Reference { get; set; }
         }
 
-        public virtual List<ChildAndReference> OtherChilden { get; set; } = new List<ChildAndReference>();
+        public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();
+        public virtual List<NodeAndReference> OtherReferencingNodes { get; set; } = new List<NodeAndReference>();
 
         internal virtual bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
@@ -296,8 +294,8 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 if (Parent != null && Parent != value)
                 {
+                    // Changing parent or multiple parents on {this}: new parent {value}, previous parent {_parent}
                     return;
-                    //throw new Exception($"Changing parent or multiple parents on {this}: new parent {value}, previous parent {_parent}");
                 }
                 _parent = value;
             }
@@ -359,37 +357,26 @@ namespace CESMII.OpcUa.NodeSetModel
                 RemoveByBrowseName(Events, superTypeModel.Events);
 
                 superTypeModel = superTypeModel?.SuperType;
-            };
+            }
         }
 
         private void RemoveByBrowseName<T>(List<T> properties, List<T> propertiesToRemove) where T : NodeModel
         {
             foreach (var property in propertiesToRemove)
             {
-                if (properties.RemoveAll(p => p.GetBrowseName() == property.GetBrowseName()
+                properties.RemoveAll(p =>
+                    p.GetBrowseName() == property.GetBrowseName()
                     && p.NodeId == property.NodeId
-                    ) > 0)
-                {
-                }
+                    );
             }
         }
 
         internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
-            if (bUpdated)
+            if (bUpdated && SuperType != null && !SuperType.SubTypes.Any(sub => sub.NodeId == this.NodeId))
             {
-                if (SuperType != null)
-                {
-                    if (!SuperType.SubTypes.Any(sub => sub.NodeId == this.NodeId))
-                    {
-                        SuperType.SubTypes.Add(this);
-                    }
-                    else
-                    {
-
-                    }
-                }
+                SuperType.SubTypes.Add(this);
             }
             return bUpdated;
         }
@@ -433,6 +420,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
         virtual public EngineeringUnitInfo EngineeringUnit { get; set; }
         public string EngUnitNodeId { get; set; }
+        public string EngUnitModelingRule { get; set; }
         public double? MinValue { get; set; }
         public double? MaxValue { get; set; }
         public double? InstrumentMinValue { get; set; }
@@ -503,14 +491,11 @@ namespace CESMII.OpcUa.NodeSetModel
         internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
-            if (bUpdated)
+            if (bUpdated && StructureFields?.Any() == true)
             {
-                if (StructureFields?.Any() == true)
+                foreach (var field in StructureFields)
                 {
-                    foreach (var field in StructureFields)
-                    {
-                        field.DataType?.UpdateIndices(model, updatedNodes);
-                    }
+                    field.DataType?.UpdateIndices(model, updatedNodes);
                 }
             }
             return bUpdated;
