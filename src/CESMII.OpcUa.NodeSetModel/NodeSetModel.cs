@@ -302,7 +302,7 @@ namespace CESMII.OpcUa.NodeSetModel
         }
         private NodeModel _parent;
     }
-    public abstract class InstanceModel<TTypeDefinition> : InstanceModelBase where TTypeDefinition : BaseTypeModel, new()
+    public abstract class InstanceModel<TTypeDefinition> : InstanceModelBase where TTypeDefinition : NodeModel, new()
     {
         public virtual TTypeDefinition TypeDefinition { get; set; }
     }
@@ -391,7 +391,7 @@ namespace CESMII.OpcUa.NodeSetModel
     {
     }
 
-    public class VariableModel : InstanceModel<VariableTypeModel>
+    public class VariableModel : InstanceModel<VariableTypeModel>, IVariableDataTypeInfo
     {
         public virtual BaseTypeModel DataType { get; set; }
         /// <summary>
@@ -423,6 +423,8 @@ namespace CESMII.OpcUa.NodeSetModel
         public string EngUnitModelingRule { get; set; }
         public double? MinValue { get; set; }
         public double? MaxValue { get; set; }
+        public string EURangeNodeId { get; set; }
+        public string EURangeModelingRule { get; set; }
         public double? InstrumentMinValue { get; set; }
         public double? InstrumentMaxValue { get; set; }
         public long? EnumValue { get; set; }
@@ -442,7 +444,7 @@ namespace CESMII.OpcUa.NodeSetModel
     {
     }
 
-    public class MethodModel : InstanceModel<BaseTypeModel>
+    public class MethodModel : InstanceModel<MethodModel>
     {
     }
 
@@ -459,19 +461,68 @@ namespace CESMII.OpcUa.NodeSetModel
     }
 
 
-    public class VariableTypeModel : BaseTypeModel
+    public interface IVariableDataTypeInfo
     {
+        BaseTypeModel DataType { get; set; }
+        /// <summary>
+        /// n > 1: the Value is an array with the specified number of dimensions.
+        /// OneDimension(1) : The value is an array with one dimension.
+        /// OneOrMoreDimensions(0): The value is an array with one or more dimensions.
+        /// Scalar(−1): The value is not an array.
+        /// Any(−2): The value can be a scalar or an array with any number of dimensions.
+        /// ScalarOrOneDimension(−3): The value can be a scalar or a one dimensional array.
+        /// </summary>
+        int? ValueRank { get; set; }
+        /// <summary>
+        /// Comma separated list
+        /// </summary>
+        string ArrayDimensions { get; set; }
+        string Value { get; set; }
+    }
+
+    public class VariableTypeModel : BaseTypeModel, IVariableDataTypeInfo
+    {
+        public virtual BaseTypeModel DataType { get; set; }
+        /// <summary>
+        /// n > 1: the Value is an array with the specified number of dimensions.
+        /// OneDimension(1) : The value is an array with one dimension.
+        /// OneOrMoreDimensions(0): The value is an array with one or more dimensions.
+        /// Scalar(−1): The value is not an array.
+        /// Any(−2): The value can be a scalar or an array with any number of dimensions.
+        /// ScalarOrOneDimension(−3): The value can be a scalar or a one dimensional array.
+        /// </summary>
+        public int? ValueRank { get; set; }
+        /// <summary>
+        /// Comma separated list
+        /// </summary>
+        public string ArrayDimensions { get; set; }
+        public string Value { get; set; }
     }
 
     public class DataTypeModel : BaseTypeModel
     {
         public virtual List<StructureField> StructureFields { get; set; }
         public virtual List<UaEnumField> EnumFields { get; set; }
+        public bool? IsOptionSet { get; set; }
 
         public class StructureField
         {
             public string Name { get; set; }
             public virtual BaseTypeModel DataType { get; set; }
+            /// <summary>
+            /// n > 1: the Value is an array with the specified number of dimensions.
+            /// OneDimension(1) : The value is an array with one dimension.
+            /// OneOrMoreDimensions(0): The value is an array with one or more dimensions.
+            /// Scalar(−1): The value is not an array.
+            /// Any(−2): The value can be a scalar or an array with any number of dimensions.
+            /// ScalarOrOneDimension(−3): The value can be a scalar or a one dimensional array.
+            /// </summary>
+            public int? ValueRank { get; set; }
+            /// <summary>
+            /// Comma separated list
+            /// </summary>
+            public string ArrayDimensions { get; set; }
+            public uint? MaxStringLength { get; set; }
             public virtual List<LocalizedText> Description { get; set; }
             public bool IsOptional { get; set; }
             public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";

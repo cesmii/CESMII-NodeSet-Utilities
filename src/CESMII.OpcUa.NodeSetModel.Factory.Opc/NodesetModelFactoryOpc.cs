@@ -356,8 +356,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     {
                         // TODO If parent is in another nodeset/namespace, the reference may not be stored (Example: Server/Namespaces node (OPC i=11715): nodesets add themselves to that global node).
                         opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
+                        // Add the reverse reference to the referencing node (parent)
+                        var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), };
+                        AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger);
                     }
                     AddChildIfNotExists(parent, parent?.Objects, uaChildObject, opcContext.Logger);
+                    if (referenceTypes[0].NodeId != ReferenceTypeIds.HasComponent)
+                    {
+                        // Preserve the more specific reference type as well
+                        var nodeAndReference = new NodeModel.NodeAndReference { Node = uaChildObject, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                        AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+                    }
                 }
                 else if (referencedNode is BaseObjectTypeState objectTypeState)
                 {
@@ -382,7 +391,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HasProperty))
             {
-                if (referencedNode.BrowseName?.Name == BrowseNames.EngineeringUnits)
+                if (referencedNode.BrowseName?.Name == BrowseNames.EngineeringUnits || (referencedNode as BaseVariableState).DataType == DataTypeIds.EUInformation)
                 {
                     var parent = parentFactory();
                     if (parent is VariableModel parentVariable && parentVariable != null)
@@ -420,6 +429,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var parent = parentFactory();
                     if (parent is VariableModel parentVariable && parentVariable != null)
                     {
+                        parentVariable.EURangeNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
+                        var modelingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
+                        if (modelingRuleId != null)
+                        {
+                            var modelingRule = opcContext.GetNode(modelingRuleId);
+                            if (modelingRule == null)
+                            {
+                                throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                            }
+                            parentVariable.EURangeModelingRule = modelingRule.DisplayName.Text;
+                        }
                         var euRange = ((referencedNode as BaseVariableState)?.Value as ExtensionObject)?.Body as ua.Range;
                         if (euRange != null)
                         {
@@ -505,7 +525,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedNode is BaseObjectTypeState interfaceTypeState)
                 {
                     var parent = parentFactory();
-                    AddChildIfNotExists(parent, parent?.Interfaces, Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent?.CustomState), opcContext.Logger);
+                    var uaInterface = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent?.CustomState);
+                    AddChildIfNotExists(parent, parent?.Interfaces, uaInterface, opcContext.Logger);
+                    if (referenceTypes[0].NodeId != ReferenceTypeIds.HasInterface)
+                    {
+                        // Preserve the more specific reference type as well
+                        var nodeAndReference = new NodeModel.NodeAndReference { Node = uaInterface, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                        AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+                    }
                 }
                 else
                 {
@@ -536,6 +563,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var parent = parentFactory();
                     var uaEvent = Create<ObjectTypeModelFactoryOpc, ObjectTypeModel>(opcContext, eventTypeState, parent?.CustomState);
                     AddChildIfNotExists(parent, parent?.Events, uaEvent, opcContext.Logger);
+                    if (referenceTypes[0].NodeId != ReferenceTypeIds.GeneratesEvent)
+                    {
+                        // Preserve the more specific reference type as well
+                        var nodeAndReference = new NodeModel.NodeAndReference { Node = uaEvent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                        AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+                    }
                 }
                 else
                 {
@@ -796,7 +829,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class InstanceModelFactoryOpc<TInstanceModel, TBaseTypeModel, TBaseTypeModelFactoryOpc> : NodeModelFactoryOpc<TInstanceModel>
         where TInstanceModel : InstanceModel<TBaseTypeModel>, new()
-        where TBaseTypeModel : BaseTypeModel, new()
+        where TBaseTypeModel : NodeModel, new()
         where TBaseTypeModelFactoryOpc : NodeModelFactoryOpc<TBaseTypeModel>, new()
     {
         protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
@@ -804,9 +837,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             base.Initialize(opcContext, opcNode);
             var uaInstance = opcNode as BaseInstanceState;
             var variableTypeDefinition = opcContext.GetNode(uaInstance.TypeDefinitionId);
-            if (variableTypeDefinition is BaseTypeState)
+            if (variableTypeDefinition != null) //is BaseTypeState)
             {
-                _model.TypeDefinition = Create<TBaseTypeModelFactoryOpc, TBaseTypeModel>(opcContext, variableTypeDefinition, null);
+                var typeDefModel = NodeModelFactoryOpc.Create(opcContext, variableTypeDefinition, _model.CustomState, out _); // Create<TBaseTypeModelFactoryOpc, TBaseTypeModel>(opcContext, variableTypeDefinition, null);
+                _model.TypeDefinition = typeDefModel as TBaseTypeModel;
+                if (_model.TypeDefinition == null)
+                {
+                    throw new Exception($"Unexpected type definition {variableTypeDefinition}");
+                }
             }
 
             if (uaInstance.ModellingRuleId != null)
@@ -911,40 +949,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             base.Initialize(opcContext, opcNode);
             var variableNode = opcNode as BaseVariableState;
 
-            var dataType = opcContext.GetNode(variableNode.DataType);
-            if (dataType is DataTypeState)
-            {
-                _model.DataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null);
-            }
-            else
-            {
-                if (dataType == null)
-                {
-                    throw new Exception($"Variable {variableNode}: did not find data type {variableNode.DataType} (Namespace {opcContext.NamespaceUris.GetString(variableNode.DataType.NamespaceIndex)}).");
-                }
-                else
-                {
-                    throw new Exception($"Variable {variableNode}: Unexpected node state {variableNode.DataType}/{dataType?.GetType().FullName}.");
-                }
-            }
-            if (variableNode.ValueRank != -1)
-            {
-                _model.ValueRank = variableNode.ValueRank;
-                if (variableNode.ArrayDimensions != null && variableNode.ArrayDimensions.Any())
-                {
-                    _model.ArrayDimensions = String.Join(",", variableNode.ArrayDimensions);
-                }
-            }
-            if (variableNode.Value != null)
-            {
-                var encodedValue = opcContext.JsonEncodeVariant(variableNode.WrappedValue);
-                _model.Value = encodedValue;
-            }
+            InitializeDataTypeInfo(_model, opcContext, variableNode);
             if (variableNode.AccessLevel != 1) _model.AccessLevel = variableNode.AccessLevel;
             if (variableNode.UserAccessLevel != 1) _model.UserAccessLevel = variableNode.UserAccessLevel;
-            if (variableNode.AccessRestrictions != 0) _model.AccessRestrictions = (ushort) variableNode.AccessRestrictions;
-            if (variableNode.WriteMask != 0) _model.WriteMask = (uint) variableNode.WriteMask;
-            if (variableNode.UserWriteMask != 0) _model.UserWriteMask = (uint) variableNode.UserWriteMask;
+            if (variableNode.AccessRestrictions != 0) _model.AccessRestrictions = (ushort)variableNode.AccessRestrictions;
+            if (variableNode.WriteMask != 0) _model.WriteMask = (uint)variableNode.WriteMask;
+            if (variableNode.UserWriteMask != 0) _model.UserWriteMask = (uint)variableNode.UserWriteMask;
+        }
+
+        internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode)
+        {
+           VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, variableNode, variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
         }
     }
 
@@ -956,7 +971,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     {
     }
 
-    public class MethodModelFactoryOpc : InstanceModelFactoryOpc<MethodModel, BaseTypeModel, BaseTypeModelFactoryOpc<BaseTypeModel>> // TODO determine if intermediate base classes of MethodState are worth exposing in the model
+    public class MethodModelFactoryOpc : InstanceModelFactoryOpc<MethodModel, MethodModel, MethodModelFactoryOpc> // TODO determine if intermediate base classes of MethodState are worth exposing in the model
     {
         protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
         {
@@ -976,6 +991,55 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class VariableTypeModelFactoryOpc : BaseTypeModelFactoryOpc<VariableTypeModel>
     {
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        {
+            base.Initialize(opcContext, opcNode);
+            var variableTypeState = opcNode as BaseVariableTypeState;
+            InitializeDataTypeInfo(_model, opcContext, variableTypeState);
+            //variableTypeState.ValueRank
+            //variableTypeState.Value
+            //variableTypeState.ArrayDimensions
+            //_model.
+        }
+
+        internal static void InitializeDataTypeInfo(VariableTypeModel model, IOpcUaContext opcContext, BaseVariableTypeState variableTypeNode)
+        {
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, variableTypeNode, variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
+        }
+
+        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, NodeState variableNode, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
+        {
+            var dataType = opcContext.GetNode(dataTypeNodeId);
+            if (dataType is DataTypeState)
+            {
+                model.DataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null);
+            }
+            else
+            {
+                if (dataType == null)
+                {
+                    throw new Exception($"{variableNode.GetType()} {variableNode}: did not find data type {dataTypeNodeId} (Namespace {opcContext.NamespaceUris.GetString(dataTypeNodeId.NamespaceIndex)}).");
+                }
+                else
+                {
+                    throw new Exception($"{variableNode.GetType()} {variableNode}: Unexpected node state {dataTypeNodeId}/{dataType?.GetType().FullName}.");
+                }
+            }
+            if (valueRank != -1)
+            {
+                model.ValueRank = valueRank;
+                if (arrayDimensions != null && arrayDimensions.Any())
+                {
+                    model.ArrayDimensions = String.Join(",", arrayDimensions);
+                }
+            }
+            if (wrappedValue.Value != null)
+            {
+                var encodedValue = opcContext.JsonEncodeVariant(wrappedValue);
+                model.Value = encodedValue;
+            }
+        }
+
     }
     public class DataTypeModelFactoryOpc : BaseTypeModelFactoryOpc<DataTypeModel>
     {
@@ -1004,9 +1068,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             {
                                 Name = field.Name,
                                 DataType = dataTypeModel,
+                                ValueRank = field.ValueRank != -1 ? field.ValueRank : null,
+                                ArrayDimensions = field.ArrayDimensions != null && field.ArrayDimensions.Any() ? String.Join(",", field.ArrayDimensions) : null,
+                                MaxStringLength = field.MaxStringLength != 0 ? field.MaxStringLength : null,
                                 Description = field.Description.ToModel(),
                                 IsOptional = field.IsOptional,
-                                // TODO struct Array dimensions/ValueRank
                             };
                             _model.StructureFields.Add(structureField);
                         }
@@ -1021,6 +1087,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var enumFields = dataTypeState.DataTypeDefinition.Body as EnumDefinition;
                     if (enumFields != null)
                     {
+                        _model.IsOptionSet = enumFields.IsOptionSet;
                         _model.EnumFields = new List<DataTypeModel.UaEnumField>();
                         foreach (var field in enumFields.Fields)
                         {

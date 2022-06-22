@@ -7,7 +7,24 @@ using System.Linq;
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
     public static class NodeModelOpcExtensions
-    { 
+    {
+        public static string GetDisplayNamePath(this InstanceModelBase model)
+        {
+            return model.GetDisplayNamePath(new List<NodeModel>());
+        }
+        public static string GetDisplayNamePath(this InstanceModelBase model, List<NodeModel> nodesVisited)
+        {
+            if (nodesVisited.Contains(model))
+            {
+                return "(cycle)";
+            }
+            nodesVisited.Add(model);
+            if (model.Parent is InstanceModelBase parent)
+            {
+                return $"{parent.GetDisplayNamePath(nodesVisited)}.{model.DisplayName.FirstOrDefault()?.Text}";
+            }
+            return model.DisplayName.FirstOrDefault()?.Text;
+        }
         internal static void SetEngineeringUnits(this VariableModel model, EUInformation euInfo)
         {
             model.EngineeringUnit = new VariableModel.EngineeringUnitInfo
@@ -30,20 +47,6 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             model.InstrumentMaxValue = range.High;
         }
 
-#if THINGWORXUNITS
-        class ThinkIQTypeSystem
-        {
-            public class ThinkIQMeasurement
-            {
-                public string symbol { get; set; }
-                public string display_name { get; set; }
-                public string relative_name { get; set; }
-                public double conversion_offset { get; set; }
-                public double conversion_multiplier { get; set; }
-            }
-            public List<ThinkIQMeasurement> measurement_units { get; set; }
-        }
-#endif
         private const string strUNECEUri = "http://www.opcfoundation.org/UA/units/un/cefact";
 
         static Dictionary<string, EUInformation> _euInformationByDescription;
@@ -83,31 +86,6 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     catch
                     {
                     }
-#if THINGWORXUNITS
-                    try
-                    {
-                        var thinkIqMeasurements = File.ReadAllText(Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "type_system.json"));
-                        var thinkIqTypes = System.Text.Json.JsonSerializer.Deserialize<ThinkIQTypeSystem>(thinkIqMeasurements);
-                        foreach (var m in thinkIqTypes.measurement_units)
-                        {
-                            var opcEUUnit = euInformationByDescription.Values.Where(o => string.Equals(o.DisplayName.Text, m.symbol, System.StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-                            var opcEU = euInformationByDescription.Values.Where(o => string.Equals(o.DisplayName.Text, m.display_name, System.StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-                            if (opcEU == null)
-                            {
-                            }
-                            if (!euInformationByDescription.TryGetValue(m.display_name, out var opcEUDesc))
-                            {
-                                opcEUDesc = euInformationByDescription.Values.Where(o => string.Equals(o.Description.Text, m.display_name, System.StringComparison.InvariantCultureIgnoreCase)).FirstOrDefault();
-                            }
-                            if (opcEU == null && opcEUDesc == null && opcEUUnit == null)
-                            {
-
-                            }
-                        }
-                    }
-                    catch { }
-#endif
-
                 }
                 return _euInformationByDescription;
             }
