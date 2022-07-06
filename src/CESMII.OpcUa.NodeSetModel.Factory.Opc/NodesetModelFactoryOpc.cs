@@ -37,7 +37,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         List<NodeStateHierarchyReference> GetHierarchyReferences(NodeState nodeState);
 
         // NodesetModel cache
-        NodeSetModel GetOrAddNodesetModel(NodeModel nodeModel);
+        NodeSetModel GetOrAddNodesetModel(string uaNamespace);
         NodeModel GetModelForNode(string nodeId);
         ILogger Logger { get; }
         string JsonEncodeVariant(Variant wrappedValue);
@@ -112,16 +112,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return null;
         }
 
-        public NodeSetModel GetOrAddNodesetModel(NodeModel nodeModel)
+        public NodeSetModel GetOrAddNodesetModel(string uaNamespace)
         {
-            var uaNamespace = nodeModel.Namespace;
             if (!_nodesetModels.TryGetValue(uaNamespace, out var nodesetModel))
             {
                 nodesetModel = new NodeSetModel();
                 nodesetModel.ModelUri = uaNamespace;
                 _nodesetModels.Add(uaNamespace, nodesetModel);
             }
-            nodeModel.NodeSet = nodesetModel;
             return nodesetModel;
         }
         public List<NodeStateHierarchyReference> GetHierarchyReferences(NodeState nodeState)
@@ -746,12 +744,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     throw new Exception("Internal error - Type mismatch: NodeModel was previously created with a different, incompatible type");
                 }
                 nodeModel = new TNodeModel();
-                nodeModel.Namespace = opcNamespace;
                 nodeModel.NodeId = nodeId;
                 nodeModel.CustomState = customState;
                 created = true;
 
-                var nodesetModel = opcContext.GetOrAddNodesetModel(nodeModel);
+                var nodesetModel = opcContext.GetOrAddNodesetModel(opcNamespace);
+                nodeModel.NodeSet = nodesetModel;
                 if (!nodesetModel.AllNodesByNodeId.ContainsKey(nodeModel.NodeId))
                 {
                     nodesetModel.AllNodesByNodeId.Add(nodeModel.NodeId, nodeModel);
