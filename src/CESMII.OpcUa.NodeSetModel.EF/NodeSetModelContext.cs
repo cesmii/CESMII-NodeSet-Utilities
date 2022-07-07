@@ -57,9 +57,21 @@ namespace CESMII.OpcUa.NodeSetModel
                     $"{nameof(NodeModel.NodeSet)}{nameof(NodeSetModel.PublicationDate)}")
                 ;
 
-            modelBuilder.Entity<NodeModel>()
-                .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes).WithOwner()
+            var orn = modelBuilder.Entity<NodeModel>()
+                .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes)
                 ;
+            orn.WithOwner()
+                .HasForeignKey("OwnerNodeId", "OwnerModelUri", "OwnerPublicationDate")
+                ;
+            orn.Property<string>("ReferencedNodeId");
+            orn.Property<string>("ReferencedModelUri");
+            orn.Property<DateTime?>("ReferencedPublicationDate");
+            orn.HasOne(nr => nr.Node).WithMany()
+                .HasForeignKey("ReferencedNodeId", "ReferencedModelUri", "ReferencedPublicationDate")
+                ;
+            orn.Property<string>("OwnerNodeId");
+            orn.Property<string>("OwnerModelUri");
+            orn.Property<DateTime?>("OwnerPublicationDate");
 
             modelBuilder.Entity<ObjectTypeModel>()
                 .ToTable("ObjectTypes")
