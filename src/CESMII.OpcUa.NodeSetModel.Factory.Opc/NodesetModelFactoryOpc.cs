@@ -410,12 +410,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (euInfo != null)
                         {
                             parentVariable.SetEngineeringUnits(euInfo);
-                            return;
                         }
                         else
                         {
                             // Nodesets commonly indicate that EUs are required on instances by specifying an empty EU in the class
                         }
+                        return;
                     }
                     else
                     {
@@ -442,12 +442,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (euRange != null)
                         {
                             parentVariable.SetRange(euRange);
-                            return;
                         }
                         else
                         {
                             // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
                         }
+                        return;
                     }
                     else
                     {
@@ -464,12 +464,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (euRange != null)
                         {
                             parentVariable.SetInstrumentRange(euRange);
-                            return;
                         }
                         else
                         {
                             // Nodesets commonly indicate that an Instrument Range is required on instances by specifying an enpty Instrument Range in the class
                         }
+                        return;
                     }
                     else
                     {

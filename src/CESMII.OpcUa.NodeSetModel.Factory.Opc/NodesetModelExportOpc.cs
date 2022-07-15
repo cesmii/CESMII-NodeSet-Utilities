@@ -494,7 +494,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     Value = engUnitProp.NodeId,
                 });
             }
-            if (!_model.Properties.Any(p => p.NodeId == _model.EURangeNodeId) && _model.MinValue.HasValue && _model.MaxValue.HasValue && _model.MinValue != _model.MaxValue)
+            if (!_model.Properties.Any(p => p.NodeId == _model.EURangeNodeId) && (!string.IsNullOrEmpty(_model.EURangeNodeId) || (_model.MinValue.HasValue && _model.MaxValue.HasValue && _model.MinValue != _model.MaxValue)))
             {
                 // Add EURange property
                 if (result.Item2 == null)
@@ -502,20 +502,40 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     result.Item2 = new List<uaExport.UANode>();
                 }
 
+                System.Xml.XmlElement xmlElem = null;
 
-                var range = new ua.Range
+                if (_model.MinValue.HasValue && _model.MaxValue.HasValue)
                 {
-                    Low = _model.MinValue.Value,
-                    High = _model.MaxValue.Value,
-                };
-                System.Xml.XmlElement xmlElem = GetExtensionObjectAsXML(range);
+                    var range = new ua.Range
+                    {
+                        Low = _model.MinValue.Value,
+                        High = _model.MaxValue.Value,
+                    };
+                    xmlElem = GetExtensionObjectAsXML(range);
+                }
+                if (string.IsNullOrEmpty(_model.EURangeNodeId))
+                {
 
+                }
                 var euRangeProp = new uaExport.UAVariable
                 {
                     NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(_model.EURangeNodeId) ? _model.EURangeNodeId : $"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases),
                     BrowseName = BrowseNames.EURange,
                     DisplayName = new uaExport.LocalizedText[] { new uaExport.LocalizedText { Value = BrowseNames.EURange } },
-
+                    ParentNodeId = dataVariable.NodeId,
+                    DataType = GetNodeIdForExport(DataTypeIds.Range.ToString(), namespaces, aliases),
+                    References = new[] {
+                        new uaExport.Reference {
+                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasTypeDefinition.ToString(), namespaces, aliases),
+                            Value = GetNodeIdForExport(VariableTypeIds.PropertyType.ToString(), namespaces, aliases),
+                        },
+                        new uaExport.Reference
+                        {
+                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
+                            IsForward = false,
+                            Value = GetNodeIdForExport(dataVariable.NodeId, namespaces, aliases),
+                        },
+                    },
                     Value = xmlElem,
                 };
 
