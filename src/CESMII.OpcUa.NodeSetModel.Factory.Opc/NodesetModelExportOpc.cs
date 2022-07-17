@@ -786,7 +786,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     }
                     fields.Add(uaField);
                 }
-                dataType.Definition = new DataTypeDefinition
+                dataType.Definition = new uaExport.DataTypeDefinition
                 {
                     Name = GetBrowseNameForExport(namespaces),
                     SymbolicName = _model.SymbolicName,
@@ -809,7 +809,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         //DataType = field.DataType,                         
                     });
                 }
-                dataType.Definition = new DataTypeDefinition
+                dataType.Definition = new uaExport.DataTypeDefinition
                 {
                     Name = GetBrowseNameForExport(namespaces),
                     Field = fields.ToArray(),
