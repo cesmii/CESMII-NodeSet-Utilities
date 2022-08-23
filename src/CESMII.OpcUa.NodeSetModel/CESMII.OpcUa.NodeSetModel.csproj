@@ -13,6 +13,7 @@
 	<Description>OPC UA Node Set Model: provides a fully populated graph of a node set and its dependencies.</Description>
 	<Copyright>Copyright © 2022 CESMII</Copyright>
 	<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+	<LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

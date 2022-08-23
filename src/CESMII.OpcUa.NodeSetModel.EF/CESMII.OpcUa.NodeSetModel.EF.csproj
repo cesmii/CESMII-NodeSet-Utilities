@@ -26,7 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CESMII.OpcUa.NodeSetModel\CESMII.OpcUa.NodeSetModel.csproj" />
+    <ProjectReference Include="..\CESMII.OpcUa.NodeSetModel.Factory.Opc\CESMII.OpcUa.NodeSetModel.Factory.Opc.csproj" />
+	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetModel\CESMII.OpcUa.NodeSetModel.csproj" />
   </ItemGroup>
 
 </Project>
