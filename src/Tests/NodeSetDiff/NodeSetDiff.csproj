@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NodeSetDiffLibrary\NodeSetDiffLibrary.csproj" />
+    <ProjectReference Include="..\NodeSetDiffLibrary\CESMII.OpcUa.NodeSetDiff.csproj" />
   </ItemGroup>
 
 </Project>

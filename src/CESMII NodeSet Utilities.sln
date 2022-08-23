@@ -26,7 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{557E3AAF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.NodeSetUtilities.Tests", "Tests\CESMII.NodeSetUtilities.Tests\CESMII.NodeSetUtilities.Tests.csproj", "{12835A2D-B163-4B09-9727-128EC84A6724}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeSetDiffLibrary", "Tests\NodeSetDiffLibrary\NodeSetDiffLibrary.csproj", "{0CC90F8C-933C-41CD-A432-8DB282AE1402}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetDiff", "Tests\NodeSetDiffLibrary\CESMII.OpcUa.NodeSetDiff.csproj", "{0CC90F8C-933C-41CD-A432-8DB282AE1402}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeSetDiff", "Tests\NodeSetDiff\NodeSetDiff.csproj", "{ABFD5B3D-704A-47CE-98B1-A1986B44E198}"
 EndProject

@@ -28,7 +28,7 @@
 
 	<ItemGroup>
     <ProjectReference Include="..\..\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj" />
-    <ProjectReference Include="..\NodeSetDiffLibrary\NodeSetDiffLibrary.csproj" />
+    <ProjectReference Include="..\NodeSetDiffLibrary\CESMII.OpcUa.NodeSetDiff.csproj" />
   </ItemGroup>
 
   <ItemGroup>
