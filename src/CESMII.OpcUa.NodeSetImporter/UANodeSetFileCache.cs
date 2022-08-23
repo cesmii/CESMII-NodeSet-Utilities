@@ -21,7 +21,7 @@ namespace CESMII.OpcUa.NodeSetImporter
     {
         public UANodeSetFileCache()
         {
-            RootFolder = Directory.GetCurrentDirectory();
+            RootFolder = Path.Combine(Directory.GetCurrentDirectory(), "NodeSetCache");
         }
 
         public UANodeSetFileCache(string pRootFolder)
