@@ -24,33 +24,26 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public string Identifier { get; set; }
 
-        // SequenceNumber/IsUpdate
+        // For use by the application
         public object CustomState { get; set; }
 
         /// <summary>
-        /// This is equivalent to ProfileItem of type Class.
+        /// The UA object types defined by this node set
         /// </summary>
         public virtual List<ObjectTypeModel> ObjectTypes { get; set; } = new List<ObjectTypeModel>();
 
         /// <summary>
-        /// This is equivalent to ProfileItem of type CustomDataType.
-        /// This is used primarily to represent structure type objects (ie MessageCode example). 
-        /// This is typically not an instance. 
-        /// This could have its own complex properties associated with it.
+        /// The UA variable types defined by this node set
         /// </summary>
         public virtual List<VariableTypeModel> VariableTypes { get; set; } = new List<VariableTypeModel>();
 
         /// <summary>
-        /// No clean mapping yet.
-        /// TBD - Lower priority.
-        /// appears to be enumerations
-        /// more globally re-usable
-        /// TBD - ask JW if we can only use these to be selected and not allow building them out.
+        /// The UA data types defined by this node set
         /// </summary>
         public virtual List<DataTypeModel> DataTypes { get; set; } = new List<DataTypeModel>();
 
         /// <summary>
-        /// This is equivalent to ProfileInterface.
+        /// The UA interfaces defined by this node set
         /// </summary>
         public virtual List<InterfaceModel> Interfaces { get; set; } = new List<InterfaceModel>();
         public virtual List<ObjectModel> Objects { get; set; } = new List<ObjectModel>();
@@ -172,6 +165,8 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<LocalizedText> Description { get; set; }
         public string Documentation { get; set; }
+        public string ReleaseStatus { get; set; }
+
         [IgnoreDataMember]
         public string Namespace { get => NodeSet.ModelUri; /*set; */}
         public string NodeId { get; set; }
@@ -182,49 +177,48 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public class LocalizedText
         {
-            public string Text { get; set; }
+            public LocalizedText()
+            {
+                Text = "";
+            }
+#nullable enable
+            public string Text { get => _text; set => _text = value ?? ""; }
+            private string _text;
+#nullable restore
             public string Locale { get; set; }
 
-            public static implicit operator LocalizedText(string text) => new LocalizedText { Text = text };
+            public static implicit operator LocalizedText(string text) => text == null ? null : new LocalizedText { Text = text };
             public static List<LocalizedText> ListFromText (string text) => text != null ? new List<LocalizedText> { new LocalizedText { Text = text } } : new List<LocalizedText>();
             public override string ToString() => Text;
         }
 
         /// <summary>
-        /// This is equivalent to ProfileAttribute except it keeps compositions, variable types elsewhere.
-        /// Relatively static (ie. serial number.) over the life of the object instance
+        /// OPC UA: HasProperty references
         /// </summary>
         public virtual List<VariableModel> Properties { get; set; } = new List<VariableModel>(); // Surprisingly, properties can also be of type DataVariable - need to allow both by using the common base class
 
         /// <summary>
-        /// This is equivalent to ProfileAttribute. More akin to variable types.
-        /// More dynamic (ie. RPM, temperature.)
-        /// TBD - figure out a way to distinguish between data variables and properties.  
+        /// OPC UA: HasComponent references (or of derived reference type) to a DataVariable
         /// </summary>
         public virtual List<DataVariableModel> DataVariables { get; set; } = new List<DataVariableModel>();
 
         /// <summary>
-        /// This is equivalent to ProfileAttribute.
-        /// Sub-systems. More akin to compositions.
-        /// (ie. starter, control unit). Complete sub-system that could be used by other profiles. 
-        /// The object model has name, description and then ObjectType much like Profile attribute has name, description, Composition(Id). 
+        /// OPC UA: HasComponent references (or of derived reference types) to an Object
         /// </summary>
         public virtual List<ObjectModel> Objects { get; set; } = new List<ObjectModel>();
 
         /// <summary>
-        /// This is equivalent to Interfaces in ProfileItem.
-        /// If someone implemented an interface, the objectType should dynamically "get" those properties. 
-        /// Essentially, the implementing objectType does not hardcode the properties of the interface. any change to the
-        /// interface would automatically be shown to the user on the implementing objectTypes.
+        /// OPC UA: HasInterface references (or of derivce reference types)
         /// </summary>
         public virtual List<InterfaceModel> Interfaces { get; set; } = new List<InterfaceModel>();
 
         /// <summary>
         /// TBD - defer for now
+        /// OPC UA: HasComponent references (or of derived reference types) to a MethodType
         /// </summary>
         public virtual List<MethodModel> Methods { get; set; } = new List<MethodModel>();
         /// <summary>
-        /// TBD - defer for now
+        /// OPC UA: GeneratesEvent references (or of derived reference types)
         /// </summary>
         public virtual List<ObjectTypeModel> Events { get; set; } = new List<ObjectTypeModel>();
 
@@ -310,9 +304,13 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class ObjectModel : InstanceModel<ObjectTypeModel>
     {
+        /// <summary>
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Objects and ObjectModel for EF
+        /// </summary>
+        public virtual List<NodeModel> NodesWithObjects { get; set; } = new List<NodeModel>();
     }
 
-    public class BaseTypeModel : NodeModel
+    public abstract class BaseTypeModel : NodeModel
     {
         public bool IsAbstract { get; set; }
         /// <summary>
@@ -386,10 +384,16 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class ObjectTypeModel : BaseTypeModel
     {
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Events and ObjectTypeModel for EF
+        public virtual List<NodeModel> NodesWithEvents { get; set; } = new List<NodeModel>();
     }
 
     public class InterfaceModel : ObjectTypeModel
     {
+        /// <summary>
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Interfaces and InterfaceModel for EF
+        /// </summary>
+        public virtual List<NodeModel> NodesWithInterface { get; set; } = new List<NodeModel>();
     }
 
     public class VariableModel : InstanceModel<VariableTypeModel>, IVariableDataTypeInfo
@@ -410,6 +414,11 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ArrayDimensions { get; set; }
         public string Value { get; set; }
 
+        /// <summary>
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Properties and PropertiesModel for EF
+        /// </summary>
+        public virtual List<NodeModel> NodesWithProperties { get; set; } = new List<NodeModel>();
+
         // Engineering units:
         public class EngineeringUnitInfo
         {
@@ -422,23 +431,29 @@ namespace CESMII.OpcUa.NodeSetModel
         virtual public EngineeringUnitInfo EngineeringUnit { get; set; }
         public string EngUnitNodeId { get; set; }
         public string EngUnitModelingRule { get; set; }
+        public uint? EngUnitAccessLevel { get; set; }
         public double? MinValue { get; set; }
         public double? MaxValue { get; set; }
         public string EURangeNodeId { get; set; }
         public string EURangeModelingRule { get; set; }
+        public uint? EURangeAccessLevel { get; set; }
         public double? InstrumentMinValue { get; set; }
         public double? InstrumentMaxValue { get; set; }
         public long? EnumValue { get; set; }
 
         public uint? AccessLevel { get; set; }
-        public uint? UserAccessLevel { get; set; }
         public ushort? AccessRestrictions { get; set; }
         public uint? WriteMask { get; set; }
         public uint? UserWriteMask { get; set; }
+        public double? MinimumSamplingInterval { get; set; }
     }
 
     public class DataVariableModel : VariableModel
     {
+        /// <summary>
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.DataVariables and DataVariableModel for EF
+        /// </summary>
+        public virtual List<NodeModel> NodesWithDataVariables { get; set; } = new List<NodeModel>();
     }
 
     public class PropertyModel : VariableModel
@@ -447,6 +462,10 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class MethodModel : InstanceModel<MethodModel>
     {
+        /// <summary>
+        /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Methods and MethodModel for EF
+        /// </summary>
+        public virtual List<NodeModel> NodesWithMethods { get; set; } = new List<NodeModel>();
     }
 
     public class ReferenceTypeModel : BaseTypeModel
@@ -526,6 +545,10 @@ namespace CESMII.OpcUa.NodeSetModel
             public uint? MaxStringLength { get; set; }
             public virtual List<LocalizedText> Description { get; set; }
             public bool IsOptional { get; set; }
+            /// <summary>
+            /// Used to preserve field order if stored in a relational database (via EF etc.)
+            /// </summary>
+            public int FieldOrder { get; set; }
             public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";
 
         }

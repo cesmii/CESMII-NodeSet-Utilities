@@ -1,6 +1,6 @@
 ﻿Install tools into project:
 ```
-cd ProfileDesigner\api\CESMII.ProfileDesigner.Api
+cd ProfileDesigner\api\CESMIINodeSetUtilities
 dotnet tool install --global dotnet-ef
 dotnet tool update --global dotnet-ef
 ```

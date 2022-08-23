@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageIcon>cesmii.png</PackageIcon>
+		<Authors>Markus Horstmann, Chris Muench</Authors>
+		<Company>CESMII</Company>
+		<Product></Product>
+		<NeutralLanguage>en</NeutralLanguage>
+		<Description>OPC UA Node Set Diffing tool.</Description>
+		<Copyright>Copyright © 2022 CESMII</Copyright>
+		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include=".\..\..\cesmii.png" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="XMLUnit.Core" Version="2.9.0" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.4.366.38" />
+	</ItemGroup>
+
+</Project>

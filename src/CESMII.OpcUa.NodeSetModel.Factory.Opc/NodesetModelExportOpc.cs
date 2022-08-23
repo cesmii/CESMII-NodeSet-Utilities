@@ -77,6 +77,11 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 Documentation = _model.Documentation,
                 Category = _model.Categories?.ToArray(),
             };
+            if (Enum.TryParse<ReleaseStatus>(_model.ReleaseStatus, out var releaseStatus))
+            {
+                node.ReleaseStatus = releaseStatus;
+            }
+
             var references = new List<Reference>();
             foreach (var property in _model.Properties)
             {
@@ -437,7 +442,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
         }
     }
 
-    public class ObjectTypeModelExportOpc<TTypeModel> : BaseTypeModelExportOpc<TTypeModel> where TTypeModel : ObjectTypeModel, new()
+    public class ObjectTypeModelExportOpc<TTypeModel> : BaseTypeModelExportOpc<TTypeModel> where TTypeModel : BaseTypeModel, new()
     {
         public override (T ExportedNode, List<UANode> AdditionalNodes) GetUANode<T>(NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
@@ -473,7 +478,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
             var references = dataVariable.References?.ToList() ?? new List<Reference>();
 
-            if (!_model.Properties.Any(p => p.NodeId == _model.EngUnitNodeId) && (_model.EngineeringUnit != null || !string.IsNullOrEmpty(_model.EngUnitNodeId)))
+            if (!_model.Properties.Concat(_model.DataVariables).Any(p => p.NodeId == _model.EngUnitNodeId) && (_model.EngineeringUnit != null || !string.IsNullOrEmpty(_model.EngUnitNodeId)))
             {
                 // Add engineering unit property
                 if (result.AdditionalNodes == null)
@@ -499,7 +504,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                              IsForward = false, 
                              Value = GetNodeIdForExport(dataVariable.NodeId, namespaces, aliases),
                          },
-                    }
+                    },
+                    AccessLevel = _model.EngUnitAccessLevel ?? 1,
+                    // UserAccessLevel: deprecated: never emit
                 };
                 if (_model.EngUnitModelingRule != null)
                 {
@@ -518,7 +525,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     Value = engUnitProp.NodeId,
                 });
             }
-            if (!_model.Properties.Any(p => p.NodeId == _model.EURangeNodeId) && (!string.IsNullOrEmpty(_model.EURangeNodeId) || (_model.MinValue.HasValue && _model.MaxValue.HasValue && _model.MinValue != _model.MaxValue)))
+            if (!_model.Properties.Concat(_model.DataVariables).Any(p => p.NodeId == _model.EURangeNodeId) && (!string.IsNullOrEmpty(_model.EURangeNodeId) || (_model.MinValue.HasValue && _model.MaxValue.HasValue && _model.MinValue != _model.MaxValue)))
             {
                 // Add EURange property
                 if (result.AdditionalNodes == null)
@@ -536,10 +543,6 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         High = _model.MaxValue.Value,
                     };
                     xmlElem = GetExtensionObjectAsXML(range);
-                }
-                if (string.IsNullOrEmpty(_model.EURangeNodeId))
-                {
-
                 }
                 var euRangeProp = new UAVariable
                 {
@@ -561,6 +564,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         },
                     },
                     Value = xmlElem,
+                    AccessLevel = _model.EURangeAccessLevel ?? 1,
+                    // deprecated: UserAccessLevel = _model.EURangeUserAccessLevel ?? 1,
                 };
 
                 if (_model.EURangeModelingRule != null)
@@ -611,10 +616,11 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
 
             dataVariable.AccessLevel = _model.AccessLevel ?? 1;
-            dataVariable.UserAccessLevel = _model.UserAccessLevel ?? 1;
+            // deprecated: dataVariable.UserAccessLevel = _model.UserAccessLevel ?? 1;
             dataVariable.AccessRestrictions = (byte) (_model.AccessRestrictions ?? 0);
             dataVariable.UserWriteMask = _model.UserWriteMask ?? 0;
             dataVariable.WriteMask = _model.WriteMask ?? 0;
+            dataVariable.MinimumSamplingInterval = _model.MinimumSamplingInterval ?? 0;
 
             if (references?.Any() == true)
             {
@@ -716,11 +722,12 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             var method = result.ExportedNode;
             method.MethodDeclarationId = GetNodeIdForExport(_model.TypeDefinition?.NodeId, namespaces, aliases);
             // method.ArgumentDescription = null; // TODO - not commonly used
-
-            var references = method.References?.ToList() ?? new List<Reference>();
-            AddOtherReferences(references, method.ParentNodeId, ReferenceTypeIds.HasComponent, _model.Parent.Methods.Contains(_model), namespaces, aliases);
-            method.References = references.Distinct(new ReferenceComparer()).ToArray();
-
+            if (method.ParentNodeId != null)
+            {
+                var references = method.References?.ToList() ?? new List<Reference>();
+                AddOtherReferences(references, method.ParentNodeId, ReferenceTypeIds.HasComponent, _model.Parent.Methods.Contains(_model), namespaces, aliases);
+                method.References = references.Distinct(new ReferenceComparer()).ToArray();
+            }
             return (method as T, result.AdditionalNodes);
         }
         protected override (bool IsChild, NodeId ReferenceTypeId) ReferenceFromParent(NodeModel parent)
@@ -766,7 +773,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             if (_model.StructureFields?.Any() == true)
             {
                 var fields = new List<DataTypeField>();
-                foreach(var field in _model.StructureFields)
+                foreach(var field in _model.StructureFields.OrderBy(f => f.FieldOrder))
                 {
                     var uaField = new DataTypeField
                     {

@@ -17,11 +17,16 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<None Include=".\..\cesmii.png" Pack="true" PackagePath=""/>
+		<None Include=".\..\cesmii.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.4.368.33" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetModel.Factory.Opc\CESMII.OpcUa.NodeSetModel.Factory.Opc.csproj" />
+	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetModel\CESMII.OpcUa.NodeSetModel.csproj" />
 	</ItemGroup>
 
 </Project>
