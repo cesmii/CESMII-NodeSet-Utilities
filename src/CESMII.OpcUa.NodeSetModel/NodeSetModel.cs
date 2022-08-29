@@ -287,7 +287,7 @@ namespace CESMII.OpcUa.NodeSetModel
             get => _parent;
             set
             {
-                if (Parent != null && Parent != value)
+                if (_parent != null && _parent != value)
                 {
                     // Changing parent or multiple parents on {this}: new parent {value}, previous parent {_parent}
                     return;
