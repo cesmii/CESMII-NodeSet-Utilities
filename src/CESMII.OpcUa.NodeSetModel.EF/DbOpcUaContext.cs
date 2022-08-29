@@ -42,14 +42,17 @@ namespace CESMII.OpcUa.NodeSetModel.EF
 {
     public class DbOpcUaContext : DefaultOpcUaContext
     {
-        private DbContext _dbContext;
-        private Func<ModelTableEntry, NodeSetModel> _nodeSetFactory;
+        protected DbContext _dbContext;
+        protected Func<ModelTableEntry, NodeSetModel> _nodeSetFactory;
+        protected List<string> _namespacesInDb;
 
         public DbOpcUaContext(DbContext appDbContext, ILogger logger, Func<ModelTableEntry, NodeSetModel> nodeSetFactory = null)
             : base(logger)
         {
             this._dbContext = appDbContext;
             this._nodeSetFactory = nodeSetFactory;
+            // Get all namespaces with at least one node: used for avoiding DB lookups
+            this._namespacesInDb = _dbContext.Set<NodeModel>().Select(nm => nm.NodeSet.ModelUri).Distinct().ToList();
         }
         public DbOpcUaContext(DbContext appDbContext, SystemContext systemContext, NodeStateCollection importedNodes, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger, Func<ModelTableEntry, NodeSetModel> nodeSetFactory = null)
             : base (systemContext, importedNodes, nodesetModels, logger)
@@ -58,23 +61,49 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             this._nodeSetFactory = nodeSetFactory;   
         }
 
-        public override NodeModel GetModelForNode(string nodeId)
+        public override NodeModel GetModelForNode<TNodeModel>(string nodeId)
         {
-            var model = base.GetModelForNode(nodeId);
+            var model = base.GetModelForNode<TNodeModel>(nodeId);
             if (model != null) return model;
 
             var uaNamespace = NodeModelUtils.GetNamespaceFromNodeId(nodeId);
             NodeModel nodeModelDb;
             if (_nodesetModels.TryGetValue(uaNamespace, out var nodeSet))
             {
-                nodeModelDb = _dbContext.Set<NodeModel>().FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
+                //nodeModelDb = _dbContext.Set<NodeModel>().FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
+                if (!_namespacesInDb.Contains(uaNamespace))
+                {
+                    // namespace was not in DB when the context was created: assume it's being imported
+                    return null;
+                }
+                else
+                {
+                    // Preexisting namespace: find an entity if already in EF cache
+                    nodeModelDb = _dbContext.Set<NodeModel>().Local.FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
+
+                    if (nodeModelDb == null)
+                    {
+                        // Not in EF cache: assume it's in the database and attach a proxy with just primary key values
+                        // This avoids a database lookup for each referenced node (or the need to pre-fetch all nodes in the EF cache)
+                        nodeModelDb = _dbContext.CreateProxy<TNodeModel>(nm =>
+                        {
+                            nm.NodeId = nodeId;
+                            nm.NodeSet = nodeSet;
+                        }
+                        );
+                        var nmAttached = _dbContext.Attach(nodeModelDb);
+                    }
+                }
                 nodeModelDb?.NodeSet.AllNodesByNodeId.Add(nodeModelDb.NodeId, nodeModelDb);
             }
             else
             {
                 nodeModelDb = _dbContext.Set<NodeModel>().FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == uaNamespace);
-                nodeSet = GetOrAddNodesetModel(new ModelTableEntry { ModelUri = nodeModelDb.NodeSet.ModelUri, PublicationDate = nodeModelDb.NodeSet.PublicationDate ?? DateTime.MinValue, PublicationDateSpecified = nodeModelDb.NodeSet.PublicationDate != null });
-                nodeModelDb?.NodeSet.AllNodesByNodeId.Add(nodeModelDb.NodeId, nodeModelDb);
+                if (nodeModelDb != null)
+                {
+                    nodeSet = GetOrAddNodesetModel(new ModelTableEntry { ModelUri = nodeModelDb.NodeSet.ModelUri, PublicationDate = nodeModelDb.NodeSet.PublicationDate ?? DateTime.MinValue, PublicationDateSpecified = nodeModelDb.NodeSet.PublicationDate != null });
+                    nodeModelDb?.NodeSet.AllNodesByNodeId.Add(nodeModelDb.NodeId, nodeModelDb);
+                }
             }
             return nodeModelDb;
         }

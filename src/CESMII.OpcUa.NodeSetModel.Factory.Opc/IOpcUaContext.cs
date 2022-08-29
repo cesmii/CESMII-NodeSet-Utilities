@@ -20,7 +20,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         // NodesetModel cache
         NodeSetModel GetOrAddNodesetModel(ModelTableEntry model, bool createNew = true);
-        NodeModel GetModelForNode(string nodeId);
+        NodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel;
         ILogger Logger { get; }
         string JsonEncodeVariant(Variant wrappedValue);
         List<NodeState> ImportUANodeSet(UANodeSet nodeSet);

@@ -87,7 +87,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return _systemContext.NamespaceUris.GetString(namespaceIndex);
         }
 
-        public virtual NodeModel GetModelForNode(string nodeId)
+        public virtual NodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
         {
             var expandedNodeId = ExpandedNodeId.Parse(nodeId, _systemContext.NamespaceUris);
             var uaNamespace = GetNamespaceUri(expandedNodeId.NamespaceIndex);
