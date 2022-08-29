@@ -49,7 +49,6 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 ;
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
-                .Ignore(nsm => nsm.OtherReferencingNodes) // Populated from nsm.OtherChildren in the NodeSetModel factories
                 .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
                 ;
             modelBuilder.Entity<NodeModel>()
@@ -132,21 +131,40 @@ namespace CESMII.OpcUa.NodeSetModel.EF
 
             #endregion
 
-            var orn = modelBuilder.Entity<NodeModel>()
+            {
+                var orn = modelBuilder.Entity<NodeModel>()
                 .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes)
                 ;
-            orn.WithOwner()
-                .HasForeignKey("OwnerNodeId", "OwnerModelUri", "OwnerPublicationDate")
-                ;
-            orn.Property<string>("ReferencedNodeId");
-            orn.Property<string>("ReferencedModelUri");
-            orn.Property<DateTime?>("ReferencedPublicationDate");
-            orn.HasOne(nr => nr.Node).WithMany()
-                .HasForeignKey("ReferencedNodeId", "ReferencedModelUri", "ReferencedPublicationDate")
-                ;
-            orn.Property<string>("OwnerNodeId");
-            orn.Property<string>("OwnerModelUri");
-            orn.Property<DateTime?>("OwnerPublicationDate");
+                orn.WithOwner()
+                    .HasForeignKey("OwnerNodeId", "OwnerModelUri", "OwnerPublicationDate")
+                    ;
+                orn.Property<string>("ReferencedNodeId");
+                orn.Property<string>("ReferencedModelUri");
+                orn.Property<DateTime?>("ReferencedPublicationDate");
+                orn.HasOne(nr => nr.Node).WithMany()
+                    .HasForeignKey("ReferencedNodeId", "ReferencedModelUri", "ReferencedPublicationDate")
+                    ;
+                orn.Property<string>("OwnerNodeId");
+                orn.Property<string>("OwnerModelUri");
+                orn.Property<DateTime?>("OwnerPublicationDate");
+            }
+            {
+                var orn = modelBuilder.Entity<NodeModel>()
+                    .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencingNodes)
+                    ;
+                orn.WithOwner()
+                    .HasForeignKey("OwnerNodeId", "OwnerModelUri", "OwnerPublicationDate")
+                    ;
+                orn.Property<string>("ReferencingNodeId");
+                orn.Property<string>("ReferencingModelUri");
+                orn.Property<DateTime?>("ReferencingPublicationDate");
+                orn.HasOne(nr => nr.Node).WithMany()
+                    .HasForeignKey("ReferencingNodeId", "ReferencingModelUri", "ReferencingPublicationDate")
+                    ;
+                orn.Property<string>("OwnerNodeId");
+                orn.Property<string>("OwnerModelUri");
+                orn.Property<DateTime?>("OwnerPublicationDate");
+            }
         }
 
         private static void DeclareNodeSetCollection<TEntity>(ModelBuilder modelBuilder, Expression<Func<NodeSetModel, IEnumerable<TEntity>>> collection) where TEntity : NodeModel
