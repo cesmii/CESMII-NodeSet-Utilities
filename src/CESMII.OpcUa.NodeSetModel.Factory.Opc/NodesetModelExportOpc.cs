@@ -99,7 +99,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaObject).ToList();
                 if (otherReferences.Any())
                 {
-                    // TODO Verify the other referenceType is derived from GeneratesEvent
+                    // TODO Verify the other referenceType is derived from HasComponent
                     referenceTypeId = otherReferences[0].Reference;
                 }
                 references.Add(new Reference
@@ -118,6 +118,23 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     ReferenceType = GetNodeIdForExport(nodeRef.Reference, namespaces, aliases),
                     Value = GetNodeIdForExport(nodeRef.Node.NodeId, namespaces, aliases),
                 });
+            }
+            foreach (var inverseNodeRef in this._model.OtherReferencingNodes)
+            {
+                namespaces.GetIndexOrAppend(inverseNodeRef.Node.Namespace);
+                namespaces.GetIndexOrAppend(NodeModelUtils.GetNamespaceFromNodeId(inverseNodeRef.Reference));
+
+                var inverseRef = new Reference
+                {
+                    ReferenceType = GetNodeIdForExport(inverseNodeRef.Reference, namespaces, aliases),
+                    Value = GetNodeIdForExport(inverseNodeRef.Node.NodeId, namespaces, aliases),
+                    IsForward = false,
+                };
+                if (!references.Any(r => r.IsForward == false && r.ReferenceType == inverseRef.ReferenceType && r.Value == inverseRef.Value))
+                {
+                    // TODO ensure we pick the most derived reference type
+                    references.Add(inverseRef);
+                }
             }
             foreach (var uaInterface in this._model.Interfaces)
             {
@@ -353,18 +370,6 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     {
                         // TODO ensure we pick the most derived reference type
                     }
-                }
-            }
-            foreach (var reference in _model.OtherReferencingNodes)
-            {
-                var referenceType = GetNodeIdForExport(reference.Reference, namespaces, aliases);
-                if (!references.Any(r => r.IsForward == false && r.ReferenceType != referenceType && r.Value != GetNodeIdForExport(reference.Node.NodeId, namespaces, aliases)))
-                {
-                    references.Add(new Reference { IsForward = false, ReferenceType = referenceType, Value = GetNodeIdForExport(reference.Node.NodeId, namespaces, aliases), });
-                }
-                else
-                {
-                    // TODO ensure we pick the most derived reference type
                 }
             }
         }

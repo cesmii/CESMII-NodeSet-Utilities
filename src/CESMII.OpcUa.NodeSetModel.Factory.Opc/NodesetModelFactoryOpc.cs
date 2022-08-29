@@ -172,14 +172,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
                             // Add the reverse reference to the referencing node (parent)
                             var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), };
-                            AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger);
+                            AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                         }
                         AddChildIfNotExists(parent, parent?.Objects, uaChildObject, opcContext.Logger);
                         if (referenceTypes[0].NodeId != ReferenceTypeIds.HasComponent)
                         {
                             // Preserve the more specific reference type as well
                             var nodeAndReference = new NodeModel.NodeAndReference { Node = uaChildObject, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
-                            AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+                            AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
                         }
                     }
                 }
@@ -326,23 +326,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedModel != null)
                 {
                     var nodeAndReference = new NodeModel.NodeAndReference { Node = referencedModel, Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _) };
-                    AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
+                    AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
 
                     // Add the reverse reference to the referencing node (parent)
                     var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = nodeAndReference.Reference, };
-                    AddChildIfNotExists(referencedModel, referencedModel.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger);
-
-                    if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HierarchicalReferences) && referencedModel is InstanceModelBase referencedInstanceModel)
-                    {
-                        if (referencedInstanceModel.Parent == null)
-                        {
-                            referencedInstanceModel.Parent = parent;
-                            if (referencedInstanceModel.Parent != parent)
-                            {
-                                opcContext.Logger.LogWarning($"{referencedInstanceModel} has more than one parent. Ignored parent: {parent}, using {referencedInstanceModel.Parent}");
-                            }
-                        }
-                    }
+                    AddChildIfNotExists(referencedModel, referencedModel.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                 }
                 else
                 {
@@ -359,7 +347,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
 
         }
-        static void AddChildIfNotExists<TColl>(NodeModel parent, IList<TColl> collection, TColl uaChildObject, ILogger logger)
+        static void AddChildIfNotExists<TColl>(NodeModel parent, IList<TColl> collection, TColl uaChildObject, ILogger logger, bool setParent = true)
         {
             if (uaChildObject == null)
             {
@@ -433,10 +421,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                     return true;
                 }
-                else
-                {
-                    opcContext.Logger.LogInformation($"Unexpected parent {parent} of type {parent.GetType()} for engineering unit property {referencedNode}");
-                }
             }
             else if (referencedNode.BrowseName?.Name == BrowseNames.EURange)
             {
@@ -470,11 +454,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                     return true;
                 }
-                else
-                {
-                    opcContext.Logger.LogInformation($"Unexpected parent {parent} of type {parent.GetType()} for EU Range property {referencedNode}");
-                }
-
             }
             else if (referencedNode.BrowseName?.Name == BrowseNames.InstrumentRange)
             {
@@ -491,10 +470,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         // Nodesets commonly indicate that an Instrument Range is required on instances by specifying an enpty Instrument Range in the class
                     }
                     return true;
-                }
-                else
-                {
-                    opcContext.Logger.LogInformation($"Unexpected parent {parent} of type {parent.GetType()} for Instrument Range property {referencedNode}");
                 }
             }
             return false;
@@ -615,7 +590,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         {
             created = false;
             opcContext.NamespaceUris.GetIndexOrAppend(opcNamespace); // Ensure the namespace is in the namespace table
-            var nodeModelBase = opcContext.GetModelForNode(nodeId);
+            var nodeModelBase = opcContext.GetModelForNode<TNodeModel>(nodeId);
             var nodeModel = nodeModelBase as TNodeModel;
             if (nodeModel == null)
             {
@@ -747,7 +722,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             if (uaType.SuperTypeId != null)
             {
                 var superTypeNodeId = new ExpandedNodeId(uaType.SuperTypeId, opcContext.NamespaceUris.GetString(uaType.SuperTypeId.NamespaceIndex)).ToString();
-                var superTypeModel = opcContext.GetModelForNode(superTypeNodeId) as BaseTypeModel;
+                var superTypeModel = opcContext.GetModelForNode<TBaseTypeModel>(superTypeNodeId) as BaseTypeModel;
                 if (superTypeModel == null)
                 {
                     var superTypeState = opcContext.GetNode(uaType.SuperTypeId) as BaseTypeState;
