@@ -168,8 +168,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     {
                         if (parent?.Namespace != uaChildObject.Namespace)
                         {
-                            // TODO If parent is in another nodeset/namespace, the reference may not be stored (Example: Server/Namespaces node (OPC i=11715): nodesets add themselves to that global node).
-                            opcContext.Logger.LogWarning($"Object {uaChildObject} is added to {parent} in a different namespace: reference is ignored.");
                             // Add the reverse reference to the referencing node (parent)
                             var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), };
                             AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);

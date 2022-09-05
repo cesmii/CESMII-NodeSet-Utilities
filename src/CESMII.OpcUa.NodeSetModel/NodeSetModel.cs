@@ -168,7 +168,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ReleaseStatus { get; set; }
 
         [IgnoreDataMember]
-        public string Namespace { get => NodeSet.ModelUri; /*set; */}
+        public string Namespace { get => NodeSet.ModelUri; }
         public string NodeId { get; set; }
         public object CustomState { get; set; }
         public virtual List<string> Categories { get; set; }
