@@ -30,6 +30,30 @@ namespace NodeSetDiff
         private readonly string _testFile;
         private XDocument _controlDoc;
         private XDocument _testDoc;
+        private UANodeSet _controlNodeSet;
+        public UANodeSet ControlNodeSet { get
+            {
+                if (_controlNodeSet == null)
+                {
+                    using var ms = new MemoryStream(Encoding.UTF8.GetBytes(_controlFile));
+                    _controlNodeSet = UANodeSet.Read(ms);
+                }
+                return _controlNodeSet;
+            }
+        }
+        private UANodeSet _testNodeSet;
+        public UANodeSet TestNodeSet
+        {
+            get
+            {
+                if (_testNodeSet == null)
+                {
+                    using var ms = new MemoryStream(Encoding.UTF8.GetBytes(_testFile));
+                    _testNodeSet = UANodeSet.Read(ms);
+                }
+                return _testNodeSet;
+            }
+        }
 
         public OpcNodeSetXmlUnit(Dictionary<string, string> controlAliases, NamespaceTable controlNamespaces, Dictionary<string, string> testAliases, NamespaceTable testNamespaces,
             string controlFile, string testFile)
@@ -165,6 +189,15 @@ namespace NodeSetDiff
                                 // Differences in Alias don't change the semantics of the nodeset: ignore
                                 return ComparisonResult.EQUAL;
                             }
+                            if (detailsNonNull.Target.LocalName == "UAVariable")
+                            {
+                                // Is this node referenced by one of the type system OPC UA nodes: ignore
+                                if (IsChildOfTypeSystemNode(detailsNonNull.Target, aliasesNonNull, namespacesNonNull))
+                                {
+                                    return ComparisonResult.EQUAL;
+                                }
+                            }
+
                         }
                         else if (detailsNonNull.Target.NamespaceURI == strUATypesSchemaUri)
                         {
@@ -240,6 +273,30 @@ namespace NodeSetDiff
                 return ComparisonResult.EQUAL;
             }
             return outcome;
+        }
+
+        private static bool IsChildOfTypeSystemNode(XmlNode uaNode, Dictionary<string,string> aliases, NamespaceTable namespaces)
+        {
+            if (uaNode == null) return false;
+            var reverseReferences = GetReverseReferences(uaNode);
+            if (reverseReferences.Any(n => n.InnerText == "i=93" || n.InnerText == "i=92") == true)
+            {
+                return true;
+            }
+            foreach(var reference in reverseReferences)
+            {
+                var referencedUaNode = uaNode.ParentNode.ChildNodes.Cast<XmlNode>().Where(n => NormalizeNodeId(n.Attributes?.GetNamedItem("NodeId")?.Value, aliases, namespaces) == NormalizeNodeId(reference.InnerText, aliases, namespaces))?.FirstOrDefault();
+                if (IsChildOfTypeSystemNode(referencedUaNode, aliases, namespaces))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static IEnumerable<XmlElement> GetReverseReferences(XmlNode uaNode)
+        {
+            return uaNode.ChildNodes.Cast<XmlNode>().FirstOrDefault(n => n.LocalName == "References").ChildNodes.Cast<XmlNode>().Where(n => n is XmlElement).Cast<XmlElement>().Where(n => n.Attributes.GetNamedItem("IsForward")?.Value?.ToLowerInvariant() == "false");
         }
 
         public bool OpcElementSelector(XmlElement c, XmlElement t)

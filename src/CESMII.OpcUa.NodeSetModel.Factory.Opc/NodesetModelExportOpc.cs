@@ -244,6 +244,11 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
             return qualifiedNameForExport;
         }
+
+        public override string ToString()
+        {
+            return _model?.ToString();
+        }
     }
 
     public abstract class InstanceModelExportOpc<TInstanceModel, TBaseTypeModel> : NodeModelExportOpc<TInstanceModel> 
@@ -829,6 +834,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             if (_model.IsOptionSet != null)
             {
+                if (dataType.Definition == null)
+                {
+                    dataType.Definition = new uaExport.DataTypeDefinition {  };
+                }
                 dataType.Definition.IsOptionSet = _model.IsOptionSet.Value;
             }
             return (dataType as T, result.AdditionalNodes);
