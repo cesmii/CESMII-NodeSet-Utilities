@@ -44,7 +44,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
     {
         protected DbContext _dbContext;
         protected Func<ModelTableEntry, NodeSetModel> _nodeSetFactory;
-        protected List<string> _namespacesInDb;
+        protected List<(string ModelUri, DateTime? PublicationDate)> _namespacesInDb;
 
         public DbOpcUaContext(DbContext appDbContext, ILogger logger, Func<ModelTableEntry, NodeSetModel> nodeSetFactory = null)
             : base(logger)
@@ -52,7 +52,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             this._dbContext = appDbContext;
             this._nodeSetFactory = nodeSetFactory;
             // Get all namespaces with at least one node: used for avoiding DB lookups
-            this._namespacesInDb = _dbContext.Set<NodeModel>().Select(nm => nm.NodeSet.ModelUri).Distinct().ToList();
+            this._namespacesInDb = _dbContext.Set<NodeModel>().Select(nm => new { nm.NodeSet.ModelUri, nm.NodeSet.PublicationDate }).Distinct().AsEnumerable().Select(n => (n.ModelUri, n.PublicationDate)).ToList();
         }
         public DbOpcUaContext(DbContext appDbContext, SystemContext systemContext, NodeStateCollection importedNodes, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger, Func<ModelTableEntry, NodeSetModel> nodeSetFactory = null)
             : base (systemContext, importedNodes, nodesetModels, logger)
@@ -71,7 +71,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             if (_nodesetModels.TryGetValue(uaNamespace, out var nodeSet))
             {
                 //nodeModelDb = _dbContext.Set<NodeModel>().FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
-                if (!_namespacesInDb.Contains(uaNamespace))
+                if (!_namespacesInDb.Contains((nodeSet.ModelUri, nodeSet.PublicationDate)))
                 {
                     // namespace was not in DB when the context was created: assume it's being imported
                     return null;
