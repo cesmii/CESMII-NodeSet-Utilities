@@ -55,10 +55,10 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             this._namespacesInDb = _dbContext.Set<NodeModel>().Select(nm => new { nm.NodeSet.ModelUri, nm.NodeSet.PublicationDate }).Distinct().AsEnumerable().Select(n => (n.ModelUri, n.PublicationDate)).ToList();
         }
         public DbOpcUaContext(DbContext appDbContext, SystemContext systemContext, NodeStateCollection importedNodes, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger, Func<ModelTableEntry, NodeSetModel> nodeSetFactory = null)
-            : base (systemContext, importedNodes, nodesetModels, logger)
+            : base(systemContext, importedNodes, nodesetModels, logger)
         {
             this._dbContext = appDbContext;
-            this._nodeSetFactory = nodeSetFactory;   
+            this._nodeSetFactory = nodeSetFactory;
         }
 
         public override NodeModel GetModelForNode<TNodeModel>(string nodeId)
@@ -70,7 +70,6 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             NodeModel nodeModelDb;
             if (_nodesetModels.TryGetValue(uaNamespace, out var nodeSet))
             {
-                //nodeModelDb = _dbContext.Set<NodeModel>().FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
                 if (!_namespacesInDb.Contains((nodeSet.ModelUri, nodeSet.PublicationDate)))
                 {
                     // namespace was not in DB when the context was created: assume it's being imported
@@ -105,7 +104,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                             nm.NodeSet = nodeSet;
                         }
                         );
-                        var nmAttached = _dbContext.Attach(nodeModelDb);
+                        _dbContext.Attach(nodeModelDb);
                     }
                 }
                 nodeModelDb?.NodeSet.AllNodesByNodeId.Add(nodeModelDb.NodeId, nodeModelDb);
@@ -126,7 +125,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
         {
             if (!_nodesetModels.TryGetValue(model.ModelUri, out var nodesetModel))
             {
-                var existingNodeSet = GetMatchingOrHigherNodeSetAsync(model.ModelUri, model.PublicationDateSpecified ? model.PublicationDate : null).Result;
+                var existingNodeSet = GetMatchingOrHigherNodeSetAsync(model.ModelUri, model.PublicationDateSpecified ? model.PublicationDate : null, model.Version).Result;
                 if (existingNodeSet != null)
                 {
                     _nodesetModels.Add(existingNodeSet.ModelUri, existingNodeSet);
@@ -137,7 +136,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             {
                 if (_nodeSetFactory == null)
                 {
-                    nodesetModel = base.GetOrAddNodesetModel(model);
+                    nodesetModel = base.GetOrAddNodesetModel(model, createNew);
                     if (nodesetModel.PublicationDate == null)
                     {
                         // Primary Key value can not be null
@@ -151,7 +150,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                     {
                         if (nodesetModel.ModelUri != model.ModelUri)
                         {
-                            throw new Exception($"Created mismatching nodeset: expected {model.ModelUri} created {nodesetModel.ModelUri}");
+                            throw new ArgumentException($"Created mismatching nodeset: expected {model.ModelUri} created {nodesetModel.ModelUri}");
                         }
                         _nodesetModels.Add(nodesetModel.ModelUri, nodesetModel);
                     }
@@ -160,14 +159,43 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             return nodesetModel;
         }
 
-        public Task<NodeSetModel> GetMatchingOrHigherNodeSetAsync(string modelUri, DateTime? publicationDate)
+        public Task<NodeSetModel> GetMatchingOrHigherNodeSetAsync(string modelUri, DateTime? publicationDate, string version)
         {
-            return GetMatchingOrHigherNodeSetAsync(_dbContext, modelUri, publicationDate);
+            return GetMatchingOrHigherNodeSetAsync(_dbContext, modelUri, publicationDate, version);
         }
-        public static Task<NodeSetModel> GetMatchingOrHigherNodeSetAsync(DbContext dbContext, string modelUri, DateTime? publicationDate)
+        public static async Task<NodeSetModel> GetMatchingOrHigherNodeSetAsync(DbContext dbContext, string modelUri, DateTime? publicationDate, string version)
         {
-            var matchingNodeSet = dbContext.Set<NodeSetModel>().AsQueryable().Where(nsm => nsm.ModelUri == modelUri && (publicationDate == null || nsm.PublicationDate >= publicationDate)).OrderBy(nsm => nsm.PublicationDate).FirstOrDefaultAsync();
-            return matchingNodeSet;
+            if (modelUri == Namespaces.OpcUa)
+            {
+                // Special versioning rules for core nodesets: only match publication date within version family (1.03, 1.04, 1.05).
+                var prefixLength = "0.00".Length;
+                var versionPrefix = version?.Length >= prefixLength ? version.Substring(0, prefixLength) : "1.05";
+
+                var matchingNodeSet = await dbContext.Set<NodeSetModel>()
+                    .Where(nsm => nsm.ModelUri == modelUri && nsm.Version.StartsWith(versionPrefix) && (publicationDate == null || nsm.PublicationDate >= publicationDate))
+                    .OrderBy(nsm => nsm.PublicationDate)
+                    .FirstOrDefaultAsync();
+                if (matchingNodeSet == null)
+                {
+                    // No match within the version family: pick the newest available nodeset from any higher version family
+                    matchingNodeSet = await dbContext.Set<NodeSetModel>()
+                        .Where(nsm => nsm.ModelUri == modelUri
+                                && (publicationDate == null || nsm.PublicationDate >= publicationDate)
+                                && string.Compare(nsm.Version.Substring(0, prefixLength), versionPrefix) > 0)
+                        .OrderByDescending(nsm => nsm.Version.Substring(0, prefixLength))
+                        .ThenByDescending(nsm => nsm.PublicationDate)
+                        .FirstOrDefaultAsync();
+                }
+                return matchingNodeSet;
+            }
+            else
+            {
+                var matchingNodeSet = await dbContext.Set<NodeSetModel>()
+                    .Where(nsm => nsm.ModelUri == modelUri && (publicationDate == null || nsm.PublicationDate >= publicationDate))
+                    .OrderBy(nsm => nsm.PublicationDate)
+                    .FirstOrDefaultAsync();
+                return matchingNodeSet;
+            }
         }
     }
 }

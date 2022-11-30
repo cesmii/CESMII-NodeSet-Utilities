@@ -96,7 +96,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 ;
             modelBuilder.Entity<BaseTypeModel>()
                 .ToTable("BaseTypes")
-                .Ignore(m => m.SubTypes)
+                .HasOne(bt => bt.SuperType).WithMany(bt => bt.SubTypes)
                 ;
             modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")
