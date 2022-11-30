@@ -904,7 +904,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         }
                         else
                         {
-                            throw new Exception($"Unexpected node state {dataType.GetType().FullName} for data type {field.DataType}");
+                            if (dataType == null)
+                            {
+                                throw new Exception($"Unable to find node state for data type {field.DataType} in {opcNode}");
+                            }
+                            throw new Exception($"Unexpected node state {dataType?.GetType()?.FullName} for data type {field.DataType} in {opcNode}");
                         }
                     }
                 }

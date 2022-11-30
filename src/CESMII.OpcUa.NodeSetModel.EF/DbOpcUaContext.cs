@@ -79,8 +79,22 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 else
                 {
                     // Preexisting namespace: find an entity if already in EF cache
-                    nodeModelDb = _dbContext.Set<NodeModel>().Local.FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
-
+                    int retryCount = 0;
+                    bool lookedUp = false;
+                    do
+                    {
+                        try
+                        {
+                            nodeModelDb = _dbContext.Set<NodeModel>().Local.FirstOrDefault(nm => nm.NodeId == nodeId && nm.NodeSet.ModelUri == nodeSet.ModelUri && nm.NodeSet.PublicationDate == nodeSet.PublicationDate);
+                            lookedUp = true;
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // re-try in case the NodeSet access caused a database query that modified the local cache
+                            nodeModelDb = null;
+                        }
+                        retryCount++;
+                    } while (!lookedUp && retryCount < 100);
                     if (nodeModelDb == null)
                     {
                         // Not in EF cache: assume it's in the database and attach a proxy with just primary key values
