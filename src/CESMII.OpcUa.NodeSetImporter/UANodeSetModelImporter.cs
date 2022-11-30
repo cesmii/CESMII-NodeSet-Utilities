@@ -33,11 +33,6 @@ namespace CESMII.OpcUa.NodeSetModel
         private readonly IUANodeSetCache _nodeSetCache;
         private readonly IOpcUaContext _opcContext;
 
-#pragma warning disable S1075 // URIs should not be hardcoded - these are not URLs representing endpoints, but OPC model identifiers (URIs) that are static and stable
-        public const string strOpcNamespaceUri = "http://opcfoundation.org/UA/"; //NOSONAR
-#pragma warning restore S1075 // URIs should not be hardcoded
-
-
         public UANodeSetModelImporter(ILogger logger)
         {
             _opcContext = new DefaultOpcUaContext(logger);
@@ -93,7 +88,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
                         if (existingNodeSetModel == null)
                         {
-                            throw new Exception($"Required NodeSet {existingNodeSetModel} not in database: Inconsistency between file store and db?");
+                            throw new ArgumentException($"Required NodeSet {existingNodeSetModel} not in database: Inconsistency between file store and db?");
                         }
                         // Get the node state for required models so that UANodeSet.Import works
                         _opcContext.ImportUANodeSet(resolvedModel.NodeSet);
@@ -158,7 +153,7 @@ namespace CESMII.OpcUa.NodeSetModel
             else
             {
                 // Ensure OPC UA model is the first one
-                namespaces = new NamespaceTable(new[] { strOpcNamespaceUri });
+                namespaces = new NamespaceTable(new[] { Namespaces.OpcUa });
             }
             foreach (var nsUri in namespaceUris)
             {
@@ -207,7 +202,7 @@ namespace CESMII.OpcUa.NodeSetModel
             var allNamespaces = namespaces.ToArray();
             if (allNamespaces.Length > 1)
             {
-                exportedNodeSet.NamespaceUris = allNamespaces.Where(ns => ns != strOpcNamespaceUri).ToArray();
+                exportedNodeSet.NamespaceUris = allNamespaces.Where(ns => ns != Namespaces.OpcUa).ToArray();
             }
             else
             {
@@ -229,6 +224,10 @@ namespace CESMII.OpcUa.NodeSetModel
                             AccessRestrictions = 0,
                         };
                         requiredModels.Add(requiredModel);
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Required model {uaNamespace} not found.");
                     }
                 }
             }
