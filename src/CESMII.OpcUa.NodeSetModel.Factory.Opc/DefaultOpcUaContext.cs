@@ -25,8 +25,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             var operationContext = new SystemContext();
             var namespaceTable = new NamespaceTable();
-            const string strOpcNamespaceUri = "http://opcfoundation.org/UA/";
-            namespaceTable.GetIndexOrAppend(strOpcNamespaceUri);
+            namespaceTable.GetIndexOrAppend(Namespaces.OpcUa);
             var typeTable = new TypeTable(namespaceTable);
             _systemContext = new SystemContext(operationContext)
             {
@@ -114,7 +113,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     foreach (var requiredModel in model.RequiredModel)
                     {
-                        var existingNodeSet = GetOrAddNodesetModel(requiredModel); //await DbOpcUaContext.GetMatchingOrHigherNodeSetAsync(dbContext, requiredModel.ModelUri, requiredModel.PublicationDateSpecified ? requiredModel.PublicationDate : null).ConfigureAwait(false);
+                        var existingNodeSet = GetOrAddNodesetModel(requiredModel);
                         var requiredModelInfo = new RequiredModelInfo
                         {
                             ModelUri = requiredModel.ModelUri,
