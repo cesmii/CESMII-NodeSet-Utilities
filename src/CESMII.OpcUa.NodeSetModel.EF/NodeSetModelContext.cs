@@ -7,6 +7,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
 {
     public class NodeSetModelContext : DbContext
     {
+        protected bool CascadeDelete { get; set; }
         public NodeSetModelContext(DbContextOptions<NodeSetModelContext> options) : base(options)
         {
             // Blank
@@ -25,10 +26,10 @@ namespace CESMII.OpcUa.NodeSetModel.EF
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            CreateModel(modelBuilder);
+            CreateModel(modelBuilder, CascadeDelete);
 
         }
-        public static void CreateModel(ModelBuilder modelBuilder)
+        public static void CreateModel(ModelBuilder modelBuilder, bool cascadeDelete = false)
         {
             modelBuilder.Owned<NodeModel.LocalizedText>();
             modelBuilder.Owned<NodeModel.NodeAndReference>();
@@ -43,10 +44,16 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 .Ignore(nsm => nsm.CustomState)
                 .HasKey(nsm => new { nsm.ModelUri, nsm.PublicationDate })
                 ;
-            modelBuilder.Entity<NodeSetModel>()
-                .OwnsMany(nsm => nsm.RequiredModels).WithOwner()
-                    .HasForeignKey("DependentModelUri", "DependentPublicationDate")
+            var rmb = modelBuilder.Entity<NodeSetModel>()
+                .OwnsMany(nsm => nsm.RequiredModels)
                 ;
+            rmb.WithOwner()
+                .HasForeignKey("DependentModelUri", "DependentPublicationDate");
+            if (cascadeDelete)
+            {
+                rmb.HasOne(rm => rm.AvailableModel).WithMany()
+                    .OnDelete(DeleteBehavior.SetNull);
+            }
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
                 .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
@@ -63,30 +70,56 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             modelBuilder.Entity<ObjectTypeModel>()
                 .ToTable("ObjectTypes")
                 ;
-            modelBuilder.Entity<DataTypeModel>()
-                .ToTable("DataTypes")
+            var dtm = modelBuilder.Entity<DataTypeModel>()
+                .ToTable("DataTypes");
+            if (cascadeDelete)
+            {
+                dtm.OwnsMany(dt => dt.StructureFields)
+                    .HasOne(sf => sf.DataType).WithMany().OnDelete(DeleteBehavior.Cascade)
                 ;
-            modelBuilder.Entity<VariableTypeModel>()
+            }
+            var vtm = modelBuilder.Entity<VariableTypeModel>()
                 .ToTable("VariableTypes")
                 ;
-            modelBuilder.Entity<DataVariableModel>()
+            if (cascadeDelete)
+            {
+                vtm.HasOne(vt => vt.DataType).WithMany().OnDelete(DeleteBehavior.Cascade);
+            }
+            var dvmParentFk = modelBuilder.Entity<DataVariableModel>()
                 .ToTable("DataVariables")
                 .HasOne(dv => dv.Parent).WithMany()
                     .HasForeignKey("ParentNodeId", "ParentModelUri", "ParentPublicationDate")
                 ;
-            modelBuilder.Entity<PropertyModel>()
+            if (cascadeDelete)
+            { 
+                    dvmParentFk.OnDelete(DeleteBehavior.Cascade);
+            }
+            
+            var pmParentFk = modelBuilder.Entity<PropertyModel>()
                 .ToTable("Properties")
                 .HasOne(dv => dv.Parent).WithMany()
                     .HasForeignKey("ParentNodeId", "ParentModelUri", "ParentPublicationDate")
                 ;
-            modelBuilder.Entity<ObjectModel>()
+            if (cascadeDelete)
+            {
+                pmParentFk.OnDelete(DeleteBehavior.Cascade);
+            }
+            var omTd = modelBuilder.Entity<ObjectModel>()
                 .ToTable("Objects")
                 .HasOne<ObjectTypeModel>(o => o.TypeDefinition).WithMany()
                 ;
-            modelBuilder.Entity<ObjectModel>()
+            if (cascadeDelete)
+            {
+                omTd.OnDelete(DeleteBehavior.Cascade);
+            }
+            var omParentFk = modelBuilder.Entity<ObjectModel>()
                 .HasOne(dv => dv.Parent).WithMany()
                     .HasForeignKey("ParentNodeId", "ParentModelUri", "ParentPublicationDate")
                 ;
+            if (cascadeDelete)
+            {
+                omParentFk.OnDelete(DeleteBehavior.Cascade);
+            }
             modelBuilder.Entity<InterfaceModel>()
                 .ToTable("Interfaces")
                 ;
@@ -94,30 +127,49 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 .ToTable("Variables")
                 .OwnsOne(v => v.EngineeringUnit).Property(v => v.NamespaceUri).IsRequired()
                 ;
-            modelBuilder.Entity<BaseTypeModel>()
+            if (cascadeDelete)
+            {
+                modelBuilder.Entity<VariableModel>()
+                    .HasOne(vm => vm.DataType).WithMany().OnDelete(DeleteBehavior.Cascade);
+                modelBuilder.Entity<VariableModel>()
+                    .HasOne(vm => vm.TypeDefinition).WithMany().OnDelete(DeleteBehavior.Cascade);
+            }
+            var btmSt = modelBuilder.Entity<BaseTypeModel>()
                 .ToTable("BaseTypes")
                 .HasOne(bt => bt.SuperType).WithMany(bt => bt.SubTypes)
                 ;
-            modelBuilder.Entity<MethodModel>()
+            if (cascadeDelete)
+            {
+                btmSt.OnDelete(DeleteBehavior.Cascade);
+            }
+            var mmParentFk = modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")
                 .HasOne(dv => dv.Parent).WithMany()
                     .HasForeignKey("ParentNodeId", "ParentModelUri", "ParentPublicationDate")
                 ;
+            if (cascadeDelete)
+            {
+                mmParentFk.OnDelete(DeleteBehavior.Cascade);
+            }
+            if (cascadeDelete)
+            {
+                modelBuilder.Entity<MethodModel>()
+                    .HasOne(mm => mm.TypeDefinition).WithMany().OnDelete(DeleteBehavior.Cascade);
+            }
             modelBuilder.Entity<ReferenceTypeModel>()
                 .ToTable("ReferenceTypes")
                 ;
 
             #region NodeSetModel collections
-            DeclareNodeSetCollection<ObjectTypeModel>(modelBuilder, nsm => nsm.ObjectTypes);
-            DeclareNodeSetCollection<VariableTypeModel>(modelBuilder, nsm => nsm.VariableTypes);
-            DeclareNodeSetCollection<DataTypeModel>(modelBuilder, nsm => nsm.DataTypes);
-            DeclareNodeSetCollection<ReferenceTypeModel>(modelBuilder, nsm => nsm.ReferenceTypes);
-            DeclareNodeSetCollection<ObjectModel>(modelBuilder, nsm => nsm.Objects);
-            //DeclareNodeSetCollection<BaseTypeModel>(modelBuilder, nsm => nsm.Interfaces);
-            DeclareNodeSetCollection<InterfaceModel>(modelBuilder, nsm => nsm.Interfaces);
-            DeclareNodeSetCollection<PropertyModel>(modelBuilder, nsm => nsm.Properties);
-            DeclareNodeSetCollection<DataVariableModel>(modelBuilder, nsm => nsm.DataVariables);
-            DeclareNodeSetCollection<NodeModel>(modelBuilder, nsm => nsm.UnknownNodes);
+            DeclareNodeSetCollection<ObjectTypeModel>(modelBuilder, nsm => nsm.ObjectTypes, cascadeDelete);
+            DeclareNodeSetCollection<VariableTypeModel>(modelBuilder, nsm => nsm.VariableTypes, cascadeDelete);
+            DeclareNodeSetCollection<DataTypeModel>(modelBuilder, nsm => nsm.DataTypes, cascadeDelete);
+            DeclareNodeSetCollection<ReferenceTypeModel>(modelBuilder, nsm => nsm.ReferenceTypes, cascadeDelete);
+            DeclareNodeSetCollection<ObjectModel>(modelBuilder, nsm => nsm.Objects, cascadeDelete);
+            DeclareNodeSetCollection<InterfaceModel>(modelBuilder, nsm => nsm.Interfaces, cascadeDelete);
+            DeclareNodeSetCollection<PropertyModel>(modelBuilder, nsm => nsm.Properties, cascadeDelete);
+            DeclareNodeSetCollection<DataVariableModel>(modelBuilder, nsm => nsm.DataVariables, cascadeDelete);
+            DeclareNodeSetCollection<NodeModel>(modelBuilder, nsm => nsm.UnknownNodes, cascadeDelete);
             #endregion
 
             #region NodeModel collections
@@ -141,9 +193,13 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 orn.Property<string>("ReferencedNodeId");
                 orn.Property<string>("ReferencedModelUri");
                 orn.Property<DateTime?>("ReferencedPublicationDate");
-                orn.HasOne(nr => nr.Node).WithMany()
+                var ornFK = orn.HasOne(nr => nr.Node).WithMany()
                     .HasForeignKey("ReferencedNodeId", "ReferencedModelUri", "ReferencedPublicationDate")
-                    ;
+                ;
+                if (cascadeDelete)
+                {
+                    ornFK.OnDelete(DeleteBehavior.Cascade);
+                }
                 orn.Property<string>("OwnerNodeId");
                 orn.Property<string>("OwnerModelUri");
                 orn.Property<DateTime?>("OwnerPublicationDate");
@@ -158,25 +214,33 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 orn.Property<string>("ReferencingNodeId");
                 orn.Property<string>("ReferencingModelUri");
                 orn.Property<DateTime?>("ReferencingPublicationDate");
-                orn.HasOne(nr => nr.Node).WithMany()
+                var ornFK = orn.HasOne(nr => nr.Node).WithMany()
                     .HasForeignKey("ReferencingNodeId", "ReferencingModelUri", "ReferencingPublicationDate")
-                    ;
+                ;
+                if (cascadeDelete)
+                {
+                    ornFK.OnDelete(DeleteBehavior.Cascade);
+                }
                 orn.Property<string>("OwnerNodeId");
                 orn.Property<string>("OwnerModelUri");
                 orn.Property<DateTime?>("OwnerPublicationDate");
             }
         }
 
-        private static void DeclareNodeSetCollection<TEntity>(ModelBuilder modelBuilder, Expression<Func<NodeSetModel, IEnumerable<TEntity>>> collection) where TEntity : NodeModel
+        private static void DeclareNodeSetCollection<TEntity>(ModelBuilder modelBuilder, Expression<Func<NodeSetModel, IEnumerable<TEntity>>> collection, bool cascadeDelete) where TEntity : NodeModel
         {
             var collectionName = (collection.Body as MemberExpression).Member.Name;
             var modelProp = $"NodeSet{collectionName}ModelUri";
             var pubDateProp = $"NodeSet{collectionName}PublicationDate";
             modelBuilder.Entity<TEntity>().Property<string>(modelProp);
             modelBuilder.Entity<TEntity>().Property<DateTime?>(pubDateProp);
-            modelBuilder.Entity<TEntity>().HasOne("CESMII.OpcUa.NodeSetModel.NodeSetModel", null)
+            var propFK = modelBuilder.Entity<TEntity>().HasOne("CESMII.OpcUa.NodeSetModel.NodeSetModel", null)
                 .WithMany(collectionName)
                 .HasForeignKey(modelProp, pubDateProp);
+            if (cascadeDelete)
+            {
+                propFK.OnDelete(DeleteBehavior.Cascade);
+            }
             // With this typed declaration the custom property names are not picked up for some reason
             //modelBuilder.Entity<TEntity>()
             //    .HasOne(nm => nm.NodeSet).WithMany(collection)

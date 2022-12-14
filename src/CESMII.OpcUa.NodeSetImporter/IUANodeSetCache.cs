@@ -6,8 +6,8 @@
  */
 
 using Opc.Ua.Export;
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace CESMII.OpcUa.NodeSetImporter
@@ -75,9 +75,6 @@ namespace CESMII.OpcUa.NodeSetImporter
         public List<ModelNameAndVersion> MissingModels { get; set; } = new List<ModelNameAndVersion>();
         /// <summary>
         /// A NodeSet author might add custom "Extensions" to a NodeSet. 
-        /// TODO: Make a decision how we handle Comments. xml Comments (xcomment tags) are preserved but inline file comments // or /* */ are not preserved
-        /// TODO: Do we need to use this dictionary at all? The Extensions are in The "Models/NodeSet/Extensions" anyway. 
-        ///       We could use this to add our own (Profile Editor) extensions that the UA Exporter would write back to the Models/NodeSet/Extension fields
         /// </summary>
         public Dictionary<string, string> Extensions { get; set; } = new Dictionary<string, string>();
 
@@ -91,23 +88,53 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="filePath"></param>
         /// <param name="WasNewSet"></param>
         /// <returns>The ModelValue created or found in the results</returns>
-        public ModelValue AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool WasNewSet)
+        public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool wasNewFile)
         {
-            var tModel = this.Models.Where(s => s.NameVersion.ModelUri == ns.ModelUri).OrderByDescending(s => s.NameVersion.PublicationDate).FirstOrDefault();
+            bool bAdded = false;
+            var tModel = GetMatchingOrHigherModel(ns.ModelUri, ns.PublicationDateSpecified ? ns.PublicationDate : null, ns.Version);
             if (tModel == null)
             {
-                this.Models.Add(tModel = new ModelValue { NodeSet = nodeSet, NameVersion = new ModelNameAndVersion { ModelUri = ns.ModelUri, ModelVersion = ns.Version, PublicationDate = ns.PublicationDate }, FilePath = filePath, NewInThisImport = WasNewSet });
+                // Remove any previous models with this ModelUri, as we have found a newer one
+                if (this.Models.RemoveAll(m => m.NameVersion.ModelUri == ns.ModelUri) > 0)
+                {
+                    // superceded
+                }
+
+                tModel = new ModelValue { NodeSet = nodeSet, NameVersion = new ModelNameAndVersion(ns), FilePath = filePath, NewInThisImport = wasNewFile };
+                this.Models.Add(tModel);
+                bAdded = true;
             }
             if (ns.RequiredModel?.Any() == true)
             {
                 foreach (var tDep in ns.RequiredModel)
                 {
                     tModel.Dependencies.Add(tDep.ModelUri);
-                    if (!this.MissingModels.Any(s => s.HasNameAndVersion(tDep.ModelUri, tDep.PublicationDate)))
+                    if (!this.MissingModels.Any(s => s.HasNameAndVersion(tDep.ModelUri, tDep.PublicationDate, tDep.Version)))
                     {
-                        this.MissingModels.Add(new ModelNameAndVersion { ModelUri = tDep.ModelUri, ModelVersion = tDep.Version, PublicationDate = tDep.PublicationDate });
+                        this.MissingModels.Add(new ModelNameAndVersion(tDep));
                     }
                 }
+            }
+            return (tModel, bAdded);
+        }
+
+        private ModelValue GetMatchingOrHigherModel(string modelUri, DateTime? publicationDate, string version)
+        {
+            var matchingNodeSetsForUri = this.Models
+                .Where(s => s.NameVersion.ModelUri == modelUri)
+                .Select(m => 
+                    new NodeSetModel.NodeSetModel 
+                    { 
+                        ModelUri = m.NameVersion.ModelUri, 
+                        PublicationDate = m.NameVersion.PublicationDate, 
+                        Version = m.NameVersion.ModelVersion,
+                        CustomState = m,
+                    });
+            var matchingNodeSet = NodeSetModel.NodeSetVersionUtils.GetMatchingOrHigherNodeSet(matchingNodeSetsForUri, publicationDate, version);
+            var tModel = matchingNodeSet?.CustomState as ModelValue;
+            if (tModel == null && matchingNodeSet != null)
+            {
+                throw new InvalidCastException("Internal error: CustomState not preserved");
             }
             return tModel;
         }

@@ -4,6 +4,7 @@
  * 
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
+using CESMII.OpcUa.NodeSetModel;
 using Opc.Ua.Export;
 using System;
 using System.IO;
@@ -177,8 +178,8 @@ namespace CESMII.OpcUa.NodeSetImporter
                 //Caching the streams to a "NodeSets" subfolder using the Model Name
                 //Even though "Models" is an array, most NodeSet files only contain one model.
                 //In case a NodeSet stream does contain multiple models, the same file will be cached with each Model Name 
-                string filePath = GetCacheFileName(new ModelNameAndVersion { ModelUri = ns.ModelUri, ModelVersion = ns.Version, PublicationDate = ns.PublicationDate }, TenantID);
-                // TODO How do we update a nodeset with a new version (or if a user keeps editing one and wants to import it to a different editor)?
+                string filePath = GetCacheFileName(new ModelNameAndVersion(ns), TenantID);
+
                 bool CacheNewerVersion = true;
                 if (File.Exists(filePath))
                 {
@@ -189,8 +190,13 @@ namespace CESMII.OpcUa.NodeSetImporter
                             tOldNodeSet = UANodeSet.Read(nodeSetStream);
                     }
                     var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.PublicationDate).FirstOrDefault();
-                    if (tns == null || ns.PublicationDate > tns.PublicationDate)
+                    if (tns == null
+                        || (NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
+                                ns.ModelUri, ns.PublicationDate, ns.Version,
+                                tns.PublicationDate, tns.Version) ?? false))
+                    {
                         CacheNewerVersion = true; //Cache the new NodeSet if the old (file) did not contain the model or if the version of the new model is greater
+                    }
                 }
                 if (CacheNewerVersion) //Cache only newer version
                 {
