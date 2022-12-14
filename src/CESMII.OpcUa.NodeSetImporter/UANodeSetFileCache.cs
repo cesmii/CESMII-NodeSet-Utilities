@@ -191,7 +191,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                     }
                     var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.PublicationDate).FirstOrDefault();
                     if (tns == null
-                        || (NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
+                        || !(NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
                                 ns.ModelUri, ns.PublicationDate, ns.Version,
                                 tns.PublicationDate, tns.Version) ?? false))
                     {
