@@ -5,6 +5,7 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 
+using Opc.Ua.Export;
 using System;
 
 namespace CESMII.OpcUa.NodeSetImporter
@@ -25,7 +26,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <summary>
         /// Publication date of the NodeSet
         /// </summary>
-        public DateTime PublicationDate { get; set; }
+        public DateTime? PublicationDate { get; set; }
         /// <summary>
         /// This is not a valid OPC UA Field and might be hidden inside the "Extensions" node - not sure if its the best way to add this here
         /// </summary>
@@ -40,6 +41,13 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// </summary>
         public object CCacheId { get; set; }
 
+
+        public ModelNameAndVersion(ModelTableEntry model)
+        {
+            ModelUri = model.ModelUri;
+            ModelVersion = model.Version;
+            PublicationDate = model.PublicationDateSpecified ? model.PublicationDate : null;
+        }
         /// <summary>
         /// Compares two NodeSetNameAndVersion using ModelUri and Version. 
         /// </summary>
@@ -49,7 +57,11 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             if (thanThis == null)
                 return false;
-            return ModelUri == thanThis.ModelUri && PublicationDate >= thanThis.PublicationDate;
+            if (ModelUri != thanThis.ModelUri)
+            {
+                return false;
+            }
+            return NodeSetModel.NodeSetVersionUtils.IsMatchingOrHigherNodeSet(ModelUri, PublicationDate, ModelVersion, thanThis.PublicationDate, thanThis.ModelVersion) ?? false;
         }
 
         /// <summary>
@@ -58,17 +70,21 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="ofModelUri">ModelUri of version</param>
         /// <param name="ofPublishDate">Publish Date of NodeSet</param>
         /// <returns></returns>
-        public bool HasNameAndVersion(string ofModelUri, DateTime ofPublishDate)
+        public bool HasNameAndVersion(string ofModelUri, DateTime ofPublicationDate, string ofModelVersion)
         {
             if (string.IsNullOrEmpty(ofModelUri))
                 return false;
-            return ModelUri == ofModelUri && PublicationDate >= ofPublishDate;
+            if (ModelUri != ofModelUri)
+            {
+                return false;
+            }
+            return NodeSetModel.NodeSetVersionUtils.IsMatchingOrHigherNodeSet(ModelUri, PublicationDate, ModelVersion, ofPublicationDate, ofModelVersion) ?? false;
         }
 
         public override string ToString()
         {
             string uaStandardIdLabel = UAStandardModelID.HasValue ? $", UA-ID: {UAStandardModelID.Value}" : "";
-            return $"{ModelUri} (Version: {ModelVersion}, PubDate: {PublicationDate.ToShortDateString()}{uaStandardIdLabel})";
+            return $"{ModelUri} (Version: {ModelVersion}, PubDate: {PublicationDate?.ToShortDateString()}{uaStandardIdLabel})";
         }
     }
 }

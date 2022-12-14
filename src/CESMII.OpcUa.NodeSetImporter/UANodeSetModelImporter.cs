@@ -65,15 +65,13 @@ namespace CESMII.OpcUa.NodeSetModel
                 throw new NodeSetResolverException($"{resolvedNodeSets.ErrorMessage}");
             }
 
-            var modelUri = resolvedNodeSets.Models?.LastOrDefault()?.NameVersion?.ModelUri;
-
             List<NodeSetModel> allLoadedNodesetModels = new();
 
             try
             {
                 foreach (var resolvedModel in resolvedNodeSets.Models)
                 {
-                    if (resolvedModel.NewInThisImport || resolvedModel.NameVersion.ModelUri == modelUri)
+                    if (resolvedModel.NewInThisImport)
                     {
                         var loadedNodesetModels = await NodeModelFactoryOpc.LoadNodeSetAsync(_opcContext,resolvedModel.NodeSet, null, new Dictionary<string, string>(), true);
                         foreach (var nodeSetModel in loadedNodesetModels)

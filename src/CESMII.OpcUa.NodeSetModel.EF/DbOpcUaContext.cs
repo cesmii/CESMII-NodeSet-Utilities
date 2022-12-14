@@ -165,37 +165,9 @@ namespace CESMII.OpcUa.NodeSetModel.EF
         }
         public static async Task<NodeSetModel> GetMatchingOrHigherNodeSetAsync(DbContext dbContext, string modelUri, DateTime? publicationDate, string version)
         {
-            if (modelUri == Namespaces.OpcUa)
-            {
-                // Special versioning rules for core nodesets: only match publication date within version family (1.03, 1.04, 1.05).
-                var prefixLength = "0.00".Length;
-                var versionPrefix = version?.Length >= prefixLength ? version.Substring(0, prefixLength) : "1.05";
-
-                var matchingNodeSet = await dbContext.Set<NodeSetModel>()
-                    .Where(nsm => nsm.ModelUri == modelUri && nsm.Version.StartsWith(versionPrefix) && (publicationDate == null || nsm.PublicationDate >= publicationDate))
-                    .OrderBy(nsm => nsm.PublicationDate)
-                    .FirstOrDefaultAsync();
-                if (matchingNodeSet == null)
-                {
-                    // No match within the version family: pick the newest available nodeset from any higher version family
-                    matchingNodeSet = await dbContext.Set<NodeSetModel>()
-                        .Where(nsm => nsm.ModelUri == modelUri
-                                && (publicationDate == null || nsm.PublicationDate >= publicationDate)
-                                && string.Compare(nsm.Version.Substring(0, prefixLength), versionPrefix) > 0)
-                        .OrderByDescending(nsm => nsm.Version.Substring(0, prefixLength))
-                        .ThenByDescending(nsm => nsm.PublicationDate)
-                        .FirstOrDefaultAsync();
-                }
-                return matchingNodeSet;
-            }
-            else
-            {
-                var matchingNodeSet = await dbContext.Set<NodeSetModel>()
-                    .Where(nsm => nsm.ModelUri == modelUri && (publicationDate == null || nsm.PublicationDate >= publicationDate))
-                    .OrderBy(nsm => nsm.PublicationDate)
-                    .FirstOrDefaultAsync();
-                return matchingNodeSet;
-            }
+            var matchingNodeSets = await dbContext.Set<NodeSetModel>()
+                .Where(nsm => nsm.ModelUri == modelUri).ToListAsync();
+            return NodeSetVersionUtils.GetMatchingOrHigherNodeSet(matchingNodeSets, publicationDate, version);
         }
     }
 }

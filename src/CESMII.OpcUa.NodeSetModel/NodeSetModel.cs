@@ -57,94 +57,6 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public Dictionary<string, NodeModel> AllNodesByNodeId { get; } = new Dictionary<string, NodeModel>();
     }
-    public static class NodeSetModelExtensions
-    { 
-        public static void UpdateAllNodes(this NodeSetModel _this)
-        {
-            _this.AllNodesByNodeId.Clear();
-            foreach (var dataType in _this.DataTypes)
-            {
-                if (!_this.AllNodesByNodeId.TryAdd(dataType.NodeId, dataType))
-                {
-                    // Duplicate node id!
-                }
-            }
-            foreach (var variableType in _this.VariableTypes)
-            {
-                _this.AllNodesByNodeId.TryAdd(variableType.NodeId, variableType);
-            }
-            foreach (var uaInterface in _this.Interfaces)
-            {
-                _this.AllNodesByNodeId.TryAdd(uaInterface.NodeId, uaInterface);
-            }
-            foreach (var objectType in _this.ObjectTypes)
-            {
-                _this.AllNodesByNodeId.TryAdd(objectType.NodeId, objectType);
-            }
-            foreach (var uaObject in _this.Objects)
-            {
-                _this.AllNodesByNodeId.TryAdd(uaObject.NodeId, uaObject);
-            }
-            foreach (var property in _this.Properties)
-            {
-                _this.AllNodesByNodeId.TryAdd(property.NodeId, property);
-            }
-            foreach (var dataVariable in _this.DataVariables)
-            {
-                _this.AllNodesByNodeId.TryAdd(dataVariable.NodeId, dataVariable);
-            }
-            foreach (var referenceType in _this.ReferenceTypes)
-            {
-                _this.AllNodesByNodeId.TryAdd(referenceType.NodeId, referenceType);
-            }
-            foreach (var node in _this.UnknownNodes)
-            {
-                _this.AllNodesByNodeId.TryAdd(node.NodeId, node);
-            }
-        }
-
-        public static void UpdateIndices(this NodeSetModel _this)
-        {
-            _this.AllNodesByNodeId.Clear();
-            var updatedNodes = new List<NodeModel>();
-            foreach (var dataType in _this.DataTypes)
-            {
-                dataType.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var variableType in _this.VariableTypes)
-            {
-                variableType.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var uaInterface in _this.Interfaces)
-            {
-                uaInterface.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var objectType in _this.ObjectTypes)
-            {
-                objectType.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var property in _this.Properties)
-            {
-                property.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var dataVariable in _this.DataVariables)
-            {
-                dataVariable.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var uaObject in _this.Objects)
-            {
-                uaObject.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var referenceType in _this.ReferenceTypes)
-            {
-                referenceType.UpdateIndices(_this, updatedNodes);
-            }
-            foreach (var node in _this.UnknownNodes)
-            {
-                node.UpdateIndices(_this, updatedNodes);
-            }
-        }
-    }
     public class RequiredModelInfo
     {
         public string ModelUri { get; set; }
@@ -160,7 +72,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string SymbolicName { get; set; }
         public string GetBrowseName()
         {
-            return BrowseName ?? $"{Namespace}:{DisplayName}";
+            return BrowseName ?? $"{Namespace}:{DisplayName?.FirstOrDefault()?.Text}";
         }
 
         public virtual List<LocalizedText> Description { get; set; }
@@ -313,15 +225,9 @@ namespace CESMII.OpcUa.NodeSetModel
     public abstract class BaseTypeModel : NodeModel
     {
         public bool IsAbstract { get; set; }
-        /// <summary>
-        /// This is equivalent to ProfileItem.Parent.
-        /// </summary>
+
         public virtual BaseTypeModel SuperType { get; set; }
-        /// <summary>
-        /// This is equivalent to ProfileItem.Children.
-        /// Dynamically assembled from list of types ids...
-        /// Not serialized.
-        /// </summary>
+
         [IgnoreDataMember] // This can contain cycle (and is easily recreated from the SubTypeId)
         public virtual List<BaseTypeModel> SubTypes { get; set; } = new List<BaseTypeModel>();
 
@@ -578,15 +484,4 @@ namespace CESMII.OpcUa.NodeSetModel
 
     }
 
-#if NETSTANDARD2_0
-    static class DictExtensions
-    {
-        public static bool TryAdd(this Dictionary<string, NodeModel> dict, string key, NodeModel value)
-        {
-            if (dict.ContainsKey(key)) return false;
-            dict.Add(key, value);
-            return true;
-        }
-    }
-#endif
 }
