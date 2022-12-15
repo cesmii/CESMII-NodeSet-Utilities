@@ -71,7 +71,7 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 foreach (var resolvedModel in resolvedNodeSets.Models)
                 {
-                    if (resolvedModel.NewInThisImport)
+                    if (resolvedModel.RequestedForThisImport || resolvedModel.NewInThisImport)
                     {
                         var loadedNodesetModels = await NodeModelFactoryOpc.LoadNodeSetAsync(_opcContext,resolvedModel.NodeSet, null, new Dictionary<string, string>(), true);
                         foreach (var nodeSetModel in loadedNodesetModels)

@@ -95,7 +95,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         // Must enumerate the nodeSetsXml only once in case the caller creates/loads strings as needed (streams of files)
                         foreach (var nodeSetXml in nodeSetsXml)
                         {
-                            var JustFoundNewNodeSet = NodeSetCacheSystem.AddNodeSet(results, nodeSetXml, TenantID);
+                            var JustFoundNewNodeSet = NodeSetCacheSystem.AddNodeSet(results, nodeSetXml, TenantID, true);
                             NewNodeSetFound |= JustFoundNewNodeSet;
                         }
                         nodeSetsXml = null;

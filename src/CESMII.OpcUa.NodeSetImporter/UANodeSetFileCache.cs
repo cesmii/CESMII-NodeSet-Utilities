@@ -103,7 +103,7 @@ namespace CESMII.OpcUa.NodeSetImporter
             if (!File.Exists(nodesetFileName))
                 return;
             var nodeSetXml = File.ReadAllText(nodesetFileName);
-            AddNodeSet(results, nodeSetXml, tenantId);
+            AddNodeSet(results, nodeSetXml, tenantId, false);
         }
 
         public bool GetNodeSet(UANodeSetImportResult results, ModelNameAndVersion nameVersion, object TenantID)
@@ -143,7 +143,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="nodesetArray"></param>
 
         /// <returns></returns>
-        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID)
+        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID, bool requested)
         {
             bool WasNewSet = false;
             // UANodeSet.Read disposes the stream. We need it later on so create a copy
@@ -191,7 +191,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                     }
                     var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.PublicationDate).FirstOrDefault();
                     if (tns == null
-                        || (NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
+                        || !(NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
                                 ns.ModelUri, ns.PublicationDate, ns.Version,
                                 tns.PublicationDate, tns.Version) ?? false))
                     {
@@ -203,7 +203,8 @@ namespace CESMII.OpcUa.NodeSetImporter
                     File.WriteAllText(filePath, nodeSetXml);
                     WasNewSet = true;
                 }
-                results.AddModelAndDependencies(nodeSet, ns, filePath, WasNewSet);
+                var modelInfo = results.AddModelAndDependencies(nodeSet, ns, filePath, WasNewSet);
+                modelInfo.Model.RequestedForThisImport = requested;
             }
             return WasNewSet;
         }
