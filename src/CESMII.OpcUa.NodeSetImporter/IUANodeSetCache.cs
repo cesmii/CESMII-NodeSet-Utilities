@@ -15,7 +15,7 @@ namespace CESMII.OpcUa.NodeSetImporter
     public interface IUANodeSetCache
     {
         public bool GetNodeSet(UANodeSetImportResult results, ModelNameAndVersion nameVersion, object TenantID);
-        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID);
+        public bool AddNodeSet(UANodeSetImportResult results, string nodeSetXml, object TenantID, bool requested);
         public string GetRawModelXML(ModelValue model);
         public void DeleteNewlyAddedNodeSetsFromCache(UANodeSetImportResult results);
         public UANodeSetImportResult FlushCache();
@@ -47,6 +47,11 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// a Flag telling the consumer that this model was just found and new to this import
         /// </summary>
         public bool NewInThisImport { get; set; }
+
+        /// <summary>
+        /// A flag telling theconsumer that this model is one of the explicitly requested nodemodel, even if it already existed
+        /// </summary>
+        public bool RequestedForThisImport { get; set; }
 
         public override string ToString()
         {
