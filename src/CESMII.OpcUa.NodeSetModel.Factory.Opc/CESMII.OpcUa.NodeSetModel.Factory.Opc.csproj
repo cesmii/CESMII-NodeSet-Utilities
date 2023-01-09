@@ -17,7 +17,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<None Include=".\..\cesmii.png" Pack="true" PackagePath=""/>
+		<None Include=".\..\cesmii.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -29,9 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="NodeSets\UNECE_to_OPCUA.csv">
+    <Content Include="NodeSets\UNECE_to_OPCUA.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 
 </Project>
