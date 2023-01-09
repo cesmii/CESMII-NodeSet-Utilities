@@ -53,10 +53,6 @@ namespace CESMII.NodeSetUtilities.Tests
             var nodeSetModel = new NodeSetModel
             {
                 ModelUri = "https://opcua.rocks/UA",
-                RequiredModels = new List<RequiredModelInfo>
-                {
-                    new RequiredModelInfo { ModelUri= uaBaseModel.ModelUri, PublicationDate = uaBaseModel.PublicationDate, Version = uaBaseModel.Version}
-                },
             };
 
             uint nextNodeId = 1000;
@@ -78,7 +74,7 @@ namespace CESMII.NodeSetUtilities.Tests
                     },
                 },
                 DataVariables = new List<DataVariableModel>
-                { 
+                {
                     new DataVariableModel
                     {
                         NodeSet = nodeSetModel,
@@ -86,7 +82,7 @@ namespace CESMII.NodeSetUtilities.Tests
                         DisplayName = new List<NodeModel.LocalizedText> { "Height" },
                         DataType = uaBaseModel.DataTypes.FirstOrDefault(ot => ot.BrowseName.EndsWith("Float")),
                         EngineeringUnit = new VariableModel.EngineeringUnitInfo { DisplayName = "metre"  },
-                        Value = "{\"Value\":{\"Type\":10,\"Body\":0 }",
+                        Value = JsonEncodeVariant((float) 0),
                     },
                 },
             };
@@ -98,5 +94,14 @@ namespace CESMII.NodeSetUtilities.Tests
             var exportedNodeSetXml = UANodeSetModelImporter.ExportNodeSetAsXml(nodeSetModel, baseNodeSets);
         }
 
+        private string JsonEncodeVariant(Variant v)
+        {
+            using (var encoder = new JsonEncoder(ServiceMessageContext.GlobalContext, true))
+            {
+                encoder.WriteVariant("Value", v);
+                var jsonValue = encoder.CloseAndReturnText();
+                return jsonValue;
+            }
+        }
     }
 }
