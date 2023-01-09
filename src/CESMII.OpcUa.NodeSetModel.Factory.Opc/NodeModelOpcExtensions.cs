@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using NotVisualBasic.FileIO;
+
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
     public static class NodeModelOpcExtensions
@@ -58,52 +60,39 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 {
                     // Load UNECE units if not already loaded
                     _euInformationByDescription = new Dictionary<string, EUInformation>();
-                    try
+                    var fileName = Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv");
+                    var parser = new CsvTextFieldParser(fileName);
+                    if (!parser.EndOfData)
                     {
-                        var euMapping = File.ReadAllLines(Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv"));
-                        foreach (var line in euMapping.Skip(1))
-                        {
-                            //UNECECode,UnitId,DisplayName,Description
-                            var parts = line.Split(',');
-                            if (parts.Length != 4)
-                            {
-                                // error
-                            }
-                            var UNECECode = parts[0].TrimCSV("\"");
-                            var UnitId = parts[1].TrimCSV("\"");
-                            var DisplayName = parts[2].TrimCSV("\"");
-                            var Description = parts[3].TrimCSV("\"");
-                            var newEuInfo = new EUInformation(DisplayName, Description, strUNECEUri)
-                            {
-                                UnitId = int.Parse(UnitId),
-                            };
-                            if (!_euInformationByDescription.ContainsKey(newEuInfo.Description.Text))
-                            {
-                                _euInformationByDescription.Add(newEuInfo.Description.Text, newEuInfo);
-                            }
-                        }
+                        var headerFields = parser.ReadFields();
                     }
-                    catch
+                    while (!parser.EndOfData)
                     {
+                        var parts = parser.ReadFields();
+                        if (parts.Length != 4)
+                        {
+                            // error
+                        }
+                        var UNECECode = parts[0];
+                        var UnitId = parts[1];
+                        var DisplayName = parts[2];
+                        var Description = parts[3];
+                        var newEuInfo = new EUInformation(DisplayName, Description, strUNECEUri)
+                        {
+                            UnitId = int.Parse(UnitId),
+                        };
+                        if (!_euInformationByDescription.ContainsKey(newEuInfo.Description.Text))
+                        {
+                            _euInformationByDescription.Add(newEuInfo.Description.Text, newEuInfo);
+                        }
+                        else
+                        {
+                            throw new System.Exception($"Duplicate unit description {newEuInfo.Description.Text} in {fileName}");
+                        }
                     }
                 }
                 return _euInformationByDescription;
             }
-        }
-
-        private static string TrimCSV(this string s, string trimChar)
-        {
-            if (s == null) return null;
-            if (s.StartsWith(trimChar))
-            {
-                s= s.Substring(1);
-            }
-            if (s.EndsWith(trimChar))
-            {
-                s = s.Substring(0, s.Length - 1);
-            }
-            s = s.Replace("\"\"", "\""); // Double quotes => single quote
-            return s;
         }
 
         public static EUInformation GetEUInformation(VariableModel.EngineeringUnitInfo engineeringUnitDescription)
@@ -141,7 +130,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         public static List<EUInformation> GetUNECEEngineeringUnits()
         {
             var uneceUnits = new List<EUInformation>();
-            foreach(var euInfo in EUInformationByDescription.Values)
+            foreach (var euInfo in EUInformationByDescription.Values)
             {
                 uneceUnits.Add(euInfo);
             }
