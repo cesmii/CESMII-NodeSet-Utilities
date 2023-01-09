@@ -17,8 +17,8 @@ namespace CESMII.OpcUa.NodeSetImporter
     //Glossary of Terms:
     //-----------------------------------
     //NodeSet - Container File of one or more Models
-    //Model - a unique OPC UA Model identified with a unique NameSpaceUri/ModelUri. A model can be spanned across multiple NodeSet (files)
-    //NameSpace - the unique identifier of a Model (also called ModelUri)
+    //Model - a unique OPC UA Model identified with a unique NamespaceUri/ModelUri. A model can be spanned across multiple NodeSet (files)
+    //Namespace - the unique identifier of a Model (also called ModelUri)
     //UAStandardModel - A Model that has been standardized by the OPC UA Foundation and can be found in the official schema store: https://files.opcfoundation.org/schemas/
     //UANodeSetImporter - Imports one or more OPC UA NodeSets resulting in a "NodeSetImportResult" containing all found Models and a list of missing dependencies
 
