@@ -57,9 +57,9 @@ namespace CESMII.OpcUa.NodeSetModel
         /// <param name="modelUri">optional modelUri to verify</param>
         /// <returns></returns>
         /// <exception cref="NodeSetResolverException"></exception>
-        public async Task<List<NodeSetModel>> ImportNodeSetModelAsync(string nodeSetXML, string identifier = null)
+        public async Task<List<NodeSetModel>> ImportNodeSetModelAsync(string nodeSetXML, string identifier = null, IUANodeSetResolver resolver = null, object tenantId = null, bool failOnExistingNodeSet = false)
         {
-            var resolvedNodeSets = UANodeSetImporter.ImportNodeSets(_nodeSetCache, null, new List<string> { nodeSetXML }, false, null, null);
+            var resolvedNodeSets = UANodeSetImporter.ImportNodeSets(_nodeSetCache, null, new List<string> { nodeSetXML }, failOnExistingNodeSet, tenantId, resolver);
             if (!string.IsNullOrEmpty(resolvedNodeSets.ErrorMessage))
             {
                 throw new NodeSetResolverException($"{resolvedNodeSets.ErrorMessage}");
