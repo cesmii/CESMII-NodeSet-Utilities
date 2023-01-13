@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 
 using NotVisualBasic.FileIO;
+using System.Reflection;
 
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
@@ -61,7 +62,16 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     // Load UNECE units if not already loaded
                     _euInformationByDescription = new Dictionary<string, EUInformation>();
                     var fileName = Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv");
-                    var parser = new CsvTextFieldParser(fileName);
+                    Stream fileStream;
+                    if (File.Exists(fileName))
+                    {
+                        fileStream = File.OpenRead(fileName);
+                    }
+                    else
+                    {
+                        fileStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("CESMII.OpcUa.NodeSetModel.Factory.Opc.NodeSets.UNECE_to_OPCUA.csv");
+                    }
+                    var parser = new CsvTextFieldParser(fileStream);
                     if (!parser.EndOfData)
                     {
                         var headerFields = parser.ReadFields();
