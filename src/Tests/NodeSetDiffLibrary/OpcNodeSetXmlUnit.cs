@@ -28,6 +28,7 @@ namespace NodeSetDiff
         private readonly NamespaceTable _testNamespaces;
         private readonly string _controlFile;
         private readonly string _testFile;
+        private readonly bool _ignoreRequiredVersion;
         private XDocument _controlDoc;
         private XDocument _testDoc;
         private UANodeSet _controlNodeSet;
@@ -56,7 +57,7 @@ namespace NodeSetDiff
         }
 
         public OpcNodeSetXmlUnit(Dictionary<string, string> controlAliases, NamespaceTable controlNamespaces, Dictionary<string, string> testAliases, NamespaceTable testNamespaces,
-            string controlFile, string testFile)
+            string controlFile, string testFile, bool ignoreRequiredVersion = false)
         {
             this._controlAliases = controlAliases;
             this._controlNamespaces = controlNamespaces;
@@ -64,6 +65,7 @@ namespace NodeSetDiff
             this._testNamespaces = testNamespaces;
             this._controlFile = controlFile;
             this._testFile = testFile;
+            this._ignoreRequiredVersion = ignoreRequiredVersion;
         }
         public ComparisonResult OpcNodeSetDifferenceEvaluator(Comparison c, ComparisonResult outcome)
         {
@@ -240,6 +242,23 @@ namespace NodeSetDiff
                 if (c.ControlDetails.Target?.LocalName == "LastModified" || c.TestDetails.Target?.LocalName == "LastModified")
                 {
                     return ComparisonResult.EQUAL;
+                }
+                if (_ignoreRequiredVersion)
+                {
+                    if (c.ControlDetails.Target?.LocalName == "Version" || c.TestDetails.Target?.LocalName == "Version")
+                    {
+                        if (c.ControlDetails.XPath.Contains("/RequiredModel[") && c.ControlDetails.Target?.Value?.ToString()?.CompareTo(c.TestDetails.Target?.Value?.ToString()) <= 0)
+                        {
+                            return ComparisonResult.EQUAL;
+                        }
+                    }
+                    if (c.ControlDetails.Target?.LocalName == "PublicationDate" || c.TestDetails.Target?.LocalName == "PublicationDate")
+                    {
+                        if (c.ControlDetails.XPath.Contains("/RequiredModel["))
+                        {
+                            return ComparisonResult.EQUAL;
+                        }
+                    }
                 }
             }
             if (c.Type == ComparisonType.TEXT_VALUE)
@@ -440,9 +459,12 @@ namespace NodeSetDiff
             {
                 UANodeSet nodeSet = UANodeSet.Read(nodeSetStream);
                 var aliases = nodeSet.Aliases?.ToDictionary(a => a.Alias, a => a.Value) ?? new Dictionary<string, string>();
-                foreach (var ns in nodeSet.NamespaceUris)
+                if (nodeSet.NamespaceUris?.Any() == true)
                 {
-                    namespaces.GetIndexOrAppend(ns);
+                    foreach (var ns in nodeSet.NamespaceUris)
+                    {
+                        namespaces.GetIndexOrAppend(ns);
+                    }
                 }
                 return (namespaces, aliases);
             }

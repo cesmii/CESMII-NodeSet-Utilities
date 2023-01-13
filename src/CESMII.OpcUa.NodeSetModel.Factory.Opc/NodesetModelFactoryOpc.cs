@@ -571,7 +571,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 return null;
             }
 
-            var nodeModel = Create<TNodeModel>(opcContext, nodeId, namespaceUri, customState, out var created);
+            var nodeModel = Create<TNodeModel>(opcContext, nodeId, new ModelTableEntry { ModelUri = namespaceUri }, customState, out var created);
             var nodeModelOpc = new TNodeModelOpc { _model = nodeModel, Logger = opcContext.Logger };
             if (created)
             {
@@ -584,10 +584,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return nodeModel;
         }
 
-        public static TNodeModel Create<TNodeModel>(IOpcUaContext opcContext, string nodeId, string opcNamespace, object customState, out bool created) where TNodeModel : NodeModel, new()
+        public static TNodeModel Create<TNodeModel>(IOpcUaContext opcContext, string nodeId, ModelTableEntry opcModelInfo, object customState, out bool created) where TNodeModel : NodeModel, new()
         {
             created = false;
-            opcContext.NamespaceUris.GetIndexOrAppend(opcNamespace); // Ensure the namespace is in the namespace table
+            opcContext.NamespaceUris.GetIndexOrAppend(opcModelInfo.ModelUri); // Ensure the namespace is in the namespace table
             var nodeModelBase = opcContext.GetModelForNode<TNodeModel>(nodeId);
             var nodeModel = nodeModelBase as TNodeModel;
             if (nodeModel == null)
@@ -601,7 +601,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodeModel.CustomState = customState;
                 created = true;
 
-                var nodesetModel = opcContext.GetOrAddNodesetModel(new ModelTableEntry { ModelUri = opcNamespace });
+                var nodesetModel = opcContext.GetOrAddNodesetModel(opcModelInfo);
+                if (nodesetModel.CustomState == null)
+                {
+                    nodesetModel.CustomState = customState;
+                }
                 nodeModel.NodeSet = nodesetModel;
                 if (!nodesetModel.AllNodesByNodeId.ContainsKey(nodeModel.NodeId))
                 {
