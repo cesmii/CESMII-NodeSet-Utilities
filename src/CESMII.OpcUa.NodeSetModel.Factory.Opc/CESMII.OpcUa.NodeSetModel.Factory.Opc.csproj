@@ -21,6 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="CsvTextFieldParser" Version="1.2.2" />
 	  <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.4.368.33" />
   </ItemGroup>
 
@@ -29,9 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="NodeSets\UNECE_to_OPCUA.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <EmbeddedResource Include="NodeSets\UNECE_to_OPCUA.csv">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

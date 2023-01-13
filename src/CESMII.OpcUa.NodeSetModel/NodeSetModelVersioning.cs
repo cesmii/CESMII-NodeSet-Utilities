@@ -54,7 +54,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 var prefixLength = "0.00".Length;
                 if (versionToMatch?.Length >= prefixLength)
                 {
-                    if (modelVersion.Length < prefixLength)
+                    if (modelVersion == null ||  modelVersion.Length < prefixLength)
                     {
                         // Invalid version '{modelVersion}' in OPC UA Core nodeset
                         return null;
