@@ -52,15 +52,14 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 
         private const string strUNECEUri = "http://www.opcfoundation.org/UA/units/un/cefact";
 
-        static Dictionary<string, EUInformation> _euInformationByDescription;
-        static Dictionary<string, EUInformation> EUInformationByDescription
+        static List<EUInformation> _UNECEEngineeringUnits;
+        public static List<EUInformation> UNECEEngineeringUnits
         {
             get
             {
-                if (_euInformationByDescription == null)
-                {
-                    // Load UNECE units if not already loaded
-                    _euInformationByDescription = new Dictionary<string, EUInformation>();
+                if (_UNECEEngineeringUnits == null)
+                {                    // Load UNECE units if not already loaded
+                    _UNECEEngineeringUnits = new List<EUInformation>();
                     var fileName = Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv");
                     Stream fileStream;
                     if (File.Exists(fileName))
@@ -91,17 +90,59 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                         {
                             UnitId = int.Parse(UnitId),
                         };
-                        if (!_euInformationByDescription.ContainsKey(newEuInfo.Description.Text))
+                        _UNECEEngineeringUnits.Add(newEuInfo);
+                    }
+                }
+
+                return _UNECEEngineeringUnits;
+            }
+        }
+
+        static Dictionary<string, EUInformation> _euInformationByDescription;
+        static Dictionary<string, EUInformation> EUInformationByDescription
+        {
+            get
+            {
+                if (_euInformationByDescription == null)
+                {
+                    _euInformationByDescription = new Dictionary<string, EUInformation>();
+                    foreach (var aEuInformation in UNECEEngineeringUnits)
+                    {
+                        if (!_euInformationByDescription.ContainsKey(aEuInformation.Description.Text))
                         {
-                            _euInformationByDescription.Add(newEuInfo.Description.Text, newEuInfo);
+                            _euInformationByDescription.Add(aEuInformation.Description.Text, aEuInformation);
                         }
                         else
                         {
-                            throw new System.Exception($"Duplicate unit description {newEuInfo.Description.Text} in {fileName}");
+                            throw new System.Exception($"Duplicate unit description {aEuInformation.Description.Text} in {aEuInformation}");
                         }
                     }
                 }
                 return _euInformationByDescription;
+            }
+        }
+
+        static Dictionary<string, EUInformation> _euInformationByDisplayName;
+        static Dictionary<string, EUInformation> EUInformationByDisplayName
+        {
+            get
+            {
+                if (_euInformationByDisplayName == null)
+                {
+                    _euInformationByDisplayName = new Dictionary<string, EUInformation>();
+                    foreach (var aEuInformation in UNECEEngineeringUnits)
+                    {
+                        if (!_euInformationByDisplayName.ContainsKey(aEuInformation.DisplayName.Text))
+                        {
+                            _euInformationByDisplayName.Add(aEuInformation.DisplayName.Text, aEuInformation);
+                        }
+                        else
+                        {
+                            //throw new System.Exception($"Duplicate unit displayname {aEuInformation.DisplayName.Text} in {aEuInformation}");
+                        }
+                    }
+                }
+                return _euInformationByDisplayName;
             }
         }
 
@@ -115,7 +156,13 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 && (string.IsNullOrEmpty(engineeringUnitDescription.NamespaceUri) || engineeringUnitDescription.NamespaceUri == strUNECEUri))
             {
                 // If we only have a displayname, assume it's a UNECE unit
+                // Try to lookup engineering unit by description
                 if (EUInformationByDescription.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfo))
+                {
+                    return euInfo;
+                }
+                // Try to lookup engineering unit by display name
+                else if (EUInformationByDisplayName.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfo))
                 {
                     return euInfo;
                 }
@@ -135,16 +182,6 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 }
                 return euInfo;
             }
-        }
-
-        public static List<EUInformation> GetUNECEEngineeringUnits()
-        {
-            var uneceUnits = new List<EUInformation>();
-            foreach (var euInfo in EUInformationByDescription.Values)
-            {
-                uneceUnits.Add(euInfo);
-            }
-            return uneceUnits;
         }
 
     }
