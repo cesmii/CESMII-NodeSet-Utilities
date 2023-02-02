@@ -98,23 +98,23 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
         }
 
-        static Dictionary<string, EUInformation> _euInformationByDescription;
-        static Dictionary<string, EUInformation> EUInformationByDescription
+        static Dictionary<string, List<EUInformation>> _euInformationByDescription;
+        static Dictionary<string, List<EUInformation>> EUInformationByDescription
         {
             get
             {
                 if (_euInformationByDescription == null)
                 {
-                    _euInformationByDescription = new Dictionary<string, EUInformation>();
+                    _euInformationByDescription = new Dictionary<string, List<EUInformation>>();
                     foreach (var aEuInformation in UNECEEngineeringUnits)
                     {
                         if (!_euInformationByDescription.ContainsKey(aEuInformation.Description.Text))
                         {
-                            _euInformationByDescription.Add(aEuInformation.Description.Text, aEuInformation);
+                            _euInformationByDescription.Add(aEuInformation.Description.Text, new List<EUInformation> { aEuInformation });
                         }
                         else
                         {
-                            throw new System.Exception($"Duplicate unit description {aEuInformation.Description.Text} in {aEuInformation}");
+                            _euInformationByDescription[aEuInformation.DisplayName.Text].Add(aEuInformation);
                         }
                     }
                 }
@@ -122,23 +122,23 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
         }
 
-        static Dictionary<string, EUInformation> _euInformationByDisplayName;
-        static Dictionary<string, EUInformation> EUInformationByDisplayName
+        static Dictionary<string, List<EUInformation>> _euInformationByDisplayName;
+        static Dictionary<string, List<EUInformation>> EUInformationByDisplayName
         {
             get
             {
                 if (_euInformationByDisplayName == null)
                 {
-                    _euInformationByDisplayName = new Dictionary<string, EUInformation>();
+                    _euInformationByDisplayName = new Dictionary<string, List<EUInformation>>();
                     foreach (var aEuInformation in UNECEEngineeringUnits)
                     {
                         if (!_euInformationByDisplayName.ContainsKey(aEuInformation.DisplayName.Text))
                         {
-                            _euInformationByDisplayName.Add(aEuInformation.DisplayName.Text, aEuInformation);
+                            _euInformationByDisplayName.Add(aEuInformation.DisplayName.Text, new List<EUInformation> { aEuInformation });
                         }
                         else
                         {
-                            //throw new System.Exception($"Duplicate unit displayname {aEuInformation.DisplayName.Text} in {aEuInformation}");
+                            _euInformationByDisplayName[aEuInformation.DisplayName.Text].Add(aEuInformation);
                         }
                     }
                 }
@@ -149,7 +149,8 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         public static EUInformation GetEUInformation(VariableModel.EngineeringUnitInfo engineeringUnitDescription)
         {
             if (engineeringUnitDescription == null) return null;
-            EUInformation euInfo;
+            
+            List<EUInformation> euInfoList;
             if (!string.IsNullOrEmpty(engineeringUnitDescription.DisplayName?.Text)
                 && engineeringUnitDescription.UnitId == null
                 && engineeringUnitDescription.Description == null
@@ -157,14 +158,14 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             {
                 // If we only have a displayname, assume it's a UNECE unit
                 // Try to lookup engineering unit by description
-                if (EUInformationByDescription.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfo))
+                if (EUInformationByDescription.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfoList))
                 {
-                    return euInfo;
+                    return euInfoList.First();
                 }
                 // Try to lookup engineering unit by display name
-                else if (EUInformationByDisplayName.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfo))
+                else if (EUInformationByDisplayName.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfoList))
                 {
-                    return euInfo;
+                    return euInfoList.First();
                 }
                 else
                 {
@@ -175,7 +176,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             else
             {
                 // Custom EUInfo: use what was specified without further validation
-                euInfo = new EUInformation(engineeringUnitDescription.DisplayName?.Text, engineeringUnitDescription.Description?.Text, engineeringUnitDescription.NamespaceUri);
+                EUInformation euInfo = new EUInformation(engineeringUnitDescription.DisplayName?.Text, engineeringUnitDescription.Description?.Text, engineeringUnitDescription.NamespaceUri);
                 if (engineeringUnitDescription.UnitId != null)
                 {
                     euInfo.UnitId = engineeringUnitDescription.UnitId.Value;
