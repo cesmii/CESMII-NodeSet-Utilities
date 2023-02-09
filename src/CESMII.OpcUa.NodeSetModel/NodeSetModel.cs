@@ -332,7 +332,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public class EngineeringUnitInfo
         {
             /// <summary>
-            /// If only DisplayName is specified, it is assumed to be the Description of a UNECE unit as specified in https://reference.opcfoundation.org/v104/Core/docs/Part8/5.6.3/, and the referenced http://www.opcfoundation.org/UA/EngineeringUnits/UNECE/UNECE_to_OPCUA.csv
+            /// If only DisplayName is specified, it is assumed to be the DisplayName or the Description of a UNECE unit as specified in https://reference.opcfoundation.org/v104/Core/docs/Part8/5.6.3/, and the referenced http://www.opcfoundation.org/UA/EngineeringUnits/UNECE/UNECE_to_OPCUA.csv
             /// </summary>
             public LocalizedText DisplayName { get; set; }
             public LocalizedText Description { get; set; }
