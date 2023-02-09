@@ -58,7 +58,8 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             get
             {
                 if (_UNECEEngineeringUnits == null)
-                {                    // Load UNECE units if not already loaded
+                {                    
+                    // Load UNECE units if not already loaded
                     _UNECEEngineeringUnits = new List<EUInformation>();
                     var fileName = Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv");
                     Stream fileStream;
@@ -160,12 +161,12 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 // Try to lookup engineering unit by description
                 if (EUInformationByDescription.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfoList))
                 {
-                    return euInfoList.First();
+                    return euInfoList.FirstOrDefault();
                 }
                 // Try to lookup engineering unit by display name
                 else if (EUInformationByDisplayName.TryGetValue(engineeringUnitDescription.DisplayName.Text, out euInfoList))
                 {
-                    return euInfoList.First();
+                    return euInfoList.FirstOrDefault();
                 }
                 else
                 {
