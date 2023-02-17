@@ -49,7 +49,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         public bool NewInThisImport { get; set; }
 
         /// <summary>
-        /// A flag telling theconsumer that this model is one of the explicitly requested nodemodel, even if it already existed
+        /// A flag telling the consumer that this model is one of the explicitly requested nodemodel, even if it already existed
         /// </summary>
         public bool RequestedForThisImport { get; set; }
 
@@ -127,11 +127,11 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             var matchingNodeSetsForUri = this.Models
                 .Where(s => s.NameVersion.ModelUri == modelUri)
-                .Select(m => 
-                    new NodeSetModel.NodeSetModel 
-                    { 
-                        ModelUri = m.NameVersion.ModelUri, 
-                        PublicationDate = m.NameVersion.PublicationDate, 
+                .Select(m =>
+                    new NodeSetModel.NodeSetModel
+                    {
+                        ModelUri = m.NameVersion.ModelUri,
+                        PublicationDate = m.NameVersion.PublicationDate,
                         Version = m.NameVersion.ModelVersion,
                         CustomState = m,
                     });

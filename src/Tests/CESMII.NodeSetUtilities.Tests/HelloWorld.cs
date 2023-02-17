@@ -44,8 +44,7 @@ namespace CESMII.NodeSetUtilities.Tests
 
             var nodesetXml = File.ReadAllText(file);
 
-            var opcContext = new DefaultOpcUaContext(NullLogger.Instance);
-            var importer = new UANodeSetModelImporter(opcContext);
+            var importer = new UANodeSetModelImporter(NullLogger.Instance);
 
             var baseNodeSets = (await importer.ImportNodeSetModelAsync(nodesetXml)).ToDictionary(n => n.ModelUri);
             var uaBaseModel = baseNodeSets[Namespaces.OpcUa];
@@ -91,7 +90,7 @@ namespace CESMII.NodeSetUtilities.Tests
 
             nodeSetModel.UpdateIndices();
 
-            var exportedNodeSetXml = UANodeSetModelImporter.ExportNodeSetAsXml(nodeSetModel, baseNodeSets);
+            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(nodeSetModel, baseNodeSets);
         }
 
         private string JsonEncodeVariant(Variant v)

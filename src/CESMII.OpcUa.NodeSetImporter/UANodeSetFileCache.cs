@@ -150,7 +150,7 @@ namespace CESMII.OpcUa.NodeSetImporter
             UANodeSet nodeSet;
 
             // workaround for bug https://github.com/dotnet/runtime/issues/67622
-			var patchedXML = nodeSetXml.Replace("<Value/>", "<Value xsi:nil='true' />");
+            var patchedXML = nodeSetXml.Replace("<Value/>", "<Value xsi:nil='true' />");
             using (var nodesetBytes = new MemoryStream(Encoding.UTF8.GetBytes(patchedXML)))
             {
                 nodeSet = UANodeSet.Read(nodesetBytes);

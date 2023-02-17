@@ -77,7 +77,7 @@ namespace CESMII.NodeSetUtilities.Tests
 
             var importedNodeSetModel = importedNodeSetModels.FirstOrDefault();
 
-            var exportedNodeSetXml = UANodeSetModelImporter.ExportNodeSetAsXml(importedNodeSetModel, nodeSetModels);
+            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(importedNodeSetModel, nodeSetModels);
 
             // Write the exported XML
             var nodeSetFileName = GetFileNameFromNamespace(importedNodeSetModel.ModelUri);

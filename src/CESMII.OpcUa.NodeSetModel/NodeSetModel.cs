@@ -85,6 +85,22 @@ namespace CESMII.OpcUa.NodeSetModel
         public object CustomState { get; set; }
         public virtual List<string> Categories { get; set; }
 
+        public IEnumerable<NodeAndReference> AllReferencedNodes
+        {
+            get
+            {
+                return 
+                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", Node = p }))
+                    .Concat(this.OtherReferencedNodes)
+                    ;
+            }
+        }
+
         public virtual NodeSetModel NodeSet { get; set; }
 
         public class LocalizedText
@@ -100,7 +116,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public string Locale { get; set; }
 
             public static implicit operator LocalizedText(string text) => text == null ? null : new LocalizedText { Text = text };
-            public static List<LocalizedText> ListFromText (string text) => text != null ? new List<LocalizedText> { new LocalizedText { Text = text } } : new List<LocalizedText>();
+            public static List<LocalizedText> ListFromText(string text) => text != null ? new List<LocalizedText> { new LocalizedText { Text = text } } : new List<LocalizedText>();
             public override string ToString() => Text;
         }
 
@@ -476,7 +492,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public string Name { get; set; }
             public virtual List<LocalizedText> DisplayName { get; set; }
             public virtual List<LocalizedText> Description { get; set; }
-            public long Value {get; set; }
+            public long Value { get; set; }
 
             public override string ToString() => $"{Name} = {Value}";
         }
