@@ -36,6 +36,7 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             _opcContext = opcContext;
             _nodeSetCache = new UANodeSetFileCache();
+            _nodeSetCacheManager = new UANodeSetCacheManager(_nodeSetCache);
         }
         public UANodeSetModelImporter(IOpcUaContext opcContext, IUANodeSetCache nodeSetCache)
         {

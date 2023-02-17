@@ -44,8 +44,7 @@ namespace CESMII.NodeSetUtilities.Tests
 
             var nodesetXml = File.ReadAllText(file);
 
-            var opcContext = new DefaultOpcUaContext(NullLogger.Instance);
-            var importer = new UANodeSetModelImporter(opcContext);
+            var importer = new UANodeSetModelImporter(NullLogger.Instance);
 
             var baseNodeSets = (await importer.ImportNodeSetModelAsync(nodesetXml)).ToDictionary(n => n.ModelUri);
             var uaBaseModel = baseNodeSets[Namespaces.OpcUa];
