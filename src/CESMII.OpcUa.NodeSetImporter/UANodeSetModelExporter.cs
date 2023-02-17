@@ -11,22 +11,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-
-using CESMII.OpcUa.NodeSetModel.Factory.Opc;
-using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
-using CESMII.OpcUa.NodeSetImporter;
-using Microsoft.Extensions.Logging;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
 using Opc.Ua;
 using System.Xml.Serialization;
 using System.Xml;
-using System.Buffers.Text;
 
 namespace CESMII.OpcUa.NodeSetModel
 {
     /// <summary>
-    /// Main Importer class importing NodeSets 
+    /// Exporter helper class
     /// </summary>
     public class UANodeSetModelExporter
     {

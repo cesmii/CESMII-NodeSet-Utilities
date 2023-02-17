@@ -91,7 +91,7 @@ namespace CESMII.NodeSetUtilities.Tests
 
             nodeSetModel.UpdateIndices();
 
-            var exportedNodeSetXml = UANodeSetModelImporter.ExportNodeSetAsXml(nodeSetModel, baseNodeSets);
+            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(nodeSetModel, baseNodeSets);
         }
 
         private string JsonEncodeVariant(Variant v)
