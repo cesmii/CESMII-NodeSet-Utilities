@@ -127,11 +127,11 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             var matchingNodeSetsForUri = this.Models
                 .Where(s => s.NameVersion.ModelUri == modelUri)
-                .Select(m => 
-                    new NodeSetModel.NodeSetModel 
-                    { 
-                        ModelUri = m.NameVersion.ModelUri, 
-                        PublicationDate = m.NameVersion.PublicationDate, 
+                .Select(m =>
+                    new NodeSetModel.NodeSetModel
+                    {
+                        ModelUri = m.NameVersion.ModelUri,
+                        PublicationDate = m.NameVersion.PublicationDate,
                         Version = m.NameVersion.ModelVersion,
                         CustomState = m,
                     });
