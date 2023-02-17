@@ -284,7 +284,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             //    if (referencedNode is BaseObjectState)
             //    {
             //        var parent = parentFactory();
-            //        AddChildIfNotExists(parent, parent?.Objects, Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, referencedNode, parent.CustomState));
+            //        var organizedNode = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, referencedNode, parent.CustomState);
+            //        AddChildIfNotExists(parent, parent?.Objects, organizedNode, opcContext.Logger);
+            //    }
+            //    else
+            //    {
+
             //    }
             //}
             //else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.FromState))
@@ -351,7 +356,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 return;
             }
-            if (uaChildObject is InstanceModelBase uaInstance)
+            if (uaChildObject is InstanceModelBase uaInstance 
+                || (uaChildObject is NodeModel.NodeAndReference nr
+                   && nr.Reference == new ExpandedNodeId(ReferenceTypeIds.Organizes, Namespaces.OpcUa)
+                   && (uaInstance = (nr.Node as InstanceModelBase)) != null))
             {
                 uaInstance.Parent = parent;
                 if (uaInstance.Parent != parent)
@@ -392,15 +400,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     parentVariable.EngUnitNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
 
-                    var modelingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
-                    if (modelingRuleId != null)
+                    var modellingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
+                    if (modellingRuleId != null)
                     {
-                        var modelingRule = opcContext.GetNode(modelingRuleId);
-                        if (modelingRule == null)
+                        var modellingRule = opcContext.GetNode(modellingRuleId);
+                        if (modellingRule == null)
                         {
-                            throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                            throw new Exception($"Unable to resolve modelling rule {modellingRuleId}: dependency on UA nodeset not declared?");
                         }
-                        parentVariable.EngUnitModelingRule = modelingRule.DisplayName.Text;
+                        parentVariable.EngUnitModellingRule = modellingRule.DisplayName.Text;
                     }
                     if (referencedNode is BaseVariableState euInfoVariable)
                     {
@@ -426,15 +434,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (parent is VariableModel parentVariable && parentVariable != null)
                 {
                     parentVariable.EURangeNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
-                    var modelingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
-                    if (modelingRuleId != null)
+                    var modellingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
+                    if (modellingRuleId != null)
                     {
-                        var modelingRule = opcContext.GetNode(modelingRuleId);
-                        if (modelingRule == null)
+                        var modellingRule = opcContext.GetNode(modellingRuleId);
+                        if (modellingRule == null)
                         {
-                            throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                            throw new Exception($"Unable to resolve modelling rule {modellingRuleId}: dependency on UA nodeset not declared?");
                         }
-                        parentVariable.EURangeModelingRule = modelingRule.DisplayName.Text;
+                        parentVariable.EURangeModellingRule = modellingRule.DisplayName.Text;
                     }
                     if (referencedNode is BaseVariableState euRangeVariable)
                     {
@@ -689,13 +697,13 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             if (uaInstance.ModellingRuleId != null)
             {
-                var modelingRuleId = uaInstance.ModellingRuleId;
-                var modelingRule = opcContext.GetNode(modelingRuleId);
-                if (modelingRule == null)
+                var modellingRuleId = uaInstance.ModellingRuleId;
+                var modellingRule = opcContext.GetNode(modellingRuleId);
+                if (modellingRule == null)
                 {
-                    throw new Exception($"Unable to resolve modeling rule {modelingRuleId}: dependency on UA nodeset not declared?");
+                    throw new Exception($"Unable to resolve modelling rule {modellingRuleId}: dependency on UA nodeset not declared?");
                 }
-                _model.ModelingRule = modelingRule.DisplayName.Text;
+                _model.ModellingRule = modellingRule.DisplayName.Text;
             }
             if (uaInstance.Parent != null)
             {

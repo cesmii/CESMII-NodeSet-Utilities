@@ -311,7 +311,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 references.Add(reference);
             }
 
-            AddModelingRuleReference(_model.ModelingRule, references, namespaces, aliases);
+            AddModellingRuleReference(_model.ModellingRule, references, namespaces, aliases);
 
             if (references.Any())
             {
@@ -321,11 +321,11 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             return (instance as T, result.AdditionalNodes);
         }
 
-        protected List<Reference> AddModelingRuleReference(string modelingRule, List<Reference> references, NamespaceTable namespaces, Dictionary<string, string> aliases)
+        protected List<Reference> AddModellingRuleReference(string modellingRule, List<Reference> references, NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
-            if (modelingRule != null)
+            if (modellingRule != null)
             {
-                var modelingRuleId = modelingRule switch
+                var modellingRuleId = modellingRule switch
                 {
                     "Optional" => ObjectIds.ModellingRule_Optional,
                     "Mandatory" => ObjectIds.ModellingRule_Mandatory,
@@ -334,12 +334,12 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     "ExposesItsArray" => ObjectIds.ModellingRule_ExposesItsArray,
                     _ => null,
                 };
-                if (modelingRuleId != null)
+                if (modellingRuleId != null)
                 {
                     references.Add(new Reference
                     {
                         ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasModellingRule.ToString(), namespaces, aliases),
-                        Value = GetNodeIdForExport(modelingRuleId.ToString(), namespaces, aliases),
+                        Value = GetNodeIdForExport(modellingRuleId.ToString(), namespaces, aliases),
                     });
                 }
             }
@@ -518,9 +518,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     AccessLevel = _model.EngUnitAccessLevel ?? 1,
                     // UserAccessLevel: deprecated: never emit
                 };
-                if (_model.EngUnitModelingRule != null)
+                if (_model.EngUnitModellingRule != null)
                 {
-                    engUnitProp.References = AddModelingRuleReference(_model.EngUnitModelingRule, engUnitProp.References.ToList(), namespaces, aliases).ToArray();
+                    engUnitProp.References = AddModellingRuleReference(_model.EngUnitModellingRule, engUnitProp.References.ToList(), namespaces, aliases).ToArray();
                 }
                 if (_model.EngineeringUnit != null)
                 {
@@ -578,9 +578,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     // deprecated: UserAccessLevel = _model.EURangeUserAccessLevel ?? 1,
                 };
 
-                if (_model.EURangeModelingRule != null)
+                if (_model.EURangeModellingRule != null)
                 {
-                    euRangeProp.References = AddModelingRuleReference(_model.EURangeModelingRule, euRangeProp.References?.ToList() ?? new List<Reference>(), namespaces, aliases).ToArray();
+                    euRangeProp.References = AddModellingRuleReference(_model.EURangeModellingRule, euRangeProp.References?.ToList() ?? new List<Reference>(), namespaces, aliases).ToArray();
                 }
 
                 result.AdditionalNodes.Add(euRangeProp);
