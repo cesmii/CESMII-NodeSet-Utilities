@@ -25,8 +25,29 @@ namespace CESMII.OpcUa.NodeSetImporter
     /// <summary>
     /// Main Importer class importing NodeSets 
     /// </summary>
-    public static class UANodeSetImporter
+    public class UANodeSetCacheManager
     {
+
+        UANodeSetImportResult _results = new();
+        private readonly IUANodeSetCache _nodeSetCacheSystem;
+        private readonly IUANodeSetResolver _nodeSetResolver;
+
+        public UANodeSetCacheManager()
+        {
+            _nodeSetCacheSystem = new UANodeSetFileCache();
+            _nodeSetResolver = null;
+        }
+        public UANodeSetCacheManager(IUANodeSetCache nodeSetCacheSystem)
+        {
+            _nodeSetCacheSystem = nodeSetCacheSystem;
+            _nodeSetResolver = null;
+        }
+        public UANodeSetCacheManager(IUANodeSetCache nodeSetCacheSystem, IUANodeSetResolver nodeSetResolver)
+        {
+            _nodeSetCacheSystem = nodeSetCacheSystem;
+            _nodeSetResolver = nodeSetResolver;
+        }
+
         /// <summary>
         /// Imports NodeSets from Files resolving dependencies using already uploaded NodeSets
         /// </summary>
@@ -37,10 +58,9 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="FailOnExisting">Default behavior is that all Models in NodeSets are returned even if they have been imported before. If set to true, the importer will fail if it has imported a nodeset before and does not cache nodeset if they have missing dependencies</param>
         /// <param name="TenantID">If the import has Multi-Tenant Cache, the tenant ID has to be set here</param>
         /// <returns></returns>
-        public static UANodeSetImportResult ImportNodeSetFiles(IUANodeSetCache NodeSetCacheSystem, UANodeSetImportResult previousResults, List<string> nodeSetFilenames, bool FailOnExisting = false, object TenantID = null,
-                IUANodeSetResolver nodeSetResolver = null)
+        public UANodeSetImportResult ImportNodeSetFiles(List<string> nodeSetFilenames, bool FailOnExisting = false, object TenantID = null)
         {
-            return ImportNodeSets(NodeSetCacheSystem, previousResults, nodeSetFilenames.Select(f => File.ReadAllText(f)), FailOnExisting, TenantID, nodeSetResolver);
+            return ImportNodeSets(nodeSetFilenames.Select(f => File.ReadAllText(f)), FailOnExisting, TenantID);
         }
         /// <summary>
         /// Imports NodeSets from Files resolving dependencies using already uploaded NodeSets
@@ -52,16 +72,15 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="FailOnExisting">Default behavior is that all Models in NodeSets are returned even if they have been imported before. If set to true, the importer will fail if it has imported a nodeset before and does not cache nodeset if they have missing dependencies</param>
         /// <param name="TenantID">If the import has Multi-Tenant Cache, the tenant ID has to be set here</param>
         /// <returns></returns>
-        public static UANodeSetImportResult ImportNodeSets(IUANodeSetCache NodeSetCacheSystem, UANodeSetImportResult previousResults, IEnumerable<Stream> nodeSetStreams, bool FailOnExisting = false, object TenantID = null,
-                IUANodeSetResolver nodeSetResolver = null)
+        public UANodeSetImportResult ImportNodeSets(IEnumerable<Stream> nodeSetStreams, bool FailOnExisting = false, object TenantID = null)
         {
-            return ImportNodeSets(NodeSetCacheSystem, previousResults, nodeSetStreams.Select(s =>
+            return ImportNodeSets(nodeSetStreams.Select(s =>
             {
                 using (var sr = new StreamReader(s, Encoding.UTF8))
                 {
                     return sr.ReadToEnd();
                 }
-            }), FailOnExisting, TenantID, nodeSetResolver);
+            }), FailOnExisting, TenantID);
         }
         /// <summary>
         /// Imports NodeSets from Files resolving dependencies using already uploaded NodeSets
@@ -73,15 +92,9 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="FailOnExisting">Default behavior is that all Models in NodeSets are returned even if they have been imported before. If set to true, the importer will fail if it has imported a nodeset before and does not cache nodeset if they have missing dependencies</param>
         /// <param name="TenantID">If the import has Multi-Tenant Cache, the tenant ID has to be set here</param>
         /// <returns></returns>
-        public static UANodeSetImportResult ImportNodeSets(IUANodeSetCache NodeSetCacheSystem, UANodeSetImportResult previousResults, IEnumerable<string> nodeSetsXml, bool FailOnExisting = false, object TenantID = null,
-                IUANodeSetResolver nodeSetResolver = null)
+        public UANodeSetImportResult ImportNodeSets(IEnumerable<string> nodeSetsXml, bool FailOnExisting = false, object TenantID = null)
         {
-            UANodeSetImportResult results = previousResults;
-            if (results == null)
-                results = new UANodeSetImportResult();
-            if (NodeSetCacheSystem == null)
-                NodeSetCacheSystem = new UANodeSetFileCache();
-            results.ErrorMessage = "";
+            _results.ErrorMessage = "";
             List<ModelNameAndVersion> previousMissingModels = new List<ModelNameAndVersion>();
             try
             {
@@ -95,7 +108,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         // Must enumerate the nodeSetsXml only once in case the caller creates/loads strings as needed (streams of files)
                         foreach (var nodeSetXml in nodeSetsXml)
                         {
-                            var JustFoundNewNodeSet = NodeSetCacheSystem.AddNodeSet(results, nodeSetXml, TenantID, true);
+                            var JustFoundNewNodeSet = _nodeSetCacheSystem.AddNodeSet(_results, nodeSetXml, TenantID, true);
                             NewNodeSetFound |= JustFoundNewNodeSet;
                         }
                         nodeSetsXml = null;
@@ -103,34 +116,34 @@ namespace CESMII.OpcUa.NodeSetImporter
 
                     if (!NewNodeSetFound && FailOnExisting)
                     {
-                        string names = String.Join(", ", results.Models.Select(m => m.NameVersion));
-                        results.ErrorMessage = $"All selected NodeSets or newer versions of them ({names}) have already been imported";
-                        return results;
+                        string names = String.Join(", ", _results.Models.Select(m => m.NameVersion));
+                        _results.ErrorMessage = $"All selected NodeSets or newer versions of them ({names}) have already been imported";
+                        return _results;
                     }
-                    if (results.Models.Count == 0)
+                    if (_results.Models.Count == 0)
                     {
-                        results.ErrorMessage = "No Nodesets specified in either nodeSetFilenames or nodeSetStreams";
-                        return results;
+                        _results.ErrorMessage = "No Nodesets specified in either nodeSetFilenames or nodeSetStreams";
+                        return _results;
                     }
-                    results.ResolveDependencies();
+                    _results.ResolveDependencies();
 
-                    if (results?.MissingModels?.Any() == true)
+                    if (_results?.MissingModels?.Any() == true)
                     {
-                        foreach (var t in results.MissingModels.ToList())
+                        foreach (var t in _results.MissingModels.ToList())
                         {
-                            rerun |= NodeSetCacheSystem.GetNodeSet(results, t, TenantID);
+                            rerun |= _nodeSetCacheSystem.GetNodeSet(_results, t, TenantID);
                         }
-                        results.ResolveDependencies();
+                        _results.ResolveDependencies();
 
-                        if (!rerun && results.MissingModels.Any())
+                        if (!rerun && _results.MissingModels.Any())
                         {
                             // No more cached models were added, but we are still missing models: invoke the resolver if provided
-                            if (nodeSetResolver != null && !results.MissingModels.SequenceEqual(previousMissingModels))
+                            if (_nodeSetResolver != null && !_results.MissingModels.SequenceEqual(previousMissingModels))
                             {
-                                previousMissingModels = results.MissingModels.ToList();
+                                previousMissingModels = _results.MissingModels.ToList();
                                 try
                                 {
-                                    var newNodeSetsXml = nodeSetResolver.ResolveNodeSetsAsync(results.MissingModels.ToList()).Result;
+                                    var newNodeSetsXml = _nodeSetResolver.ResolveNodeSetsAsync(_results.MissingModels.ToList()).Result;
                                     if (newNodeSetsXml?.Any() == true)
                                     {
                                         nodeSetsXml = newNodeSetsXml;
@@ -140,31 +153,31 @@ namespace CESMII.OpcUa.NodeSetImporter
                                 }
                                 catch (Exception ex)
                                 {
-                                    if (results.ErrorMessage.Length > 0) results.ErrorMessage += ", ";
-                                    results.ErrorMessage += $"Error resolving missing nodesets: {ex.Message}";
+                                    if (_results.ErrorMessage.Length > 0) _results.ErrorMessage += ", ";
+                                    _results.ErrorMessage += $"Error resolving missing nodesets: {ex.Message}";
                                 }
                             }
-                            if (results.ErrorMessage.Length > 0) results.ErrorMessage += ", ";
-                            results.ErrorMessage += string.Join(",", results.MissingModels);
+                            if (_results.ErrorMessage.Length > 0) _results.ErrorMessage += ", ";
+                            _results.ErrorMessage += string.Join(",", _results.MissingModels);
                         }
-                        if (!string.IsNullOrEmpty(results.ErrorMessage))
+                        if (!string.IsNullOrEmpty(_results.ErrorMessage))
                         {
-                            results.ErrorMessage = $"The following NodeSets are required: " + results.ErrorMessage;
+                            _results.ErrorMessage = $"The following NodeSets are required: " + _results.ErrorMessage;
                             //We must delete newly cached models as they need to be imported again into the backend
                             if (FailOnExisting)
-                                NodeSetCacheSystem.DeleteNewlyAddedNodeSetsFromCache(results);
+                                _nodeSetCacheSystem.DeleteNewlyAddedNodeSetsFromCache(_results);
                         }
                     }
 
-                    results.Models = results.Models.OrderBy(s => s.Dependencies.Count).ToList();
-                } while (rerun && results.MissingModels.Any());
+                    _results.Models = _results.Models.OrderBy(s => s.Dependencies.Count).ToList();
+                } while (rerun && _results.MissingModels.Any());
             }
             catch (Exception ex)
             {
-                results.ErrorMessage = ex.Message;
+                _results.ErrorMessage = ex.Message;
             }
 
-            return results;
+            return _results;
         }
 
 
