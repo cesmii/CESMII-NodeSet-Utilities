@@ -32,6 +32,12 @@ namespace CESMII.OpcUa.NodeSetModel
             _nodeSetCache = new UANodeSetFileCache();
             _nodeSetCacheManager = new UANodeSetCacheManager(_nodeSetCache);
         }
+        public UANodeSetModelImporter(ILogger logger, IUANodeSetResolver resolver)
+        {
+            _opcContext = new DefaultOpcUaContext(logger);
+            _nodeSetCache = new UANodeSetFileCache();
+            _nodeSetCacheManager = new UANodeSetCacheManager(_nodeSetCache, resolver);
+        }
         public UANodeSetModelImporter(IOpcUaContext opcContext)
         {
             _opcContext = opcContext;
@@ -56,10 +62,12 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         /// <param name="nodeSetXML">nodeset to be imported.</param>
         /// <param name="identifier">optional identifier to be attached to the nodeset. For use by the application.</param>
-        /// <param name="modelUri">optional modelUri to verify</param>
+        /// <param name="tenantId">optional identifier to be used by the nodeSetCache to distinguish between tenants in a multi-tenant system</param>
+        /// <param name="failOnExistingNodeSet">Fail if the nodeset already exists in the nodeSetCache.</param>
+        /// <param name="loadAllDependentModels">Fully load all dependent models. Otherwise, dependent types will only be resolved when referenced by a subsequently imported nodeset.</param>
         /// <returns></returns>
         /// <exception cref="NodeSetResolverException"></exception>
-        public async Task<List<NodeSetModel>> ImportNodeSetModelAsync(string nodeSetXML, string identifier = null, object tenantId = null, bool failOnExistingNodeSet = false)
+        public async Task<List<NodeSetModel>> ImportNodeSetModelAsync(string nodeSetXML, string identifier = null, object tenantId = null, bool failOnExistingNodeSet = false, bool loadAllDependentModels = false)
         {
             var resolvedNodeSets = _nodeSetCacheManager.ImportNodeSets(new List<string> { nodeSetXML }, failOnExistingNodeSet, tenantId);
             if (!string.IsNullOrEmpty(resolvedNodeSets.ErrorMessage))
@@ -73,7 +81,7 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 foreach (var resolvedModel in resolvedNodeSets.Models)
                 {
-                    if (resolvedModel.RequestedForThisImport || resolvedModel.NewInThisImport)
+                    if (loadAllDependentModels || resolvedModel.RequestedForThisImport || resolvedModel.NewInThisImport)
                     {
                         List<NodeSetModel> loadedNodesetModels = await LoadNodeSetModelAsync(_opcContext, resolvedModel.NodeSet);
                         foreach (var nodeSetModel in loadedNodesetModels)
