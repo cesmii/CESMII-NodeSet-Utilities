@@ -155,18 +155,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
         public static string JsonEncodeVariant(ISystemContext systemContext, Variant value)
         {
-            string encodedValue = null;
-            using (var ms = new MemoryStream())
-            {
-                using (var sw = new StreamWriter(ms))
-                {
-                    var encoder = new JsonEncoder(new ServiceMessageContext { NamespaceUris = systemContext.NamespaceUris, }, true, sw, false);
-                    encoder.WriteVariant("Value", value, true);
-                    sw.Flush();
-                    encodedValue = Encoding.UTF8.GetString(ms.ToArray());
-                }
-            }
-            return encodedValue;
+            return NodeModelUtils.JsonEncodeVariant(systemContext, value);
         }
     }
 }

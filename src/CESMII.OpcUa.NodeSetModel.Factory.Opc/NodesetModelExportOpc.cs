@@ -9,6 +9,7 @@ using System.Linq;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua.Export;
 using CESMII.OpcUa.NodeSetModel.Factory.Opc;
+using System.Xml;
 
 namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 {
@@ -525,7 +526,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 if (_model.EngineeringUnit != null)
                 {
                     EUInformation engUnits = NodeModelOpcExtensions.GetEUInformation(_model.EngineeringUnit);
-                    var euXmlElement = GetExtensionObjectAsXML(engUnits);
+                    var euXmlElement = NodeModelUtils.GetExtensionObjectAsXML(engUnits);
                     engUnitProp.Value = euXmlElement;
                 }
                 result.AdditionalNodes.Add(engUnitProp);
@@ -552,7 +553,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         Low = _model.MinValue.Value,
                         High = _model.MaxValue.Value,
                     };
-                    xmlElem = GetExtensionObjectAsXML(range);
+                    xmlElem = NodeModelUtils.GetExtensionObjectAsXML(range);
                 }
                 var euRangeProp = new UAVariable
                 {
@@ -617,12 +618,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             if (_model.Value != null)
             {
-                using (var decoder = new JsonDecoder(_model.Value, ServiceMessageContext.GlobalContext))
-                {
-                    var value = decoder.ReadVariant("Value");
-                    var xml = GetVariantAsXML(value);
-                    dataVariable.Value = xml;
-                }
+                dataVariable.Value = NodeModelUtils.JsonDecodeVariant(_model.Value);
             }
 
             dataVariable.AccessLevel = _model.AccessLevel ?? 1;
@@ -639,50 +635,6 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             return (dataVariable as T, result.AdditionalNodes);
         }
 
-        private static System.Xml.XmlElement GetExtensionObjectAsXML(object extensionBody)
-        {
-            var extension = new ExtensionObject(extensionBody);
-            var context = new ServiceMessageContext();
-            var ms = new System.IO.MemoryStream();
-            using (var xmlWriter = new System.Xml.XmlTextWriter(ms, System.Text.Encoding.UTF8))
-            {
-                xmlWriter.WriteStartDocument();
-
-                using (var encoder = new XmlEncoder(new System.Xml.XmlQualifiedName("uax:ExtensionObject", null), xmlWriter, context))
-                {
-                    encoder.WriteExtensionObject(null, extension);
-                    xmlWriter.WriteEndDocument();
-                    xmlWriter.Flush();
-                }
-            }
-            var xml = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-            var doc = new System.Xml.XmlDocument();
-            doc.LoadXml(xml.Substring(1));
-            var xmlElem = doc.DocumentElement;
-            return xmlElem;
-        }
-        internal static System.Xml.XmlElement GetVariantAsXML(Variant value)
-        {
-            var context = new ServiceMessageContext();
-            var ms = new System.IO.MemoryStream();
-            using (var xmlWriter = new System.Xml.XmlTextWriter(ms, System.Text.Encoding.UTF8))
-            {
-                xmlWriter.WriteStartDocument();
-                using (var encoder = new XmlEncoder(new System.Xml.XmlQualifiedName("myRoot"/*, "http://opcfoundation.org/UA/2008/02/Types.xsd"*/), xmlWriter, context))
-                {
-                    encoder.WriteVariant("value", value);
-                    xmlWriter.WriteEndDocument();
-                    xmlWriter.Flush();
-                }
-            }
-            var xml = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-            var doc = new System.Xml.XmlDocument();
-
-            doc.LoadXml(xml.Substring(1));
-            var xmlElem = doc.DocumentElement;
-            var xmlValue = xmlElem.FirstChild?.FirstChild?.FirstChild as System.Xml.XmlElement;
-            return xmlValue;
-        }
     }
 
     public class DataVariableModelExportOpc : VariableModelExportOpc<DataVariableModel>
@@ -764,12 +716,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             variableType.ArrayDimensions = _model.ArrayDimensions;
             if (_model.Value != null)
             {
-                using (var decoder = new JsonDecoder(_model.Value, ServiceMessageContext.GlobalContext))
-                {
-                    var value = decoder.ReadVariant("Value");
-                    var xml = VariableModelExportOpc<VariableModel>.GetVariantAsXML(value);
-                    variableType.Value = xml;
-                }
+                variableType.Value = NodeModelUtils.JsonDecodeVariant(_model.Value);
             }
             return (variableType as T, result.AdditionalNodes);
         }
