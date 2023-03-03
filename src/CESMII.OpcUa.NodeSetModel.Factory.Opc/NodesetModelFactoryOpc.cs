@@ -5,12 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using CESMII.OpcUa.NodeSetModel;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using Opc.Ua.Export;
-using System.Reflection.Emit;
+using System.Xml;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -356,7 +355,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 return;
             }
-            if (uaChildObject is InstanceModelBase uaInstance 
+            if (uaChildObject is InstanceModelBase uaInstance
                 || (uaChildObject is NodeModel.NodeAndReference nr
                    && nr.Reference == new ExpandedNodeId(ReferenceTypeIds.Organizes, Namespaces.OpcUa)
                    && (uaInstance = (nr.Node as InstanceModelBase)) != null))
@@ -414,16 +413,33 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     {
                         parentVariable.EngUnitAccessLevel = euInfoVariable.AccessLevelEx != 1 ? euInfoVariable.AccessLevelEx : null;
                         // deprecated: parentVariable.EngUnitUserAccessLevel = euInfoVariable.UserAccessLevel != 1 ? euInfoVariable.UserAccessLevel : null;
-                    }
 
-                    var euInfo = ((referencedNode as BaseVariableState)?.Value as ExtensionObject)?.Body as EUInformation;
-                    if (euInfo != null)
-                    {
-                        parentVariable.SetEngineeringUnits(euInfo);
-                    }
-                    else
-                    {
-                        // Nodesets commonly indicate that EUs are required on instances by specifying an empty EU in the class
+                        var euInfoExtension = euInfoVariable.Value as ExtensionObject;
+                        var euInfo = euInfoExtension?.Body as EUInformation;
+                        if (euInfo != null)
+                        {
+                            parentVariable.SetEngineeringUnits(euInfo);
+                        }
+                        else
+                        {
+                            if (euInfoVariable.Value != null)
+                            {
+                                if (euInfoExtension != null)
+                                {
+                                    if (euInfoExtension.TypeId != ObjectIds.EUInformation_Encoding_DefaultXml)
+                                    {
+                                        throw new Exception($"Unable to parse Engineering units for {parentVariable}: Invalid encoding type id {euInfoExtension.TypeId}. Expected {ObjectIds.EUInformation_Encoding_DefaultXml}.");
+                                    }
+                                    if (euInfoExtension.Body is XmlElement xmlValue)
+                                    {
+                                        throw new Exception($"Unable to parse Engineering units for {parentVariable}: TypeId: {euInfoExtension.TypeId}.XML: {xmlValue.OuterXml}.");
+                                    }
+                                    throw new Exception($"Unable to parse Engineering units for {parentVariable}: TypeId: {euInfoExtension.TypeId}. Value: {(referencedNode as BaseVariableState).Value}");
+                                }
+                                throw new Exception($"Unable to parse Engineering units for {parentVariable}: {(referencedNode as BaseVariableState).Value}");
+                            }
+                            // Nodesets commonly indicate that EUs are required on instances by specifying an empty EU in the class
+                        }
                     }
                     return true;
                 }
@@ -448,15 +464,33 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     {
                         parentVariable.EURangeAccessLevel = euRangeVariable.AccessLevelEx != 1 ? euRangeVariable.AccessLevelEx : null;
                         // deprecated: parentVariable.EURangeUserAccessLevel = euRangeVariable.UserAccessLevel != 1 ? euRangeVariable.UserAccessLevel : null;
-                    }
-                    var euRange = ((referencedNode as BaseVariableState)?.Value as ExtensionObject)?.Body as ua.Range;
-                    if (euRange != null)
-                    {
-                        parentVariable.SetRange(euRange);
-                    }
-                    else
-                    {
-                        // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
+
+                        var euRangeExtension = euRangeVariable.Value as ExtensionObject;
+                        var euRange = euRangeExtension?.Body as ua.Range;
+                        if (euRange != null)
+                        {
+                            parentVariable.SetRange(euRange);
+                        }
+                        else
+                        {
+                            if (euRangeVariable.Value != null)
+                            {
+                                if (euRangeExtension != null)
+                                {
+                                    if (euRangeExtension.TypeId != ObjectIds.Range_Encoding_DefaultXml)
+                                    {
+                                        throw new Exception($"Unable to parse EURange for {parentVariable}: Invalid encoding type id {euRangeExtension.TypeId}. Expected {ObjectIds.Range_Encoding_DefaultXml}.");
+                                    }
+                                    if (euRangeExtension.Body is XmlElement xmlValue)
+                                    {
+                                        throw new Exception($"Unable to parse EURange for {parentVariable}: TypeId: {euRangeExtension.TypeId}.XML: {xmlValue.OuterXml}.");
+                                    }
+                                    throw new Exception($"Unable to parse EURange for {parentVariable}: TypeId: {euRangeExtension.TypeId}. Value: {(referencedNode as BaseVariableState).Value}");
+                                }
+                                throw new Exception($"Unable to parse EURange for {parentVariable}: {(referencedNode as BaseVariableState).Value}");
+                            }
+                            // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
+                        }
                     }
                     return true;
                 }
