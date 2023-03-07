@@ -449,48 +449,13 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var parent = parentFactory();
                 if (parent is VariableModel parentVariable && parentVariable != null)
                 {
-                    parentVariable.EURangeNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
-                    var modellingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
-                    if (modellingRuleId != null)
+                    var info = GetRangeInfo(parentVariable, referencedNode, opcContext);
+                    parentVariable.EURangeNodeId = info.RangeNodeId;
+                    parentVariable.EURangeModellingRule = info.ModellingRuleId;
+                    parentVariable.EURangeAccessLevel = info.rangeAccessLevel;
+                    if (info.range != null)
                     {
-                        var modellingRule = opcContext.GetNode(modellingRuleId);
-                        if (modellingRule == null)
-                        {
-                            throw new Exception($"Unable to resolve modelling rule {modellingRuleId}: dependency on UA nodeset not declared?");
-                        }
-                        parentVariable.EURangeModellingRule = modellingRule.DisplayName.Text;
-                    }
-                    if (referencedNode is BaseVariableState euRangeVariable)
-                    {
-                        parentVariable.EURangeAccessLevel = euRangeVariable.AccessLevelEx != 1 ? euRangeVariable.AccessLevelEx : null;
-                        // deprecated: parentVariable.EURangeUserAccessLevel = euRangeVariable.UserAccessLevel != 1 ? euRangeVariable.UserAccessLevel : null;
-
-                        var euRangeExtension = euRangeVariable.Value as ExtensionObject;
-                        var euRange = euRangeExtension?.Body as ua.Range;
-                        if (euRange != null)
-                        {
-                            parentVariable.SetRange(euRange);
-                        }
-                        else
-                        {
-                            if (euRangeVariable.Value != null)
-                            {
-                                if (euRangeExtension != null)
-                                {
-                                    if (euRangeExtension.TypeId != ObjectIds.Range_Encoding_DefaultXml)
-                                    {
-                                        throw new Exception($"Unable to parse EURange for {parentVariable}: Invalid encoding type id {euRangeExtension.TypeId}. Expected {ObjectIds.Range_Encoding_DefaultXml}.");
-                                    }
-                                    if (euRangeExtension.Body is XmlElement xmlValue)
-                                    {
-                                        throw new Exception($"Unable to parse EURange for {parentVariable}: TypeId: {euRangeExtension.TypeId}.XML: {xmlValue.OuterXml}.");
-                                    }
-                                    throw new Exception($"Unable to parse EURange for {parentVariable}: TypeId: {euRangeExtension.TypeId}. Value: {(referencedNode as BaseVariableState).Value}");
-                                }
-                                throw new Exception($"Unable to parse EURange for {parentVariable}: {(referencedNode as BaseVariableState).Value}");
-                            }
-                            // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
-                        }
+                        parentVariable.SetRange(info.range);
                     }
                     return true;
                 }
@@ -500,19 +465,66 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var parent = parentFactory();
                 if (parent is VariableModel parentVariable && parentVariable != null)
                 {
-                    var euRange = ((referencedNode as BaseVariableState)?.Value as ExtensionObject)?.Body as ua.Range;
-                    if (euRange != null)
+                    var info = GetRangeInfo(parentVariable, referencedNode, opcContext);
+                    parentVariable.InstrumentRangeNodeId= info.RangeNodeId;
+                    parentVariable.InstrumentRangeModellingRule = info.ModellingRuleId;
+                    parentVariable.InstrumentRangeAccessLevel = info.rangeAccessLevel;
+                    if (info.range != null)
                     {
-                        parentVariable.SetInstrumentRange(euRange);
-                    }
-                    else
-                    {
-                        // Nodesets commonly indicate that an Instrument Range is required on instances by specifying an enpty Instrument Range in the class
+                        parentVariable.SetInstrumentRange(info.range);
                     }
                     return true;
                 }
             }
             return false;
+        }
+
+        static (ua.Range range, string RangeNodeId, string ModellingRuleId, uint? rangeAccessLevel) 
+            GetRangeInfo(NodeModel parentVariable, NodeState referencedNode, IOpcUaContext opcContext)
+        {
+            string rangeNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
+            string rangeModellingRule = null;
+            uint? rangeAccessLevel = null;
+            ua.Range range = null;
+            var modellingRuleId = (referencedNode as BaseInstanceState)?.ModellingRuleId;
+            if (modellingRuleId != null)
+            {
+                var modellingRuleNode = opcContext.GetNode(modellingRuleId);
+                if (modellingRuleNode == null)
+                {
+                    throw new Exception($"Unable to resolve modelling rule {modellingRuleId}: dependency on UA nodeset not declared?");
+                }
+                rangeModellingRule = modellingRuleNode.DisplayName.Text;
+            }
+            if (referencedNode is BaseVariableState euRangeVariable)
+            {
+                rangeAccessLevel = euRangeVariable.AccessLevelEx != 1 ? euRangeVariable.AccessLevelEx : null;
+                // deprecated: parentVariable.EURangeUserAccessLevel = euRangeVariable.UserAccessLevel != 1 ? euRangeVariable.UserAccessLevel : null;
+
+                var euRangeExtension = euRangeVariable.Value as ExtensionObject;
+                 range = euRangeExtension?.Body as ua.Range;
+                if (range == null)
+                {
+                    if (euRangeVariable.Value != null)
+                    {
+                        if (euRangeExtension != null)
+                        {
+                            if (euRangeExtension.TypeId != ObjectIds.Range_Encoding_DefaultXml)
+                            {
+                                throw new Exception($"Unable to parse {referencedNode.BrowseName?.Name} for {parentVariable}: Invalid encoding type id {euRangeExtension.TypeId}. Expected {ObjectIds.Range_Encoding_DefaultXml}.");
+                            }
+                            if (euRangeExtension.Body is XmlElement xmlValue)
+                            {
+                                throw new Exception($"Unable to parse {referencedNode.BrowseName?.Name} for {parentVariable}: TypeId: {euRangeExtension.TypeId}.XML: {xmlValue.OuterXml}.");
+                            }
+                            throw new Exception($"Unable to parse {referencedNode.BrowseName?.Name} for {parentVariable}: TypeId: {euRangeExtension.TypeId}. Value: {(referencedNode as BaseVariableState).Value}");
+                        }
+                        throw new Exception($"Unable to parse {referencedNode.BrowseName?.Name} for {parentVariable}: {(referencedNode as BaseVariableState).Value}");
+                    }
+                    // Nodesets commonly indicate that EURange are required on instances by specifying an enpty EURange in the class
+                }
+            }
+            return (range, rangeNodeId, rangeModellingRule, rangeAccessLevel);
         }
 
 
