@@ -506,13 +506,13 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     DataType = DataTypeIds.EUInformation.ToString(),
                     References = new Reference[]
                     {
-                         new Reference { 
+                         new Reference {
                              ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasTypeDefinition.ToString(), namespaces, aliases),
                              Value = GetNodeIdForExport(VariableTypeIds.PropertyType.ToString(), namespaces, aliases)
                          },
                          new Reference {
                              ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
-                             IsForward = false, 
+                             IsForward = false,
                              Value = GetNodeIdForExport(dataVariable.NodeId, namespaces, aliases),
                          },
                     },
@@ -536,66 +536,22 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     Value = engUnitProp.NodeId,
                 });
             }
-            if (!_model.Properties.Concat(_model.DataVariables).Any(p => p.NodeId == _model.EURangeNodeId) && (!string.IsNullOrEmpty(_model.EURangeNodeId) || (_model.MinValue.HasValue && _model.MaxValue.HasValue && _model.MinValue != _model.MaxValue)))
-            {
-                // Add EURange property
-                if (result.AdditionalNodes == null)
-                {
-                    result.AdditionalNodes = new List<UANode>();
-                }
 
-                System.Xml.XmlElement xmlElem = null;
+            AddRangeProperties(
+                dataVariable.NodeId, _model.EURangeNodeId, BrowseNames.EURange, _model.EURangeAccessLevel, _model.EURangeModellingRule, _model.MinValue, _model.MaxValue, 
+                ref result.AdditionalNodes, references, 
+                namespaces, aliases);
+           
+            AddRangeProperties(
+                dataVariable.NodeId, _model.InstrumentRangeNodeId, BrowseNames.InstrumentRange, _model.InstrumentRangeAccessLevel, _model.InstrumentRangeModellingRule, _model.InstrumentMinValue, _model.InstrumentMaxValue,
+                ref result.AdditionalNodes, references,
+                namespaces, aliases);
 
-                if (_model.MinValue.HasValue && _model.MaxValue.HasValue)
-                {
-                    var range = new ua.Range
-                    {
-                        Low = _model.MinValue.Value,
-                        High = _model.MaxValue.Value,
-                    };
-                    xmlElem = NodeModelUtils.GetExtensionObjectAsXML(range);
-                }
-                var euRangeProp = new UAVariable
-                {
-                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(_model.EURangeNodeId) ? _model.EURangeNodeId : $"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases),
-                    BrowseName = BrowseNames.EURange,
-                    DisplayName = new uaExport.LocalizedText[] { new uaExport.LocalizedText { Value = BrowseNames.EURange } },
-                    ParentNodeId = dataVariable.NodeId,
-                    DataType = GetNodeIdForExport(DataTypeIds.Range.ToString(), namespaces, aliases),
-                    References = new[] {
-                        new Reference {
-                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasTypeDefinition.ToString(), namespaces, aliases),
-                            Value = GetNodeIdForExport(VariableTypeIds.PropertyType.ToString(), namespaces, aliases),
-                        },
-                        new Reference
-                        {
-                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
-                            IsForward = false,
-                            Value = GetNodeIdForExport(dataVariable.NodeId, namespaces, aliases),
-                        },
-                    },
-                    Value = xmlElem,
-                    AccessLevel = _model.EURangeAccessLevel ?? 1,
-                    // deprecated: UserAccessLevel = _model.EURangeUserAccessLevel ?? 1,
-                };
-
-                if (_model.EURangeModellingRule != null)
-                {
-                    euRangeProp.References = AddModellingRuleReference(_model.EURangeModellingRule, euRangeProp.References?.ToList() ?? new List<Reference>(), namespaces, aliases).ToArray();
-                }
-
-                result.AdditionalNodes.Add(euRangeProp);
-                references.Add(new Reference
-                {
-                    ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
-                    Value = GetNodeIdForExport(euRangeProp.NodeId, namespaces, aliases),
-                });
-            }
             if (_model.DataType != null)
             {
                 dataVariable.DataType = GetNodeIdForExport(_model.DataType.NodeId, namespaces, aliases);
             }
-            dataVariable.ValueRank = _model.ValueRank??-1;
+            dataVariable.ValueRank = _model.ValueRank ?? -1;
             dataVariable.ArrayDimensions = _model.ArrayDimensions;
 
             if (!string.IsNullOrEmpty(_model.Parent?.NodeId))
@@ -623,7 +579,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
             dataVariable.AccessLevel = _model.AccessLevel ?? 1;
             // deprecated: dataVariable.UserAccessLevel = _model.UserAccessLevel ?? 1;
-            dataVariable.AccessRestrictions = (byte) (_model.AccessRestrictions ?? 0);
+            dataVariable.AccessRestrictions = (byte)(_model.AccessRestrictions ?? 0);
             dataVariable.UserWriteMask = _model.UserWriteMask ?? 0;
             dataVariable.WriteMask = _model.WriteMask ?? 0;
             dataVariable.MinimumSamplingInterval = _model.MinimumSamplingInterval ?? 0;
@@ -635,6 +591,70 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             return (dataVariable as T, result.AdditionalNodes);
         }
 
+        private void AddRangeProperties(
+            string parentNodeId, string rangeNodeId, string rangeBrowseName, uint? rangeAccessLevel, string rangeModellingRule, double? minValue, double? maxValue, // inputs
+            ref List<UANode> additionalNodes, List<Reference> references, // outputs
+            NamespaceTable namespaces, Dictionary<string, string> aliases) // lookups
+        {
+            if (!_model.Properties.Concat(_model.DataVariables).Any(p => p.NodeId == rangeNodeId) // if it's explicitly authored: don't auto-generate
+                && (!string.IsNullOrEmpty(rangeNodeId) // if rangeNodeid or min/max are specified: do generate, otherwise skip
+                    || (minValue.HasValue && maxValue.HasValue && minValue != maxValue)
+                    ))
+            {
+                // Add EURange property
+                if (additionalNodes == null)
+                {
+                    additionalNodes = new List<UANode>();
+                }
+
+                System.Xml.XmlElement xmlElem = null;
+
+                if (minValue.HasValue && maxValue.HasValue)
+                {
+                    var range = new ua.Range
+                    {
+                        Low = minValue.Value,
+                        High = maxValue.Value,
+                    };
+                    xmlElem = NodeModelUtils.GetExtensionObjectAsXML(range);
+                }
+                var euRangeProp = new UAVariable
+                {
+                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(rangeNodeId) ? rangeNodeId : $"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases),
+                    BrowseName = rangeBrowseName,
+                    DisplayName = new uaExport.LocalizedText[] { new uaExport.LocalizedText { Value = rangeBrowseName } },
+                    ParentNodeId = parentNodeId,
+                    DataType = GetNodeIdForExport(DataTypeIds.Range.ToString(), namespaces, aliases),
+                    References = new[] {
+                        new Reference {
+                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasTypeDefinition.ToString(), namespaces, aliases),
+                            Value = GetNodeIdForExport(VariableTypeIds.PropertyType.ToString(), namespaces, aliases),
+                        },
+                        new Reference
+                        {
+                            ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
+                            IsForward = false,
+                            Value = GetNodeIdForExport(parentNodeId, namespaces, aliases),
+                        },
+                    },
+                    Value = xmlElem,
+                    AccessLevel = rangeAccessLevel ?? 1,
+                    // deprecated: UserAccessLevel = _model.EURangeUserAccessLevel ?? 1,
+                };
+
+                if (rangeModellingRule != null)
+                {
+                    euRangeProp.References = AddModellingRuleReference(rangeModellingRule, euRangeProp.References?.ToList() ?? new List<Reference>(), namespaces, aliases).ToArray();
+                }
+
+                additionalNodes.Add(euRangeProp);
+                references.Add(new Reference
+                {
+                    ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
+                    Value = GetNodeIdForExport(euRangeProp.NodeId, namespaces, aliases),
+                });
+            }
+        }
     }
 
     public class DataVariableModelExportOpc : VariableModelExportOpc<DataVariableModel>
