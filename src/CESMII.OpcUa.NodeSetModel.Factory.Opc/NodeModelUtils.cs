@@ -25,21 +25,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
         public static string JsonEncodeVariant(ISystemContext systemContext, Variant value)
         {
-            string encodedValue = null;
-            using (var ms = new MemoryStream())
+            ServiceMessageContext context;
+            if (systemContext != null)
             {
-                using (var sw = new StreamWriter(ms))
-                {
-                    var encoder = new JsonEncoder(
-                        systemContext != null ? 
-                            new ServiceMessageContext { NamespaceUris = systemContext.NamespaceUris, } 
-                            : ServiceMessageContext.GlobalContext,
-                        true, sw, false);
-                    encoder.WriteVariant("Value", value, true);
-                    sw.Flush();
-                    encodedValue = Encoding.UTF8.GetString(ms.ToArray());
-                }
+                context = new ServiceMessageContext { NamespaceUris = systemContext.NamespaceUris, };
             }
+            else
+            {
+                context = ServiceMessageContext.GlobalContext;
+            }
+
+            var encoder = new JsonEncoder(context, true);
+            encoder.WriteVariant("Value", value, true);
+
+            var encodedValue = encoder.CloseAndReturnText();
             return encodedValue;
         }
 
