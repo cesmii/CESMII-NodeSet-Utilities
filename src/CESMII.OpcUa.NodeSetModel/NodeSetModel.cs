@@ -154,6 +154,11 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             public virtual NodeModel Node { get; set; }
             public string Reference { get; set; }
+            public virtual ReferenceTypeModel ReferenceType { get; set; }
+            public override string ToString()
+            {
+                return $"{ReferenceType?.ToString()??Reference} {Node}";
+            }
         }
 
         public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();

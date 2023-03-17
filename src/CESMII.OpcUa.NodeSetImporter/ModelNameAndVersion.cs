@@ -5,6 +5,7 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua.Export;
 using System;
 
@@ -46,7 +47,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             ModelUri = model.ModelUri;
             ModelVersion = model.Version;
-            PublicationDate = model.PublicationDateSpecified ? model.PublicationDate : null;
+            PublicationDate = model.GetNormalizedPublicationDate();
         }
         /// <summary>
         /// Compares two NodeSetNameAndVersion using ModelUri and Version. 

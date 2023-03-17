@@ -5,6 +5,7 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua.Export;
 using System;
 using System.Collections.Generic;
@@ -96,7 +97,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool wasNewFile)
         {
             bool bAdded = false;
-            var tModel = GetMatchingOrHigherModel(ns.ModelUri, ns.PublicationDateSpecified ? ns.PublicationDate : null, ns.Version);
+            var tModel = GetMatchingOrHigherModel(ns.ModelUri, ns.GetNormalizedPublicationDate(), ns.Version);
             if (tModel == null)
             {
                 // Remove any previous models with this ModelUri, as we have found a newer one
@@ -114,7 +115,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                 foreach (var tDep in ns.RequiredModel)
                 {
                     tModel.Dependencies.Add(tDep.ModelUri);
-                    if (!this.MissingModels.Any(s => s.HasNameAndVersion(tDep.ModelUri, tDep.PublicationDate, tDep.Version)))
+                    if (!this.MissingModels.Any(s => s.HasNameAndVersion(tDep.ModelUri, tDep.GetNormalizedPublicationDate(), tDep.Version)))
                     {
                         this.MissingModels.Add(new ModelNameAndVersion(tDep));
                     }

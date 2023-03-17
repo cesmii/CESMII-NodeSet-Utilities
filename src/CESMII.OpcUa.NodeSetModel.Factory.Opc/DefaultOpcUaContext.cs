@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Text;
 using Opc.Ua.Export;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -107,7 +108,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 nodesetModel = new NodeSetModel();
                 nodesetModel.ModelUri = model.ModelUri;
-                nodesetModel.PublicationDate = model.PublicationDateSpecified ? model.PublicationDate : null;
+                nodesetModel.PublicationDate = model.GetNormalizedPublicationDate();
                 nodesetModel.Version = model.Version;
                 if (model.RequiredModel != null)
                 {
@@ -117,7 +118,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         var requiredModelInfo = new RequiredModelInfo
                         {
                             ModelUri = requiredModel.ModelUri,
-                            PublicationDate = requiredModel.PublicationDateSpecified ? requiredModel.PublicationDate : null,
+                            PublicationDate = requiredModel.GetNormalizedPublicationDate(),
                             Version = requiredModel.Version,
                             AvailableModel = existingNodeSet,
                         };

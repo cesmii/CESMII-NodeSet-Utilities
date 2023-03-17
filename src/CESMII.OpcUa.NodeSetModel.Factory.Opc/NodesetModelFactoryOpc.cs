@@ -145,17 +145,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     // Workaround for now:
                     AddChildToNodeModel(
                         () => NodeModelFactoryOpc<T>.Create(opcContext, referencedNode, this._model.CustomState, out _),
-                        opcContext, referenceTypes, opcNode);
+                        opcContext, referenceType, referenceTypes, opcNode);
                 }
                 else
                 {
-                    AddChildToNodeModel(() => this._model, opcContext, referenceTypes, referencedNode);
+                    AddChildToNodeModel(() => this._model, opcContext, referenceType, referenceTypes, referencedNode);
                 }
             }
             Logger.LogTrace($"Created node model {this._model} for {opcNode}");
         }
 
-        private static void AddChildToNodeModel(Func<NodeModel> parentFactory, IOpcUaContext opcContext, List<BaseTypeState> referenceTypes, NodeState referencedNode)
+        private static void AddChildToNodeModel(Func<NodeModel> parentFactory, IOpcUaContext opcContext, ReferenceTypeState referenceType, List<BaseTypeState> referenceTypes, NodeState referencedNode)
         {
             if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HasComponent))
             {
@@ -165,17 +165,19 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var uaChildObject = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, objectState, parent?.CustomState);
                     if (uaChildObject != null)
                     {
+                        var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
+
                         if (parent?.Namespace != uaChildObject.Namespace)
                         {
                             // Add the reverse reference to the referencing node (parent)
-                            var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), };
+                            var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
                             AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                         }
                         AddChildIfNotExists(parent, parent?.Objects, uaChildObject, opcContext.Logger);
                         if (referenceTypes[0].NodeId != ReferenceTypeIds.HasComponent)
                         {
                             // Preserve the more specific reference type as well
-                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaChildObject, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaChildObject, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
                         }
                     }
@@ -267,7 +269,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (referenceTypes[0].NodeId != ReferenceTypeIds.HasInterface)
                         {
                             // Preserve the more specific reference type as well
-                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaInterface, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                            var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
+
+                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaInterface, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _),  ReferenceType = referenceTypeModel };
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
                         }
                     }
@@ -311,7 +315,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (referenceTypes[0].NodeId != ReferenceTypeIds.GeneratesEvent)
                         {
                             // Preserve the more specific reference type as well
-                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaEvent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) };
+                            var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
+
+                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaEvent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) , ReferenceType = referenceTypeModel };
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
                         }
                     }
@@ -327,11 +333,16 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var referencedModel = Create(opcContext, referencedNode, parent?.CustomState, out _);
                 if (referencedModel != null)
                 {
-                    var nodeAndReference = new NodeModel.NodeAndReference { Node = referencedModel, Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _) };
+                    var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
+                    var nodeAndReference = new NodeModel.NodeAndReference {
+                        Node = referencedModel, 
+                        Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _), 
+                        ReferenceType = referenceTypeModel
+                        };
                     AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
 
                     // Add the reverse reference to the referencing node (parent)
-                    var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = nodeAndReference.Reference, };
+                    var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = nodeAndReference.Reference, ReferenceType = referenceTypeModel };
                     AddChildIfNotExists(referencedModel, referencedModel.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                 }
                 else

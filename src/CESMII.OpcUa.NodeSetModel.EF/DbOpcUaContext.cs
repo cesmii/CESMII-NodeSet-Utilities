@@ -33,6 +33,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CESMII.OpcUa.NodeSetModel;
 using CESMII.OpcUa.NodeSetModel.Factory.Opc;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
@@ -125,7 +126,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
         {
             if (!_nodesetModels.TryGetValue(model.ModelUri, out var nodesetModel))
             {
-                var existingNodeSet = GetMatchingOrHigherNodeSetAsync(model.ModelUri, model.PublicationDateSpecified ? model.PublicationDate : null, model.Version).Result;
+                var existingNodeSet = GetMatchingOrHigherNodeSetAsync(model.ModelUri, model.GetNormalizedPublicationDate(), model.Version).Result;
                 if (existingNodeSet != null)
                 {
                     _nodesetModels.Add(existingNodeSet.ModelUri, existingNodeSet);
