@@ -5,6 +5,7 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 using CESMII.OpcUa.NodeSetModel;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua.Export;
 using System;
 using System.IO;
@@ -189,11 +190,11 @@ namespace CESMII.OpcUa.NodeSetImporter
                         if (tOldNodeSet == null)
                             tOldNodeSet = UANodeSet.Read(nodeSetStream);
                     }
-                    var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.PublicationDate).FirstOrDefault();
+                    var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.GetNormalizedPublicationDate()).FirstOrDefault();
                     if (tns == null
                         || !(NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
-                                ns.ModelUri, ns.PublicationDate, ns.Version,
-                                tns.PublicationDate, tns.Version) ?? false))
+                                ns.ModelUri, ns.GetNormalizedPublicationDate(), ns.Version,
+                                tns.GetNormalizedPublicationDate(), tns.Version) ?? false))
                     {
                         CacheNewerVersion = true; //Cache the new NodeSet if the old (file) did not contain the model or if the version of the new model is greater
                     }

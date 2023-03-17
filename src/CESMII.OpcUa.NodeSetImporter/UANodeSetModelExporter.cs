@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua;
 using System.Xml.Serialization;
 using System.Xml;
@@ -138,7 +139,7 @@ namespace CESMII.OpcUa.NodeSetModel
                         {
                             ModelUri = uaNamespace,
                             Version = requiredNodeSetModel.Version,
-                            PublicationDate = requiredNodeSetModel.PublicationDate != null ? DateTime.SpecifyKind(requiredNodeSetModel.PublicationDate.Value, DateTimeKind.Utc) : default,
+                            PublicationDate = requiredNodeSetModel.PublicationDate.GetNormalizedPublicationDate(),
                             PublicationDateSpecified = requiredNodeSetModel.PublicationDate != null,
                             RolePermissions = null,
                             AccessRestrictions = 0,
@@ -157,7 +158,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 ModelUri = nodesetModel.ModelUri,
                 RequiredModel = requiredModels.ToArray(),
                 AccessRestrictions = 0,
-                PublicationDate = nodesetModel.PublicationDate != null ? DateTime.SpecifyKind(nodesetModel.PublicationDate.Value, DateTimeKind.Utc) : default,
+                PublicationDate = nodesetModel.PublicationDate.GetNormalizedPublicationDate(),
                 PublicationDateSpecified = nodesetModel.PublicationDate != null,
                 RolePermissions = null,
                 Version = nodesetModel.Version,

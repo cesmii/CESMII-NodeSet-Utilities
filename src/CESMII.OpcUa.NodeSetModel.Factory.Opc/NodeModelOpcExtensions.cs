@@ -6,6 +6,8 @@ using System.Linq;
 
 using NotVisualBasic.FileIO;
 using System.Reflection;
+using Opc.Ua.Export;
+using System;
 
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
@@ -14,6 +16,14 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         public static string GetDisplayNamePath(this InstanceModelBase model)
         {
             return model.GetDisplayNamePath(new List<NodeModel>());
+        }
+        public static DateTime GetNormalizedPublicationDate(this ModelTableEntry model)
+        {
+            return model.PublicationDateSpecified ? DateTime.SpecifyKind(model.PublicationDate, DateTimeKind.Utc) : default;
+        }
+        public static DateTime GetNormalizedPublicationDate(this DateTime? publicationDate)
+        {
+            return publicationDate != null ? DateTime.SpecifyKind(publicationDate.Value, DateTimeKind.Utc) : default;
         }
         public static string GetDisplayNamePath(this InstanceModelBase model, List<NodeModel> nodesVisited)
         {
