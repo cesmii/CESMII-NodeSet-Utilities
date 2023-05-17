@@ -53,7 +53,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public static void UpdateIndices(this NodeSetModel _this)
         {
             _this.AllNodesByNodeId.Clear();
-            var updatedNodes = new List<NodeModel>();
+            var updatedNodes = new HashSet<string>();
             foreach (var dataType in _this.DataTypes)
             {
                 dataType.UpdateIndices(_this, updatedNodes);

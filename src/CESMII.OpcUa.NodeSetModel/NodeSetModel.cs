@@ -164,14 +164,14 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();
         public virtual List<NodeAndReference> OtherReferencingNodes { get; set; } = new List<NodeAndReference>();
 
-        internal virtual bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal virtual bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
-            if (updatedNodes.Contains(this))
+            if (updatedNodes.Contains(this.NodeId))
             {
                 // break some recursions
                 return false;
             }
-            updatedNodes.Add(this);
+            updatedNodes.Add(this.NodeId);
             if (model.ModelUri == this.Namespace)
             {
                 model.AllNodesByNodeId.TryAdd(this.NodeId, this);
@@ -297,7 +297,7 @@ namespace CESMII.OpcUa.NodeSetModel
             }
         }
 
-        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated && SuperType != null && !SuperType.SubTypes.Any(sub => sub.NodeId == this.NodeId))
@@ -508,7 +508,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public override string ToString() => $"{Name} = {Value}";
         }
 
-        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated && StructureFields?.Any() == true)
