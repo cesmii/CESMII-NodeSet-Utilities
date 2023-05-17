@@ -185,8 +185,8 @@ namespace CESMII.OpcUa.NodeSetModel.EF
 
             {
                 var orn = modelBuilder.Entity<NodeModel>()
-                .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes)
-                ;
+                    .OwnsMany<NodeModel.NodeAndReference>(nm => nm.OtherReferencedNodes)
+                    ;
                 orn.WithOwner()
                     .HasForeignKey("OwnerNodeId", "OwnerModelUri", "OwnerPublicationDate")
                     ;
@@ -203,6 +203,24 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 orn.Property<string>("OwnerNodeId");
                 orn.Property<string>("OwnerModelUri");
                 orn.Property<DateTime?>("OwnerPublicationDate");
+
+                //orn.Ignore(nr => nr.ReferenceType);
+                orn.Property<string>("ReferenceTypeNodeId");
+                orn.Property<string>("ReferenceTypeModelUri");
+                orn.Property<DateTime?>("ReferenceTypePublicationDate");
+                //orn.Property(nr => nr.ReferenceType)
+                //    .HasConversion<NodeModel>()
+                //    //.HasColumnType<ReferenceTypeModel>(typeof(NodeModel).FullName)
+                //    //.HasColumnType<NodeModel>(typeof(NodeModel).FullName)
+                //    ;
+                var ornRTFK = orn.HasOne(nr => nr.ReferenceType).WithMany()
+                    .HasForeignKey("ReferenceTypeNodeId", "ReferenceTypeModelUri", "ReferenceTypePublicationDate")
+                    //.HasPrincipalKey("NodeId", "ModelUri", "PublicationDate")
+                    ;
+                if (cascadeDelete)
+                {
+                    ornRTFK.OnDelete(DeleteBehavior.Cascade);
+                }
             }
             {
                 var orn = modelBuilder.Entity<NodeModel>()
@@ -224,6 +242,24 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 orn.Property<string>("OwnerNodeId");
                 orn.Property<string>("OwnerModelUri");
                 orn.Property<DateTime?>("OwnerPublicationDate");
+
+                orn.Property<string>("ReferenceTypeNodeId");
+                orn.Property<string>("ReferenceTypeModelUri");
+                orn.Property<DateTime?>("ReferenceTypePublicationDate");
+                // TODO figure out why this does not work if ReferenceType is declared as ReferenceTypeModel instead of NodeModel
+                //orn.Property(nr => nr.ReferenceType)
+                //    .HasConversion<NodeModel>()
+                //    //.HasColumnType<ReferenceTypeModel>(typeof(NodeModel).FullName)
+                //    //.HasColumnType<NodeModel>(typeof(NodeModel).FullName)
+                //    ;
+                var ornRTFK = orn.HasOne(nr => nr.ReferenceType).WithMany()
+                    .HasForeignKey("ReferenceTypeNodeId", "ReferenceTypeModelUri", "ReferenceTypePublicationDate")
+                    ;
+                if (cascadeDelete)
+                {
+                    ornRTFK.OnDelete(DeleteBehavior.Cascade);
+                }
+
             }
         }
 

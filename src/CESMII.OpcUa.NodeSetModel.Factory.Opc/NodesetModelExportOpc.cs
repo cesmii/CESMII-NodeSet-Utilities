@@ -574,7 +574,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             if (_model.Value != null)
             {
-                dataVariable.Value = NodeModelUtils.JsonDecodeVariant(_model.Value);
+                ServiceMessageContext messageContext = NodeModelUtils.GetContextWithDynamicEncodeableFactory(_model.DataType, namespaces);
+                dataVariable.Value = NodeModelUtils.JsonDecodeVariant(_model.Value, messageContext);
             }
 
             dataVariable.AccessLevel = _model.AccessLevel ?? 1;
@@ -736,7 +737,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             variableType.ArrayDimensions = _model.ArrayDimensions;
             if (_model.Value != null)
             {
-                variableType.Value = NodeModelUtils.JsonDecodeVariant(_model.Value);
+                ServiceMessageContext messageContext = NodeModelUtils.GetContextWithDynamicEncodeableFactory(_model.DataType, namespaces);
+                variableType.Value = NodeModelUtils.JsonDecodeVariant(_model.Value, messageContext);
             }
             return (variableType as T, result.AdditionalNodes);
         }

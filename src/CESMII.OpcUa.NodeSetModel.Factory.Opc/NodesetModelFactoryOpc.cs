@@ -848,6 +848,25 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 _model.MinimumSamplingInterval = variableNode.MinimumSamplingInterval;
             }
+
+            if (string.IsNullOrEmpty(this._model.NodeSet.XmlSchemaUri) && variableNode.TypeDefinitionId == VariableTypeIds.DataTypeDictionaryType)
+            {
+                var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.NamespaceUri}" );
+                if (_model.Parent.NodeId == opcContext.GetNodeIdWithUri(ObjectIds.XmlSchema_TypeSystem, out _))
+                {
+                    if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))
+                    {
+                        using (var x = new JsonDecoder(xmlNamespaceVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }))
+                        {
+                            var stringVariant = x.ReadVariant("Value");
+                            if (stringVariant.Value is string namespaceUri && !string.IsNullOrEmpty(namespaceUri))
+                            {
+                                this._model.NodeSet.XmlSchemaUri = namespaceUri;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode)
@@ -928,7 +947,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             if (wrappedValue.Value != null)
             {
-                var encodedValue = opcContext.JsonEncodeVariant(wrappedValue);
+                var encodedValue = opcContext.JsonEncodeVariant(wrappedValue, model.DataType);
                 model.Value = encodedValue;
             }
         }

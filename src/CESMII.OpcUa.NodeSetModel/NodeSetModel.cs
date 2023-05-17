@@ -10,6 +10,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ModelUri { get; set; }
         public string Version { get; set; }
         public DateTime? PublicationDate { get; set; }
+        public string XmlSchemaUri { get; set; }
 
         // RequiredModels
         public virtual List<RequiredModelInfo> RequiredModels { get; set; } = new List<RequiredModelInfo>();
@@ -154,7 +155,7 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             public virtual NodeModel Node { get; set; }
             public string Reference { get; set; }
-            public virtual ReferenceTypeModel ReferenceType { get; set; }
+            public virtual NodeModel ReferenceType { get; set; }
             public override string ToString()
             {
                 return $"{ReferenceType?.ToString()??Reference} {Node}";
@@ -325,7 +326,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class VariableModel : InstanceModel<VariableTypeModel>, IVariableDataTypeInfo
     {
-        public virtual BaseTypeModel DataType { get; set; }
+        public virtual DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -428,7 +429,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public interface IVariableDataTypeInfo
     {
-        BaseTypeModel DataType { get; set; }
+        DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -447,7 +448,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class VariableTypeModel : BaseTypeModel, IVariableDataTypeInfo
     {
-        public virtual BaseTypeModel DataType { get; set; }
+        public virtual DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -494,11 +495,33 @@ namespace CESMII.OpcUa.NodeSetModel
             /// Used to preserve field order if stored in a relational database (via EF etc.)
             /// </summary>
             public int FieldOrder { get; set; }
-            public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";
 
+            public StructureField() { }
+            public StructureField(StructureField field)
+            {
+                this.Name = field.Name;
+                this.DataType = field.DataType;
+                this.ValueRank = field.ValueRank;
+                this.ArrayDimensions = field.ArrayDimensions;
+                this.MaxStringLength = field.MaxStringLength;
+                this.Description = field.Description;
+                this.IsOptional = field.IsOptional;
+                this.FieldOrder = field.FieldOrder;
+            }
+
+            public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";
         }
 
-        public class UaEnumField
+        public class StructureFieldWithOwner : StructureField
+        {
+            public StructureFieldWithOwner(StructureField field, DataTypeModel owner) : base(field)
+            {
+                Owner = owner;
+            }
+            public DataTypeModel Owner { get; set; }
+        }
+
+                public class UaEnumField
         {
             public string Name { get; set; }
             public virtual List<LocalizedText> DisplayName { get; set; }
@@ -521,6 +544,45 @@ namespace CESMII.OpcUa.NodeSetModel
             return bUpdated;
         }
 
+        public List<StructureFieldWithOwner> GetStructureFieldsInherited()
+        {
+            var structureFields = new List<StructureFieldWithOwner>();
+
+            List<DataTypeModel> baseTypesWithFields = new();
+            var currentType = this;
+            while (currentType != null)
+            {
+                if (currentType.StructureFields?.Any() == true)
+                {
+                    baseTypesWithFields.Add(currentType);
+                }
+                currentType = currentType.SuperType as DataTypeModel;
+            }
+            if (baseTypesWithFields.Count == 1)
+            {
+                structureFields = baseTypesWithFields[0].StructureFields.Select(sf => new StructureFieldWithOwner(sf, baseTypesWithFields[0])).ToList();
+            }
+            else
+            {
+                foreach (var baseType in baseTypesWithFields)
+                {
+                    foreach (var field in baseType.StructureFields)
+                    {
+                        var fieldWithOwner = new StructureFieldWithOwner(field, baseType);
+                        var existingFieldIndex = structureFields.FindIndex(f => f.Name == field.Name);
+                        if (existingFieldIndex >= 0)
+                        {
+                            structureFields[existingFieldIndex] = fieldWithOwner;
+                        }
+                        else
+                        {
+                            structureFields.Add(fieldWithOwner);
+                        }
+                    }
+                }
+            }
+            return structureFields;
+        }
     }
 
 }

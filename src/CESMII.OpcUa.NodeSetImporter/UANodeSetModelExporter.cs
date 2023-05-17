@@ -65,17 +65,8 @@ namespace CESMII.OpcUa.NodeSetModel
 
             var requiredModels = new List<ModelTableEntry>();
 
-            NamespaceTable namespaces;
-            // Ensure OPC UA model is the first one
-            if (exportedNodeSet.NamespaceUris?.Any() == true)
-            {
-                namespaces = new NamespaceTable(exportedNodeSet.NamespaceUris);
-            }
-            else
-            {
-                // Ensure OPC UA model is the first one
-                namespaces = new NamespaceTable(new[] { Namespaces.OpcUa });
-            }
+            // Ensure OPC UA model is the first one (index 0)
+            var namespaces = new NamespaceTable(new[] { Namespaces.OpcUa });
             foreach (var nsUri in namespaceUris)
             {
                 namespaces.GetIndexOrAppend(nsUri);
@@ -148,7 +139,12 @@ namespace CESMII.OpcUa.NodeSetModel
                     }
                     else
                     {
-                        throw new ArgumentException($"Required model {uaNamespace} not found.");
+                        // The model was not loaded. This can happen if the only reference to the model is in an extension object that only gets parsed but not turned into a node model (Example: onboarding nodeset refernces GDS ns=2;i=1)
+                        var requiredModel = new ModelTableEntry
+                        {
+                            ModelUri = uaNamespace,
+                        };
+                        requiredModels.Add(requiredModel);
                     }
                 }
             }
