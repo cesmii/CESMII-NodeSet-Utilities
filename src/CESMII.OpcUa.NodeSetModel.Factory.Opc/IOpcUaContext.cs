@@ -22,7 +22,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         NodeSetModel GetOrAddNodesetModel(ModelTableEntry model, bool createNew = true);
         NodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel;
         ILogger Logger { get; }
-        string JsonEncodeVariant(Variant wrappedValue);
+        string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null);
         List<NodeState> ImportUANodeSet(UANodeSet nodeSet);
     }
 }

@@ -1,13 +1,11 @@
 ﻿using Opc.Ua;
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Text;
 using Opc.Ua.Export;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
+using CESMII.OpcUa.NodeSetModel.Export.Opc;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -24,14 +22,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             _nodesetModels = new Dictionary<string, NodeSetModel>();
             _logger = logger;
 
-            var operationContext = new SystemContext();
             var namespaceTable = new NamespaceTable();
             namespaceTable.GetIndexOrAppend(Namespaces.OpcUa);
             var typeTable = new TypeTable(namespaceTable);
-            _systemContext = new SystemContext(operationContext)
+            _systemContext = new SystemContext()
             {
                 NamespaceUris = namespaceTable,
                 TypeTable = typeTable,
+                EncodeableFactory = new DynamicEncodeableFactory(EncodeableFactory.GlobalFactory),
             };
         }
 
@@ -47,6 +45,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             _nodesetModels = nodesetModels;
             _logger = logger;
         }
+
+        public bool ReencodeExtensionsAsJson { get; set; }
 
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
 
@@ -110,6 +110,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodesetModel.ModelUri = model.ModelUri;
                 nodesetModel.PublicationDate = model.GetNormalizedPublicationDate();
                 nodesetModel.Version = model.Version;
+                if (!string.IsNullOrEmpty(model.XmlSchemaUri))
+                {
+                    nodesetModel.XmlSchemaUri = model.XmlSchemaUri;
+                }
                 if (model.RequiredModel != null)
                 {
                     foreach (var requiredModel in model.RequiredModel)
@@ -150,13 +154,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return references;
         }
 
-        public virtual string JsonEncodeVariant(Variant wrappedValue)
+        public virtual string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
         {
-            return JsonEncodeVariant(_systemContext, wrappedValue);
-        }
-        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value)
-        {
-            return NodeModelUtils.JsonEncodeVariant(systemContext, value);
+            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson);
         }
     }
 }

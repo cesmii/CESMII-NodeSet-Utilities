@@ -10,6 +10,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ModelUri { get; set; }
         public string Version { get; set; }
         public DateTime? PublicationDate { get; set; }
+        public string XmlSchemaUri { get; set; }
 
         // RequiredModels
         public virtual List<RequiredModelInfo> RequiredModels { get; set; } = new List<RequiredModelInfo>();
@@ -89,15 +90,18 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             get
             {
+                var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/ua/")?.AvailableModel;
+#pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
                 return 
-                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", Node = p })
-                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", Node = p }))
-                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", Node = p }))
+                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasProperty"), Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasInterface"), Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "GeneratesEvent"), Node = p }))
                     .Concat(this.OtherReferencedNodes)
                     ;
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
 
@@ -150,28 +154,61 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public virtual List<ObjectTypeModel> Events { get; set; } = new List<ObjectTypeModel>();
 
-        public class NodeAndReference
+        public class NodeAndReference : IEquatable<NodeAndReference>
         {
             public virtual NodeModel Node { get; set; }
+            [Obsolete("Use ReferenceType instead")]
             public string Reference { get; set; }
-            public virtual ReferenceTypeModel ReferenceType { get; set; }
+            public virtual NodeModel ReferenceType { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                return Equals(obj as NodeAndReference);
+            }
+
+            public bool Equals(NodeAndReference other)
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return other is not null &&
+                       EqualityComparer<NodeModel>.Default.Equals(Node, other.Node) &&
+                       Reference == other.Reference &&
+                       EqualityComparer<NodeModel>.Default.Equals(ReferenceType, other.ReferenceType);
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+
+            public override int GetHashCode()
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return HashCode.Combine(Node, Reference, ReferenceType);
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+
+            public static bool operator ==(NodeAndReference left, NodeAndReference right)
+            {
+                return EqualityComparer<NodeAndReference>.Default.Equals(left, right);
+            }
+
+            public static bool operator !=(NodeAndReference left, NodeAndReference right)
+            {
+                return !(left == right);
+            }
             public override string ToString()
             {
-                return $"{ReferenceType?.ToString()??Reference} {Node}";
+                return $"{ReferenceType?.ToString()} {Node}";
             }
         }
 
         public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();
         public virtual List<NodeAndReference> OtherReferencingNodes { get; set; } = new List<NodeAndReference>();
 
-        internal virtual bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal virtual bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
-            if (updatedNodes.Contains(this))
+            if (updatedNodes.Contains(this.NodeId))
             {
                 // break some recursions
                 return false;
             }
-            updatedNodes.Add(this);
+            updatedNodes.Add(this.NodeId);
             if (model.ModelUri == this.Namespace)
             {
                 model.AllNodesByNodeId.TryAdd(this.NodeId, this);
@@ -297,7 +334,7 @@ namespace CESMII.OpcUa.NodeSetModel
             }
         }
 
-        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated && SuperType != null && !SuperType.SubTypes.Any(sub => sub.NodeId == this.NodeId))
@@ -325,7 +362,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class VariableModel : InstanceModel<VariableTypeModel>, IVariableDataTypeInfo
     {
-        public virtual BaseTypeModel DataType { get; set; }
+        public virtual DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -428,7 +465,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public interface IVariableDataTypeInfo
     {
-        BaseTypeModel DataType { get; set; }
+        DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -447,7 +484,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class VariableTypeModel : BaseTypeModel, IVariableDataTypeInfo
     {
-        public virtual BaseTypeModel DataType { get; set; }
+        public virtual DataTypeModel DataType { get; set; }
         /// <summary>
         /// n > 1: the Value is an array with the specified number of dimensions.
         /// OneDimension(1) : The value is an array with one dimension.
@@ -494,11 +531,33 @@ namespace CESMII.OpcUa.NodeSetModel
             /// Used to preserve field order if stored in a relational database (via EF etc.)
             /// </summary>
             public int FieldOrder { get; set; }
-            public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";
 
+            public StructureField() { }
+            public StructureField(StructureField field)
+            {
+                this.Name = field.Name;
+                this.DataType = field.DataType;
+                this.ValueRank = field.ValueRank;
+                this.ArrayDimensions = field.ArrayDimensions;
+                this.MaxStringLength = field.MaxStringLength;
+                this.Description = field.Description;
+                this.IsOptional = field.IsOptional;
+                this.FieldOrder = field.FieldOrder;
+            }
+
+            public override string ToString() => $"{Name}: {DataType} {(IsOptional ? "Optional" : "")}";
         }
 
-        public class UaEnumField
+        public class StructureFieldWithOwner : StructureField
+        {
+            public StructureFieldWithOwner(StructureField field, DataTypeModel owner) : base(field)
+            {
+                Owner = owner;
+            }
+            public DataTypeModel Owner { get; set; }
+        }
+
+                public class UaEnumField
         {
             public string Name { get; set; }
             public virtual List<LocalizedText> DisplayName { get; set; }
@@ -508,7 +567,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public override string ToString() => $"{Name} = {Value}";
         }
 
-        internal override bool UpdateIndices(NodeSetModel model, List<NodeModel> updatedNodes)
+        internal override bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
             var bUpdated = base.UpdateIndices(model, updatedNodes);
             if (bUpdated && StructureFields?.Any() == true)
@@ -521,6 +580,45 @@ namespace CESMII.OpcUa.NodeSetModel
             return bUpdated;
         }
 
+        public List<StructureFieldWithOwner> GetStructureFieldsInherited()
+        {
+            var structureFields = new List<StructureFieldWithOwner>();
+
+            List<DataTypeModel> baseTypesWithFields = new();
+            var currentType = this;
+            while (currentType != null)
+            {
+                if (currentType.StructureFields?.Any() == true)
+                {
+                    baseTypesWithFields.Add(currentType);
+                }
+                currentType = currentType.SuperType as DataTypeModel;
+            }
+            if (baseTypesWithFields.Count == 1)
+            {
+                structureFields = baseTypesWithFields[0].StructureFields.Select(sf => new StructureFieldWithOwner(sf, baseTypesWithFields[0])).ToList();
+            }
+            else
+            {
+                foreach (var baseType in baseTypesWithFields)
+                {
+                    foreach (var field in baseType.StructureFields)
+                    {
+                        var fieldWithOwner = new StructureFieldWithOwner(field, baseType);
+                        var existingFieldIndex = structureFields.FindIndex(f => f.Name == field.Name);
+                        if (existingFieldIndex >= 0)
+                        {
+                            structureFields[existingFieldIndex] = fieldWithOwner;
+                        }
+                        else
+                        {
+                            structureFields.Add(fieldWithOwner);
+                        }
+                    }
+                }
+            }
+            return structureFields;
+        }
     }
 
 }

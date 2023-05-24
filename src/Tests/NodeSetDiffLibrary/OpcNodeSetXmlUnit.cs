@@ -193,7 +193,7 @@ namespace NodeSetDiff
                             }
                             if (detailsNonNull.Target.LocalName == "UAVariable")
                             {
-                                // Is this node referenced by one of the type system OPC UA nodes: ignore
+                                // Is this node referenced by one of the type system OPC UA nodes: ignore these are deprecated
                                 if (IsChildOfTypeSystemNode(detailsNonNull.Target, aliasesNonNull, namespacesNonNull))
                                 {
                                     return ComparisonResult.EQUAL;
@@ -498,6 +498,7 @@ namespace NodeSetDiff
                 if (diff.Comparison.ControlDetails.Target != null)
                 {
                     diff.Comparison.ControlDetails.Target.WriteTo(controlWriter);
+                    //(diff.Comparison.ControlDetails.Target.ParentNode?.ParentNode ?? diff.Comparison.ControlDetails.Target.ParentNode ?? diff.Comparison.ControlDetails.Target).WriteTo(controlWriter);
                     controlWriter.Dispose();
                     controlWriter = XmlWriter.Create(diffControl, settings);
                     diffControl.AppendLine();
@@ -505,6 +506,7 @@ namespace NodeSetDiff
                 if (diff.Comparison.TestDetails.Target != null)
                 {
                     diff.Comparison.TestDetails.Target.WriteTo(testWriter);
+                    //(diff.Comparison.TestDetails.Target.ParentNode?.ParentNode ?? diff.Comparison.TestDetails.Target.ParentNode ?? diff.Comparison.TestDetails.Target).WriteTo(testWriter);
                     testWriter.Dispose();
                     testWriter = XmlWriter.Create(diffTest, settings);
                     diffTest.AppendLine();
