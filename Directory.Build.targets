@@ -6,7 +6,7 @@
     <WriteVersionInfoToBuildLog>false</WriteVersionInfoToBuildLog> <!-- Prevent the Azure DevOps build number to be written twice and forced to semver: should only be done by gitversion task in the build pipeline -->
   </PropertyGroup>
   
-  <!-- GitVersion-based auto-versioning -->
+  <!-- GitVersion-based auto-versioning --> 
   <ItemGroup Condition="'$(GitVersionTaskExcluded)' != 'True'" >
     <PackageReference Include="GitVersion.MsBuild" Version="5.*">
       <PrivateAssets>all</PrivateAssets>
