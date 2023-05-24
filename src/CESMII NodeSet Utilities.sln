@@ -30,10 +30,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetDiff", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeSetDiff", "Tests\NodeSetDiff\NodeSetDiff.csproj", "{ABFD5B3D-704A-47CE-98B1-A1986B44E198}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OPCFoundation.NetStandard.Opc.Ua.Core", "..\..\UA-.NETStandard\Stack\Opc.Ua.Core\Opc.Ua.Core.csproj", "{0CC42487-A141-4B47-961B-0BE3850993CE}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Opc.Ua.Security.Certificates", "..\..\UA-.NETStandard\Libraries\Opc.Ua.Security.Certificates\Opc.Ua.Security.Certificates.csproj", "{36F2E726-D8CC-4910-865C-0B748B3FE580}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,18 +79,6 @@ Global
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Staging|Any CPU.Build.0 = Debug|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
-		{0CC42487-A141-4B47-961B-0BE3850993CE}.Staging|Any CPU.Build.0 = Debug|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Release|Any CPU.Build.0 = Release|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
-		{36F2E726-D8CC-4910-865C-0B748B3FE580}.Staging|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
