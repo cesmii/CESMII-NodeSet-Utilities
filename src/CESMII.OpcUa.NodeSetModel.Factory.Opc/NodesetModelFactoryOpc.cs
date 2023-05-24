@@ -170,14 +170,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         if (parent?.Namespace != uaChildObject.Namespace)
                         {
                             // Add the reverse reference to the referencing node (parent)
+#pragma warning disable CS0618 // Type or member is obsolete
                             var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
+#pragma warning restore CS0618 // Type or member is obsolete
                             AddChildIfNotExists(uaChildObject, uaChildObject.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                         }
                         AddChildIfNotExists(parent, parent?.Objects, uaChildObject, opcContext.Logger);
                         if (referenceTypes[0].NodeId != ReferenceTypeIds.HasComponent)
                         {
                             // Preserve the more specific reference type as well
+#pragma warning disable CS0618 // Type or member is obsolete
                             var nodeAndReference = new NodeModel.NodeAndReference { Node = uaChildObject, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
+#pragma warning restore CS0618 // Type or member is obsolete
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
                         }
                     }
@@ -271,7 +275,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             // Preserve the more specific reference type as well
                             var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
 
-                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaInterface, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _),  ReferenceType = referenceTypeModel };
+#pragma warning disable CS0618 // Type or member is obsolete
+                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaInterface, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
+#pragma warning restore CS0618 // Type or member is obsolete
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
                         }
                     }
@@ -317,7 +323,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             // Preserve the more specific reference type as well
                             var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
 
-                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaEvent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _) , ReferenceType = referenceTypeModel };
+#pragma warning disable CS0618 // Type or member is obsolete
+                            var nodeAndReference = new NodeModel.NodeAndReference { Node = uaEvent, Reference = opcContext.GetNodeIdWithUri(referenceTypes[0].NodeId, out _), ReferenceType = referenceTypeModel };
+#pragma warning restore CS0618 // Type or member is obsolete
                             AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger);
                         }
                     }
@@ -334,15 +342,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedModel != null)
                 {
                     var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
-                    var nodeAndReference = new NodeModel.NodeAndReference {
-                        Node = referencedModel, 
-                        Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _), 
+                    var nodeAndReference = new NodeModel.NodeAndReference
+                    {
+                        Node = referencedModel,
+#pragma warning disable CS0618 // Type or member is obsolete
+                        Reference = opcContext.GetNodeIdWithUri(referenceTypes.FirstOrDefault().NodeId, out _),
                         ReferenceType = referenceTypeModel
-                        };
-                    AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, false);
+                    };
+                    AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, true);
 
                     // Add the reverse reference to the referencing node (parent)
                     var referencingNodeAndReference = new NodeModel.NodeAndReference { Node = parent, Reference = nodeAndReference.Reference, ReferenceType = referenceTypeModel };
+#pragma warning restore CS0618 // Type or member is obsolete
                     AddChildIfNotExists(referencedModel, referencedModel.OtherReferencingNodes, referencingNodeAndReference, opcContext.Logger, false);
                 }
                 else
@@ -366,10 +377,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 return;
             }
-            if (uaChildObject is InstanceModelBase uaInstance
-                || (uaChildObject is NodeModel.NodeAndReference nr
-                   && nr.Reference == new ExpandedNodeId(ReferenceTypeIds.Organizes, Namespaces.OpcUa)
-                   && (uaInstance = (nr.Node as InstanceModelBase)) != null))
+            if (setParent
+                && (uaChildObject is InstanceModelBase uaInstance
+                    || (uaChildObject is NodeModel.NodeAndReference nr
+                       && (nr.ReferenceType as ReferenceTypeModel)?.HasBaseType(new ExpandedNodeId(ReferenceTypeIds.Organizes, Namespaces.OpcUa).ToString()) == true
+                       && (uaInstance = (nr.Node as InstanceModelBase)) != null)
+                       ))
             {
                 uaInstance.Parent = parent;
                 if (uaInstance.Parent != parent)
@@ -477,7 +490,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (parent is VariableModel parentVariable && parentVariable != null)
                 {
                     var info = GetRangeInfo(parentVariable, referencedNode, opcContext);
-                    parentVariable.InstrumentRangeNodeId= info.RangeNodeId;
+                    parentVariable.InstrumentRangeNodeId = info.RangeNodeId;
                     parentVariable.InstrumentRangeModellingRule = info.ModellingRuleId;
                     parentVariable.InstrumentRangeAccessLevel = info.rangeAccessLevel;
                     if (info.range != null)
@@ -490,7 +503,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return false;
         }
 
-        static (ua.Range range, string RangeNodeId, string ModellingRuleId, uint? rangeAccessLevel) 
+        static (ua.Range range, string RangeNodeId, string ModellingRuleId, uint? rangeAccessLevel)
             GetRangeInfo(NodeModel parentVariable, NodeState referencedNode, IOpcUaContext opcContext)
         {
             string rangeNodeId = opcContext.GetNodeIdWithUri(referencedNode.NodeId, out _);
@@ -513,7 +526,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 // deprecated: parentVariable.EURangeUserAccessLevel = euRangeVariable.UserAccessLevel != 1 ? euRangeVariable.UserAccessLevel : null;
 
                 var euRangeExtension = euRangeVariable.Value as ExtensionObject;
-                 range = euRangeExtension?.Body as ua.Range;
+                range = euRangeExtension?.Body as ua.Range;
                 if (range == null)
                 {
                     if (euRangeVariable.Value != null)
@@ -851,7 +864,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             if (string.IsNullOrEmpty(this._model.NodeSet.XmlSchemaUri) && variableNode.TypeDefinitionId == VariableTypeIds.DataTypeDictionaryType)
             {
-                var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.NamespaceUri}" );
+                var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.NamespaceUri}");
                 if (_model.Parent.NodeId == opcContext.GetNodeIdWithUri(ObjectIds.XmlSchema_TypeSystem, out _))
                 {
                     if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))

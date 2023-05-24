@@ -98,10 +98,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(uaObject.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaObject).ToList();
-                if (otherReferences.Any())
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null ||(r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                if (otherMatchingReference != null)
                 {
-                    // TODO Verify the other referenceType is derived from HasComponent
-                    referenceTypeId = otherReferences[0].Reference;
+                    referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
                 }
                 references.Add(new Reference
                 {
@@ -112,22 +112,22 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             foreach (var nodeRef in this._model.OtherReferencedNodes)
             {
                 namespaces.GetIndexOrAppend(nodeRef.Node.Namespace);
-                namespaces.GetIndexOrAppend(NodeModelUtils.GetNamespaceFromNodeId(nodeRef.Reference));
+                namespaces.GetIndexOrAppend(NodeModelUtils.GetNamespaceFromNodeId(nodeRef.ReferenceType?.NodeId));
 
                 references.Add(new Reference
                 {
-                    ReferenceType = GetNodeIdForExport(nodeRef.Reference, namespaces, aliases),
+                    ReferenceType = GetNodeIdForExport(nodeRef.ReferenceType?.NodeId, namespaces, aliases),
                     Value = GetNodeIdForExport(nodeRef.Node.NodeId, namespaces, aliases),
                 });
             }
             foreach (var inverseNodeRef in this._model.OtherReferencingNodes)
             {
                 namespaces.GetIndexOrAppend(inverseNodeRef.Node.Namespace);
-                namespaces.GetIndexOrAppend(NodeModelUtils.GetNamespaceFromNodeId(inverseNodeRef.Reference));
+                namespaces.GetIndexOrAppend(NodeModelUtils.GetNamespaceFromNodeId(inverseNodeRef.ReferenceType?.NodeId));
 
                 var inverseRef = new Reference
                 {
-                    ReferenceType = GetNodeIdForExport(inverseNodeRef.Reference, namespaces, aliases),
+                    ReferenceType = GetNodeIdForExport(inverseNodeRef.ReferenceType?.NodeId, namespaces, aliases),
                     Value = GetNodeIdForExport(inverseNodeRef.Node.NodeId, namespaces, aliases),
                     IsForward = false,
                 };
@@ -152,10 +152,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(method.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == method).ToList();
-                if (otherReferences.Any())
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                if (otherMatchingReference != null)
                 {
-                    // TODO Verify the other referenceType is derived from HasComponent
-                    referenceTypeId = otherReferences[0].Reference;
+                    referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
                 }
                 references.Add(new Reference
                 {
@@ -168,10 +168,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(uaEvent.Namespace);
                 var referenceTypeId = ReferenceTypeIds.GeneratesEvent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaEvent).ToList();
-                if (otherReferences.Any())
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                if (otherMatchingReference != null)
                 {
-                    // TODO Verify the other referenceType is derived from GeneratesEvent
-                    referenceTypeId = otherReferences[0].Reference;
+                    referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
                 }
                 references.Add(new Reference 
                 { 
@@ -184,10 +184,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(variable.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == variable).ToList();
-                if (otherReferences.Any())
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                if (otherMatchingReference != null)
                 {
-                    // TODO Verify the other referenceType is derived from HasComponent
-                    referenceTypeId = otherReferences[0].Reference;
+                    referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
                 }
                 references.Add(new Reference
                 {
@@ -354,7 +354,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 bool bAdded = false;
                 foreach (var referencingNode in _model.Parent.OtherReferencedNodes.Where(cr => cr.Node == _model))
                 {
-                    var referenceType = GetNodeIdForExport(referencingNode.Reference, namespaces, aliases);
+                    var referenceType = GetNodeIdForExport(referencingNode.ReferenceType?.NodeId, namespaces, aliases);
                     if (!references.Any(r => r.IsForward == false && r.Value == parentNodeId && r.ReferenceType != referenceType))
                     {
                         references.Add(new Reference { IsForward = false, ReferenceType = referenceType, Value = parentNodeId });

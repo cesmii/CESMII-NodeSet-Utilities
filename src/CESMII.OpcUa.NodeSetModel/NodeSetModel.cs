@@ -90,15 +90,18 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             get
             {
+                var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/ua/")?.AvailableModel;
+#pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
                 return 
-                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", Node = p })
-                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", Node = p }))
-                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", Node = p }))
-                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", Node = p }))
+                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasProperty"), Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasInterface"), Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "GeneratesEvent"), Node = p }))
                     .Concat(this.OtherReferencedNodes)
                     ;
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
 
@@ -151,14 +154,47 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public virtual List<ObjectTypeModel> Events { get; set; } = new List<ObjectTypeModel>();
 
-        public class NodeAndReference
+        public class NodeAndReference : IEquatable<NodeAndReference>
         {
             public virtual NodeModel Node { get; set; }
+            [Obsolete("Use ReferenceType instead")]
             public string Reference { get; set; }
             public virtual NodeModel ReferenceType { get; set; }
+
+            public override bool Equals(object obj)
+            {
+                return Equals(obj as NodeAndReference);
+            }
+
+            public bool Equals(NodeAndReference other)
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return other is not null &&
+                       EqualityComparer<NodeModel>.Default.Equals(Node, other.Node) &&
+                       Reference == other.Reference &&
+                       EqualityComparer<NodeModel>.Default.Equals(ReferenceType, other.ReferenceType);
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+
+            public override int GetHashCode()
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                return HashCode.Combine(Node, Reference, ReferenceType);
+#pragma warning restore CS0618 // Type or member is obsolete
+            }
+
+            public static bool operator ==(NodeAndReference left, NodeAndReference right)
+            {
+                return EqualityComparer<NodeAndReference>.Default.Equals(left, right);
+            }
+
+            public static bool operator !=(NodeAndReference left, NodeAndReference right)
+            {
+                return !(left == right);
+            }
             public override string ToString()
             {
-                return $"{ReferenceType?.ToString()??Reference} {Node}";
+                return $"{ReferenceType?.ToString()} {Node}";
             }
         }
 

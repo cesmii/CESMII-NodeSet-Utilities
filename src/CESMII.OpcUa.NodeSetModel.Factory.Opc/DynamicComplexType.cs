@@ -195,7 +195,7 @@ namespace Opc.Ua.Client.ComplexTypes
                     if (BinaryEncodingId == null)
                     {
                         var binaryEncodingId = dataType.OtherReferencedNodes.FirstOrDefault(rn =>
-                            rn.Reference == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
+                            rn.ReferenceType?.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
                             && rn.Node.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.DefaultBinary}"
                         )?.Node.NodeId;
                         if (binaryEncodingId != null)
@@ -210,7 +210,7 @@ namespace Opc.Ua.Client.ComplexTypes
                     if (XmlEncodingId == null)
                     {
                         var xmlEncodingId = dataType.OtherReferencedNodes.FirstOrDefault(rn =>
-                            rn.Reference == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
+                            rn.ReferenceType?.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
                             && rn.Node.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.DefaultXml}"
                         )?.Node.NodeId;
                         if (xmlEncodingId != null)
@@ -225,7 +225,7 @@ namespace Opc.Ua.Client.ComplexTypes
                     if (JsonEncodingId == null)
                     {
                         var jsonEncodingId = dataType.OtherReferencedNodes.FirstOrDefault(rn =>
-                            rn.Reference == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
+                            rn.ReferenceType?.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()
                             && rn.Node.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.DefaultJson}"
                         )?.Node.NodeId;
                         if (jsonEncodingId != null)

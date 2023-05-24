@@ -62,7 +62,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             _dynamicDataTypes[dataTypeExpandedNodeId] = dataType;
 
             var encodingsDict = new Dictionary<string, ExpandedNodeId>();
-            var encodings = dataType.OtherReferencedNodes.Where(rn => rn.Reference == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString());
+            var encodings = dataType.OtherReferencedNodes.Where(rn => rn.ReferenceType?.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString());
             foreach(var encoding in encodings)
             {
                 var encodingExpandedNodeId = ExpandedNodeId.Parse(encoding.Node.NodeId);
