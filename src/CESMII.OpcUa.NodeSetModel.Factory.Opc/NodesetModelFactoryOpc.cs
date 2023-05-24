@@ -761,7 +761,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 _model.TypeDefinition = typeDefModel as TBaseTypeModel;
                 if (_model.TypeDefinition == null)
                 {
-                    throw new Exception($"Unexpected type definition {variableTypeDefinition}");
+                    throw new Exception($"Unexpected type definition {variableTypeDefinition} on {uaInstance}");
                 }
             }
 

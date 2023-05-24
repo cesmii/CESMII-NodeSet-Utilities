@@ -98,16 +98,16 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(uaObject.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaObject).ToList();
-                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null ||(r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
-                if (otherMatchingReference != null)
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null ||(r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
+                if (otherMatchingReference == null)
                 {
-                    referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
+                    // Only add if not also covered in OtherReferencedNodes (will be added later)
+                    references.Add(new Reference
+                    {
+                        ReferenceType = GetNodeIdForExport(referenceTypeId, namespaces, aliases),
+                        Value = GetNodeIdForExport(uaObject.NodeId, namespaces, aliases),
+                    });
                 }
-                references.Add(new Reference
-                {
-                    ReferenceType = GetNodeIdForExport(referenceTypeId, namespaces, aliases),
-                    Value = GetNodeIdForExport(uaObject.NodeId, namespaces, aliases),
-                });
             }
             foreach (var nodeRef in this._model.OtherReferencedNodes)
             {
@@ -152,7 +152,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(method.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == method).ToList();
-                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
                 if (otherMatchingReference != null)
                 {
                     referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
@@ -168,7 +168,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(uaEvent.Namespace);
                 var referenceTypeId = ReferenceTypeIds.GeneratesEvent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaEvent).ToList();
-                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
                 if (otherMatchingReference != null)
                 {
                     referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
@@ -184,7 +184,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(variable.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == variable).ToList();
-                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"{Namespaces.OpcUa};{referenceTypeId}") == true);
+                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
                 if (otherMatchingReference != null)
                 {
                     referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
