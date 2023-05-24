@@ -20,15 +20,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return namespaceUri;
         }
 
-        public static string JsonEncodeVariant(Variant value)
+        public static string JsonEncodeVariant(Variant value, bool reencodeExtensionsAsJson = false)
         {
-            return JsonEncodeVariant(null, value, null);
+            return JsonEncodeVariant(null, value, null, reencodeExtensionsAsJson = false);
         }
-        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value)
+        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, bool reencodeExtensionsAsJson = false)
         {
-            return JsonEncodeVariant(systemContext, value, null);
+            return JsonEncodeVariant(systemContext, value, null, reencodeExtensionsAsJson);
         }
-        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType)
+        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType, bool reencodeExtensionsAsJson = false)
         {
             ServiceMessageContext context;
             if (systemContext != null)
@@ -39,17 +39,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 context = ServiceMessageContext.GlobalContext;
             }
-            if (dataType != null && systemContext.EncodeableFactory is DynamicEncodeableFactory lookupContext)
+            if (reencodeExtensionsAsJson)
             {
-                lookupContext.AddEncodingsForDataType(dataType, systemContext.NamespaceUris);
-            }
+                if (dataType != null && systemContext.EncodeableFactory is DynamicEncodeableFactory lookupContext)
+                {
+                    lookupContext.AddEncodingsForDataType(dataType, systemContext.NamespaceUris);
+                }
 
-            // Reencode extension objects as JSON 
-            if (value.Value is ExtensionObject extObj && extObj.Encoding == ExtensionObjectEncoding.Xml && extObj.Body is XmlElement extXmlBody)
-            {
-                var xmlDecoder = new XmlDecoder(extXmlBody, context);
-                var parsedBody = xmlDecoder.ReadExtensionObjectBody(extObj.TypeId);
-                value.Value = new ExtensionObject(extObj.TypeId, parsedBody);
+                // Reencode extension objects as JSON 
+                if (value.Value is ExtensionObject extObj && extObj.Encoding == ExtensionObjectEncoding.Xml && extObj.Body is XmlElement extXmlBody)
+                {
+                    var xmlDecoder = new XmlDecoder(extXmlBody, context);
+                    var parsedBody = xmlDecoder.ReadExtensionObjectBody(extObj.TypeId);
+                    value.Value = new ExtensionObject(extObj.TypeId, parsedBody);
+                }
             }
             using (var encoder = new JsonEncoder(context, true))
             {
@@ -143,7 +146,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public static ServiceMessageContext GetContextWithDynamicEncodeableFactory(DataTypeModel dataType, NamespaceTable namespaces)
         {
             DynamicEncodeableFactory dynamicFactory = new(EncodeableFactory.GlobalFactory);
+#if OPCNEW // Enable once the OPC SDK supports this: https://github.com/OPCFoundation/UA-.NETStandard/pull/2146
             dynamicFactory.AddEncodingsForDataType(dataType, namespaces);
+#endif
             var messageContext = new ServiceMessageContext { Factory = dynamicFactory, NamespaceUris = namespaces };
             return messageContext;
         }

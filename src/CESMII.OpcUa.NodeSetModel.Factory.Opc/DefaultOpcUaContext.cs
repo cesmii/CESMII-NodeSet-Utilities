@@ -46,6 +46,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             _logger = logger;
         }
 
+        public bool ReencodeExtensionsAsJson { get; set; }
+
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
 
         public NamespaceTable NamespaceUris { get => _systemContext.NamespaceUris; }
@@ -154,7 +156,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
         {
-            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType);
+            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson);
         }
     }
 }

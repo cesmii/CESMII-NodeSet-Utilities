@@ -45,7 +45,7 @@ namespace Opc.Ua.Client.ComplexTypes
     /// </summary>
     public class DynamicComplexType :
         IEncodeable, IJsonEncodeable, IFormattable, IComplexTypeInstance
-#if OPCNEW
+#if OPCNEW // Enable once the OPC SDK supports this: https://github.com/OPCFoundation/UA-.NETStandard/pull/2146
         , IDynamicComplexTypeInstance
 #endif
     {
