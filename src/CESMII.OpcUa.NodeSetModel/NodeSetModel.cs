@@ -81,7 +81,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public string ReleaseStatus { get; set; }
 
         [IgnoreDataMember]
-        public string Namespace { get => NodeSet.ModelUri; }
+        public string Namespace { get => NodeSet?.ModelUri; }
         public string NodeId { get; set; }
         public object CustomState { get; set; }
         public virtual List<string> Categories { get; set; }
@@ -90,15 +90,15 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             get
             {
-                var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/ua/")?.AvailableModel;
+                var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/UA/")?.AvailableModel;
 #pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
                 return 
-                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasProperty"), Node = p })
-                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
-                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
-                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasComponent"), Node = p }))
-                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "HasInterface"), Node = p }))
-                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName == "GeneratesEvent"), Node = p }))
+                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasInterface")), Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("GeneratesEvent")), Node = p }))
                     .Concat(this.OtherReferencedNodes)
                     ;
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -215,14 +215,26 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             foreach (var node in Objects)
             {
+                if (model.ModelUri == node.Namespace && !model.Objects.Contains(node))
+                {
+                    model.Objects.Add(node);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.DataVariables)
             {
+                if (model.ModelUri == node.Namespace && !model.DataVariables.Contains(node))
+                {
+                    model.DataVariables.Add(node);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.Interfaces)
             {
+                if (model.ModelUri == node.Namespace && !model.Interfaces.Contains(node))
+                {
+                    model.Interfaces.Add(node);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.Methods)
@@ -231,6 +243,10 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             foreach (var node in this.Properties)
             {
+                if (model.ModelUri == node.Namespace && node is PropertyModel prop && !model.Properties.Contains(prop))
+                {
+                    model.Properties.Add(prop);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.Events)
