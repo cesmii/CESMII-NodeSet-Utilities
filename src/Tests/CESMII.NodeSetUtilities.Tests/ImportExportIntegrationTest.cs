@@ -172,6 +172,11 @@ namespace CESMII.NodeSetUtilities.Tests
                 // Ignore CR/LF difference in the diff files (often git induced) 
                 expectedSummary = expectedSummary.Replace("\r", "").Replace("\n", "");
                 diffSummary = diffSummary.Replace("\r", "").Replace("\n", "");
+                if (expectedSummary != diffSummary)
+                {
+                    output.WriteLine("Expected Diffs: " + expectedSummary);
+                    output.WriteLine("Actual Diffs: " + diffSummary);
+                }
                 Assert.True(expectedSummary == diffSummary, $"Diffs not as expected {Path.GetFullPath(summaryDiffFile)} expected {Path.GetFullPath(expectedDiffFile)}");
                 output.WriteLine($"Verified export {file}. Diffs: {diffCounts}");
                 if (issueCounts.TryGetValue("Untriaged", out var untriagedIssues) && untriagedIssues > 0)
