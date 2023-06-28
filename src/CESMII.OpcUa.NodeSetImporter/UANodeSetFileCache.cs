@@ -158,14 +158,14 @@ namespace CESMII.OpcUa.NodeSetImporter
             }
 
             #region Comment processing
-            var nodesetXmlReader = new StringReader(nodeSetXml);
-            var doc = XElement.Load(nodesetXmlReader);
-            var comments = doc.DescendantNodes().OfType<XComment>();
-            foreach (XComment comment in comments)
-            {
-                //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
-                //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
-            }
+            //var nodesetXmlReader = new StringReader(nodeSetXml);
+            //var doc = XElement.Load(nodesetXmlReader);
+            //var comments = doc.DescendantNodes().OfType<XComment>();
+            //foreach (XComment comment in comments)
+            //{
+            //    //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
+            //    //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
+            //}
             #endregion
 
             UANodeSet tOldNodeSet = null;
