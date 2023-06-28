@@ -32,7 +32,9 @@ namespace NodeSetDiff
         private XDocument _controlDoc;
         private XDocument _testDoc;
         private UANodeSet _controlNodeSet;
-        public UANodeSet ControlNodeSet { get
+        public UANodeSet ControlNodeSet
+        {
+            get
             {
                 if (_controlNodeSet == null)
                 {
@@ -82,7 +84,6 @@ namespace NodeSetDiff
             if (c.Type == ComparisonType.CHILD_NODELIST_SEQUENCE)
             {
                 var xPath = Regex.Replace(c.ControlDetails.XPath, "\\[\\d*\\]", "");
-
                 if (new[] {
                     "/UANodeSet",
                     "/UANodeSet/",
@@ -97,16 +98,43 @@ namespace NodeSetDiff
                 {
                     return ComparisonResult.EQUAL;
                 }
+                if (xPath.StartsWith("/UANodeSet/UADataType/Definition/Field"))
+                {
+                    if (c.ControlDetails.Target is XmlElement targetElement)
+                    {
+                        var browseName = targetElement.ParentNode.ParentNode.Attributes["BrowseName"];
+                        if (browseName?.Value?.EndsWith("Mask") == true || browseName?.Value?.Contains("Enum") == true)
+                        {
+                            // Heuristic to reduce false ordering errors for enumerations and option sets
+                            return ComparisonResult.EQUAL;
+                        }
+                    }
+                }
+                if (xPath.StartsWith("/UANodeSet/UAVariable/Value/ListOfExtensionObject/ExtensionObject/Body/EnumValueType/"))
+                {
+                    // Enums get reordered by Enum value which may not match the original XML but does not change the semantics
+                    return ComparisonResult.EQUAL;
+                }
+
                 if (c.ControlDetails.Target.Name == "Text")
                 {
                     if (c.ControlDetails.XPath.Split('/', 4)?[3] == c.TestDetails.XPath.Split('/', 4)?[3])
                     {
-                        if (((int) c.ControlDetails.Value) == ((int) c.TestDetails.Value)+ 1 &&  c.ControlDetails.Target.PreviousSibling.LocalName=="Locale" && c.ControlDetails.Target.Value == null)
+                        if (((int)c.ControlDetails.Value) == ((int)c.TestDetails.Value) + 1 && c.ControlDetails.Target.PreviousSibling.LocalName == "Locale" && c.ControlDetails.Target.Value == null)
                         {
                             // treat null locale vs missing locale element as same
                             return ComparisonResult.EQUAL;
                         }
                         //return ComparisonResult.EQUAL;
+                    }
+                }
+                if (xPath.StartsWith("/UANodeSet/UAVariable/Value/ListOfExtensionObject/ExtensionObject"))
+                {
+                    if (c.ControlDetails.Target is XmlElement targetElement && targetElement["Body", Namespaces.OpcUaXsd]?["EnumValueType", Namespaces.OpcUaXsd] != null)
+                    {
+                        // Enums get reordered by Enum value which may not match the original XML but does not change the semantics
+                        return ComparisonResult.EQUAL;
+
                     }
                 }
             }
@@ -260,6 +288,11 @@ namespace NodeSetDiff
                         }
                     }
                 }
+                if (c.ControlDetails.Target?.LocalName == "ArrayDimensions" && c.TestDetails.Target?.LocalName == "ArrayDimensions"
+                    && (c.ControlDetails.Target?.InnerXml == "0" || c.TestDetails.Target?.InnerXml == "0"))
+                {
+                    return ComparisonResult.EQUAL;
+                }
             }
             if (c.Type == ComparisonType.TEXT_VALUE)
             {
@@ -277,13 +310,20 @@ namespace NodeSetDiff
                         return ComparisonResult.EQUAL;
                     }
                 }
-                if (outcome != ComparisonResult.EQUAL 
-                    && c.ControlDetails?.Target?.ParentNode?.LocalName == "ByteString"
-                    && c.TestDetails?.Target?.ParentNode?.LocalName == "ByteString"
-                    && c.ControlDetails?.Target?.Value?.Where(c => !Char.IsWhiteSpace(c))?
-                        .SequenceEqual(c.TestDetails?.Target?.Value?.Where(c => !Char.IsWhiteSpace(c))) == true)
+                if (outcome != ComparisonResult.EQUAL
+                && c.ControlDetails?.Target?.ParentNode?.LocalName == "ByteString"
+                && c.TestDetails?.Target?.ParentNode?.LocalName == "ByteString"
+                && c.ControlDetails?.Target?.Value?.Where(c => !Char.IsWhiteSpace(c))?
+                    .SequenceEqual(c.TestDetails?.Target?.Value?.Where(c => !Char.IsWhiteSpace(c))) == true)
                 {
                     return ComparisonResult.EQUAL;
+                }
+                if (outcome != ComparisonResult.EQUAL)
+                {
+                    if (c.ControlDetails.Target?.Value?.TrimEnd() == c.TestDetails.Target?.Value?.TrimEnd())
+                    {
+                        return ComparisonResult.EQUAL;
+                    }
                 }
             }
             if (c.Type == ComparisonType.NAMESPACE_PREFIX)
@@ -294,7 +334,7 @@ namespace NodeSetDiff
             return outcome;
         }
 
-        private static bool IsChildOfTypeSystemNode(XmlNode uaNode, Dictionary<string,string> aliases, NamespaceTable namespaces)
+        private static bool IsChildOfTypeSystemNode(XmlNode uaNode, Dictionary<string, string> aliases, NamespaceTable namespaces)
         {
             if (uaNode == null) return false;
             var reverseReferences = GetReverseReferences(uaNode);
@@ -302,7 +342,7 @@ namespace NodeSetDiff
             {
                 return true;
             }
-            foreach(var reference in reverseReferences)
+            foreach (var reference in reverseReferences)
             {
                 var referencedUaNode = uaNode.ParentNode.ChildNodes.Cast<XmlNode>().Where(n => NormalizeNodeId(n.Attributes?.GetNamedItem("NodeId")?.Value, aliases, namespaces) == NormalizeNodeId(reference.InnerText, aliases, namespaces))?.FirstOrDefault();
                 if (IsChildOfTypeSystemNode(referencedUaNode, aliases, namespaces))
@@ -370,6 +410,14 @@ namespace NodeSetDiff
                         case "UAReferenceType":
                         case "UADataType":
                             return IsEqualNodeId(c.GetAttribute("NodeId"), t.GetAttribute("NodeId"));
+                        case "ExtensionObject":
+                            var cEnumName = c["Body", Namespaces.OpcUaXsd]?["EnumValueType", Namespaces.OpcUaXsd]?["DisplayName", Namespaces.OpcUaXsd]?.InnerText;
+                            var tEnumName = t["Body", Namespaces.OpcUaXsd]?["EnumValueType", Namespaces.OpcUaXsd]?["DisplayName", Namespaces.OpcUaXsd]?.InnerText;
+                            if (cEnumName != null && cEnumName != tEnumName)
+                            {
+                                return false;
+                            }
+                            return true;
                     }
                     return true;
                 }
@@ -424,7 +472,7 @@ namespace NodeSetDiff
                      .CheckForSimilar()
                      .WithDifferenceEvaluator(diffHelper.OpcNodeSetDifferenceEvaluator)
                      .WithNodeMatcher(new DefaultNodeMatcher(new ElementSelector[] { diffHelper.OpcElementSelector }))
-                     .WithAttributeFilter(a => 
+                     .WithAttributeFilter(a =>
                         !((
                             a.LocalName == "ParentNodeId" // ParentNodeId is not part of the address space/information model, ignore entirely
                             || a.LocalName == "UserAccessLevel" // UserAccessLevel is deprecated, and currently not propertly handled by the UA Importer (https://github.com/OPCFoundation/UA-.NETStandard/issues/1918) : ignore entirely

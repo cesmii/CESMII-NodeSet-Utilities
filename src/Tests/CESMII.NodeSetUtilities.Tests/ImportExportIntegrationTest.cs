@@ -1,27 +1,22 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
-using System.Xml;
 using CESMII.OpcUa.NodeSetModel;
 using CESMII.OpcUa.NodeSetModel.Factory.Opc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using NodeSetDiff;
-using Opc.Ua;
 using Opc.Ua.Export;
 using Org.XmlUnit.Diff;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using Microsoft.Extensions.Logging;
 
-[assembly: CollectionBehavior(DisableTestParallelization = true) ]
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace CESMII.NodeSetUtilities.Tests
 {
@@ -49,7 +44,9 @@ namespace CESMII.NodeSetUtilities.Tests
 
             var nodesetXml = File.ReadAllText(file);
 
-            var opcContext = new DefaultOpcUaContext(NullLogger.Instance);
+            var logger = new XUnitTestLogger<Integration>(output, LogLevel.Warning);
+
+            var opcContext = new DefaultOpcUaContext(logger);
             var importer = new UANodeSetModelImporter(opcContext);
 
             var nodeSets = await importer.ImportNodeSetModelAsync(nodesetXml);
@@ -69,7 +66,8 @@ namespace CESMII.NodeSetUtilities.Tests
             var nodesetXml = File.ReadAllText(file);
 
             Dictionary<string, NodeSetModel> nodeSetModels = new();
-            var opcContext = new DefaultOpcUaContext(nodeSetModels, NullLogger.Instance);
+            var logger = new XUnitTestLogger<Integration>(output, LogLevel.Warning);
+            var opcContext = new DefaultOpcUaContext(nodeSetModels, logger);
             var importer = new UANodeSetModelImporter(opcContext);
 
             var importedNodeSetModels = await importer.ImportNodeSetModelAsync(nodesetXml);

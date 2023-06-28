@@ -16,7 +16,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class NodeModelFactoryOpc : NodeModelFactoryOpc<NodeModel>
     {
-        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, bool doNotReimport = false)
+        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, bool doNotReimport = false, List<NodeState> importedNodes = null)
         {
             if (!nodeSet.Models.Any())
             {
@@ -76,11 +76,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodeSet.Items = new UANode[0];
             }
 
-            var importedNodes = opcContext.ImportUANodeSet(nodeSet);
+            var newImportedNodes = opcContext.ImportUANodeSet(nodeSet);
 
             // TODO Read nodeset poperties like author etc. and expose them in Profile editor
 
-            foreach (var node in importedNodes)
+            foreach (var node in newImportedNodes)
             {
                 var nodeModel = NodeModelFactoryOpc.Create(opcContext, node, customState, out var bAdded);
                 if (nodeModel != null && !bAdded)
@@ -92,6 +92,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         nodesetModel.UnknownNodes.Add(nodeModel);
                     }
                 }
+            }
+            if (importedNodes != null)
+            {
+                importedNodes.AddRange(newImportedNodes);
             }
             return Task.FromResult(loadedModels);
         }
@@ -387,7 +391,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 uaInstance.Parent = parent;
                 if (uaInstance.Parent != parent)
                 {
-                    logger.LogWarning($"{uaInstance} has more than one parent. Ignored parent: {parent}, using {uaInstance.Parent}");
+                    logger.LogInformation($"{uaInstance} has more than one parent. Ignored parent: {parent}, using {uaInstance.Parent}");
                 }
             }
             if (collection?.Contains(uaChildObject) == false)
@@ -862,6 +866,17 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 _model.MinimumSamplingInterval = variableNode.MinimumSamplingInterval;
             }
 
+            var invalidBrowseNameOnTypeInformation = _model.Properties.Where(p =>
+                    (p.BrowseName.EndsWith(BrowseNames.EnumValues) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.EnumValues}")
+                || (p.BrowseName.EndsWith(BrowseNames.EnumStrings) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.EnumStrings}")
+                || (p.BrowseName.EndsWith(BrowseNames.OptionSetValues) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.OptionSetValues}")
+            );
+            if (invalidBrowseNameOnTypeInformation.Any())
+            {
+                opcContext.Logger.LogWarning($"Found type definition node with browsename in non-default namespace: {string.Join("", invalidBrowseNameOnTypeInformation.Select(ti => ti.BrowseName))}");
+            }
+
+
             if (string.IsNullOrEmpty(this._model.NodeSet.XmlSchemaUri) && variableNode.TypeDefinitionId == VariableTypeIds.DataTypeDictionaryType)
             {
                 var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.NamespaceUri}");
@@ -980,6 +995,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     _model.StructureFields = new List<DataTypeModel.StructureField>();
                     int order = 0;
+                    // The OPC SDK does not put the SymbolicName into the node state: read from UANodeSet
+                    var uaNodeSet = opcContext.GetUANodeSet(_model.Namespace);
+                    UADataType uaStruct = null;
+                    if (uaNodeSet != null)
+                    {
+                        uaStruct = uaNodeSet.Items.FirstOrDefault(n => n.NodeId == opcNode.NodeId) as UADataType;
+                    }
+
                     foreach (var field in sd.Fields)
                     {
                         var dataType = opcContext.GetNode(field.DataType);
@@ -1024,8 +1047,16 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var enumFields = dataTypeState.DataTypeDefinition.Body as EnumDefinition;
                     if (enumFields != null)
                     {
-                        _model.IsOptionSet = enumFields.IsOptionSet;
+                        _model.IsOptionSet = enumFields.IsOptionSet || _model.HasBaseType(new ExpandedNodeId(DataTypeIds.OptionSet, Namespaces.OpcUa).ToString());
                         _model.EnumFields = new List<DataTypeModel.UaEnumField>();
+
+                        // The OPC SDK does not put the SymbolicName into the node state: read from UANodeSet
+                        var uaNodeSet = opcContext.GetUANodeSet(_model.Namespace);
+                        UADataType uaEnum = null;
+                        if (uaNodeSet != null)
+                        {
+                            uaEnum = uaNodeSet.Items.FirstOrDefault(n => n.NodeId == opcNode.NodeId) as UADataType;
+                        }
                         foreach (var field in enumFields.Fields)
                         {
                             string symbolicName = null;
