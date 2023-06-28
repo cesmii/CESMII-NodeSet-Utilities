@@ -5,7 +5,7 @@ using System.Linq;
 namespace CESMII.OpcUa.NodeSetModel
 {
     public static class NodeSetVersionUtils
-    { 
+    {
         public static NodeSetModel GetMatchingOrHigherNodeSet(IEnumerable<NodeSetModel> nodeSetsWithSameNamespaceUri, DateTime? publicationDate, string version)
         {
             if (nodeSetsWithSameNamespaceUri.FirstOrDefault()?.ModelUri == "http://opcfoundation.org/UA/")
@@ -44,39 +44,48 @@ namespace CESMII.OpcUa.NodeSetModel
         }
         public static bool? IsMatchingOrHigherNodeSet(string modelUri, DateTime? modelPublicationDate, string modelVersion, DateTime? publicationDateToMatch, string versionToMatch)
         {
+            return CompareNodeSetVersion(modelUri, modelPublicationDate, modelVersion, publicationDateToMatch, versionToMatch) >= 0;
+        }
+        public static int? CompareNodeSetVersion(string modelUri, DateTime? modelPublicationDate, string modelVersion, DateTime? publicationDateToMatch, string versionToMatch)
+        {
             if (modelUri == "http://opcfoundation.org/UA/")
             {
+                // Special versioning rules for core nodesets: only match publication date within version family (1.03, 1.04, 1.05).
                 if (string.IsNullOrEmpty(versionToMatch))
                 {
-                    return true;
+                    // No version specified: it's a match
+                    return 1;
                 }
-                // Special versioning rules for core nodesets: only match publication date within version family (1.03, 1.04, 1.05).
                 var prefixLength = "0.00".Length;
-                if (versionToMatch?.Length >= prefixLength)
-                {
-                    if (modelVersion == null ||  modelVersion.Length < prefixLength)
-                    {
-                        // Invalid version '{modelVersion}' in OPC UA Core nodeset
-                        return null;
-                    }
-                    var versionPrefix = versionToMatch.Substring(0, prefixLength);
-                    var comparison = string.CompareOrdinal(modelVersion.Substring(0, prefixLength), versionPrefix);
-                    bool isMatching =  comparison > 0
-                    || comparison == 0 &&
-                        (publicationDateToMatch == null || modelPublicationDate.Value >= publicationDateToMatch);
-                    return isMatching;
-                }
-                else
+                if (versionToMatch?.Length < prefixLength)
                 {
                     // Invalid version '{versionToMatch}' for OPC UA Core nodeset
                     return null;
                 }
+                if (modelVersion == null || modelVersion.Length < prefixLength)
+                {
+                    // Invalid version '{modelVersion}' in OPC UA Core nodeset
+                    return null;
+                }
+                var versionPrefixToMatch = versionToMatch.Substring(0, prefixLength);
+                var prefixComparison = string.CompareOrdinal(modelVersion.Substring(0, prefixLength), versionPrefixToMatch);
+                if (prefixComparison != 0)
+                {
+                    return prefixComparison;
+                }
+                // Version family matches: now just do regular publication date comparison
+            }
+            int comparison;
+            if (publicationDateToMatch == null || modelPublicationDate == null)
+            {
+                // If either date is not specified it matches any date
+                comparison = 0;
             }
             else
             {
-                bool isMatching = (publicationDateToMatch == null || modelPublicationDate == null || modelPublicationDate.Value >= publicationDateToMatch);
-                return isMatching;
+                comparison = DateTime.Compare(modelPublicationDate.Value, publicationDateToMatch.Value);
             }
+            return comparison;
         }
 
         private static NodeSetModel GetMatchingOrHigherNodeSetByPublicationDate(IEnumerable<NodeSetModel> nodeSetsWithSameNamespaceUri, DateTime? publicationDate)
