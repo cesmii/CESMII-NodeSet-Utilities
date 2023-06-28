@@ -111,6 +111,13 @@ namespace CESMII.OpcUa.NodeSetModel
                 items = ExportAllNodes(nodesetModel, aliases, namespaces, null);
             }
 
+            // Export all referenced nodesets to capture any of their dependencies that may not be used in the model being exported
+            foreach(var otherModel in nodesetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
+            {
+                // Only need to update the namespaces table
+                _ = ExportAllNodes(otherModel, null, namespaces, null);
+            }
+
             var allNamespaces = namespaces.ToArray();
             if (allNamespaces.Length > 1)
             {
