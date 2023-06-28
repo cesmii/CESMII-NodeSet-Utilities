@@ -990,9 +990,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                             {
                                 throw new Exception($"Unable to resolve data type {dataType.DisplayName}");
                             }
+                            string symbolicName = null;
+                            if (uaStruct != null)
+                            {
+                                symbolicName = uaStruct?.Definition?.Field?.FirstOrDefault(f => f.Name == field.Name)?.SymbolicName;
+                            }
                             var structureField = new DataTypeModel.StructureField
                             {
                                 Name = field.Name,
+                                SymbolicName = symbolicName,
                                 DataType = dataTypeModel,
                                 ValueRank = field.ValueRank != -1 ? field.ValueRank : null,
                                 ArrayDimensions = field.ArrayDimensions != null && field.ArrayDimensions.Any() ? String.Join(",", field.ArrayDimensions) : null,
@@ -1022,12 +1028,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         _model.EnumFields = new List<DataTypeModel.UaEnumField>();
                         foreach (var field in enumFields.Fields)
                         {
+                            string symbolicName = null;
+                            if (uaEnum != null)
+                            {
+                                symbolicName = uaEnum?.Definition?.Field?.FirstOrDefault(f => f.Name == field.Name)?.SymbolicName;
+                            }
                             var enumField = new DataTypeModel.UaEnumField
                             {
                                 Name = field.Name,
                                 DisplayName = field.DisplayName.ToModel(),
                                 Value = field.Value,
                                 Description = field.Description.ToModel(),
+                                SymbolicName = symbolicName,
                             };
                             _model.EnumFields.Add(enumField);
                         }

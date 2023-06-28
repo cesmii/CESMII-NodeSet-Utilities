@@ -757,6 +757,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                     var uaField = new DataTypeField
                     {
                         Name = field.Name,
+                        SymbolicName = field.SymbolicName,
                         DataType = GetNodeIdForExport(field.DataType.NodeId, namespaces, aliases),
                         Description = field.Description.ToExport().ToArray(),
                         ArrayDimensions = field.ArrayDimensions,
@@ -789,7 +790,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         Name = field.Name,
                         DisplayName = field.DisplayName?.ToExport().ToArray(),
                         Description = field.Description?.ToExport().ToArray(),
-                        Value = (int) field.Value,
+                        Value = (int)field.Value,
+                        SymbolicName = field.SymbolicName,
                         // TODO: 
                         //SymbolicName = field.SymbolicName,
                         //DataType = field.DataType,                         
