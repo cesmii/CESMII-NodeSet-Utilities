@@ -169,7 +169,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         }
                     }
 
-                    _results.Models = _results.Models.OrderBy(s => s.Dependencies.Count).ToList();
+                    _results.Models = OrderByDependencies(_results.Models); // _results.Models.OrderBy(s => s.Dependencies.Count).ToList();
                 } while (rerun && _results.MissingModels.Any());
             }
             catch (Exception ex)
@@ -180,6 +180,42 @@ namespace CESMII.OpcUa.NodeSetImporter
             return _results;
         }
 
+        static List<ModelValue> OrderByDependencies(List<ModelValue> models)
+        {
+            var remainingModels = new List<ModelValue>(models);
+            var orderedModels = new List<ModelValue>();
 
+            bool modelAdded;
+            do
+            {
+                modelAdded = false;
+                for (int i = 0; i < remainingModels.Count;)
+                {
+                    var remainingModel = remainingModels[i];
+                    bool bDependenciesSatisfied = true;
+                    foreach (var dependency in remainingModel.Dependencies)
+                    {
+                        if (!orderedModels.Any(m => m.NameVersion.ModelUri == dependency))
+                        {
+                            bDependenciesSatisfied = false;
+                            break;
+                        }
+                    }
+                    if (bDependenciesSatisfied)
+                    {
+                        orderedModels.Add(remainingModel);
+                        remainingModels.RemoveAt(i);
+                        modelAdded = true;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+            } while (remainingModels.Count > 0 && modelAdded);
+
+            orderedModels.AddRange(remainingModels); // Add any remaining models (dependencies not satisfied, not ordered)
+            return orderedModels;
+        }
     }
 }
