@@ -111,13 +111,6 @@ namespace CESMII.OpcUa.NodeSetModel
                 items = ExportAllNodes(nodesetModel, aliases, namespaces, null);
             }
 
-            // Export all referenced nodesets to capture any of their dependencies that may not be used in the model being exported
-            foreach(var otherModel in nodesetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
-            {
-                // Only need to update the namespaces table
-                _ = ExportAllNodes(otherModel, null, namespaces, null);
-            }
-
             var allNamespaces = namespaces.ToArray();
             if (allNamespaces.Length > 1)
             {
@@ -127,7 +120,16 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 exportedNodeSet.NamespaceUris = allNamespaces;
             }
-            foreach (var uaNamespace in allNamespaces.Except(namespaceUris))
+
+            // Export all referenced nodesets to capture any of their dependencies that may not be used in the model being exported
+            foreach (var otherModel in nodesetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
+            {
+                // Only need to update the namespaces table
+                _ = ExportAllNodes(otherModel, null, namespaces, null);
+            }
+            var allNamespacesIncludingDependencies = namespaces.ToArray();
+
+            foreach (var uaNamespace in allNamespacesIncludingDependencies.Except(namespaceUris))
             {
                 if (!requiredModels.Any(m => m.ModelUri == uaNamespace))
                 {

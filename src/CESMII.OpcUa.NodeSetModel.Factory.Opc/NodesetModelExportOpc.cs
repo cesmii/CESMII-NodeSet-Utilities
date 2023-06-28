@@ -220,7 +220,18 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
         protected string GetNodeIdForExport(string nodeId, NamespaceTable namespaces, Dictionary<string, string> aliases)
         {
             if (nodeId == null) return null;
-            var expandedNodeId = ExpandedNodeId.Parse(nodeId, namespaces);
+            ExpandedNodeId expandedNodeId;
+            try
+            {
+                expandedNodeId = ExpandedNodeId.Parse(nodeId, namespaces);
+            }
+            catch (ServiceResultException)
+            {
+                // try again after adding namespace to the namespace table
+                var nameSpace = NodeModelUtils.GetNamespaceFromNodeId(nodeId);
+                namespaces.GetIndexOrAppend(nameSpace);
+                expandedNodeId = ExpandedNodeId.Parse(nodeId, namespaces);
+            }
             _nodeIdsUsed?.Add(expandedNodeId.ToString());
             if (aliases?.TryGetValue(expandedNodeId.ToString(), out var alias) == true)
             {
