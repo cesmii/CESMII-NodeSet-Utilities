@@ -24,5 +24,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         ILogger Logger { get; }
         string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null);
         List<NodeState> ImportUANodeSet(UANodeSet nodeSet);
+        UANodeSet GetUANodeSet(string modeluri);
     }
 }

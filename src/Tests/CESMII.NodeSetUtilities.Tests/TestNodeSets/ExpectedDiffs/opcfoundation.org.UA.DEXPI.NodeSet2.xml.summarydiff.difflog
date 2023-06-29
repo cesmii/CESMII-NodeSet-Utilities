@@ -1,12 +1,4 @@
 ====>Expected attribute name '/UANodeSet[1]' - comparing <UANodeSet...> at /UANodeSet[1] to <UANodeSet...> at /UANodeSet[1]/@LastModified
-====>Expected attribute name '/UANodeSet[1]/UADataType[10]/Definition[1]/Field[37]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[10]/Definition[1]/Field[37]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[10]/Definition[1]/Field[37]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[39]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[39]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[39]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[40]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[40]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[40]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[47]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[47]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[47]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[48]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[48]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[48]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[52]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[52]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[52]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[53]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[53]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[53]
-====>Expected attribute name '/UANodeSet[1]/UADataType[17]/Definition[1]/Field[57]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[57]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[17]/Definition[1]/Field[57]
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.
  *

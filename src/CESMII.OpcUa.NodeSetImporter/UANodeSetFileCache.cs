@@ -158,14 +158,14 @@ namespace CESMII.OpcUa.NodeSetImporter
             }
 
             #region Comment processing
-            var nodesetXmlReader = new StringReader(nodeSetXml);
-            var doc = XElement.Load(nodesetXmlReader);
-            var comments = doc.DescendantNodes().OfType<XComment>();
-            foreach (XComment comment in comments)
-            {
-                //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
-                //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
-            }
+            //var nodesetXmlReader = new StringReader(nodeSetXml);
+            //var doc = XElement.Load(nodesetXmlReader);
+            //var comments = doc.DescendantNodes().OfType<XComment>();
+            //foreach (XComment comment in comments)
+            //{
+            //    //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
+            //    //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
+            //}
             #endregion
 
             UANodeSet tOldNodeSet = null;
@@ -174,12 +174,12 @@ namespace CESMII.OpcUa.NodeSetImporter
                 results.ErrorMessage = $"No Nodeset found in bytes";
                 return false;
             }
-            foreach (var ns in nodeSet.Models)
+            foreach (var importedModel in nodeSet.Models)
             {
                 //Caching the streams to a "NodeSets" subfolder using the Model Name
                 //Even though "Models" is an array, most NodeSet files only contain one model.
                 //In case a NodeSet stream does contain multiple models, the same file will be cached with each Model Name 
-                string filePath = GetCacheFileName(new ModelNameAndVersion(ns), TenantID);
+                string filePath = GetCacheFileName(new ModelNameAndVersion(importedModel), TenantID);
 
                 bool CacheNewerVersion = true;
                 if (File.Exists(filePath))
@@ -190,11 +190,12 @@ namespace CESMII.OpcUa.NodeSetImporter
                         if (tOldNodeSet == null)
                             tOldNodeSet = UANodeSet.Read(nodeSetStream);
                     }
-                    var tns = tOldNodeSet.Models.Where(s => s.ModelUri == ns.ModelUri).OrderByDescending(s => s.GetNormalizedPublicationDate()).FirstOrDefault();
-                    if (tns == null
-                        || !(NodeSetVersionUtils.IsMatchingOrHigherNodeSet(
-                                ns.ModelUri, ns.GetNormalizedPublicationDate(), ns.Version,
-                                tns.GetNormalizedPublicationDate(), tns.Version) ?? false))
+                    var tOldModel = tOldNodeSet.Models.Where(s => s.ModelUri == importedModel.ModelUri).OrderByDescending(s => s.GetNormalizedPublicationDate()).FirstOrDefault();
+                    if (tOldModel == null
+                        || NodeSetVersionUtils.CompareNodeSetVersion(
+                                importedModel.ModelUri,
+                                importedModel.GetNormalizedPublicationDate(), importedModel.Version,
+                                tOldModel.GetNormalizedPublicationDate(), tOldModel.Version) > 0)
                     {
                         CacheNewerVersion = true; //Cache the new NodeSet if the old (file) did not contain the model or if the version of the new model is greater
                     }
@@ -204,7 +205,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                     File.WriteAllText(filePath, nodeSetXml);
                     WasNewSet = true;
                 }
-                var modelInfo = results.AddModelAndDependencies(nodeSet, ns, filePath, WasNewSet);
+                var modelInfo = results.AddModelAndDependencies(nodeSet, importedModel, filePath, WasNewSet);
                 modelInfo.Model.RequestedForThisImport = requested;
             }
             return WasNewSet;

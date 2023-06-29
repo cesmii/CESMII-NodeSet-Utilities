@@ -49,6 +49,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public bool ReencodeExtensionsAsJson { get; set; }
 
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
+        private Dictionary<string, UANodeSet> _importedUANodeSetsByUri = new();
 
         public NamespaceTable NamespaceUris { get => _systemContext.NamespaceUris; }
 
@@ -143,7 +144,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 _importedNodesByNodeId = null;
             }
+            var modelUri = nodeSet.Models?.FirstOrDefault()?.ModelUri;
+            if (modelUri != null)
+            {
+                _importedUANodeSetsByUri.Add(modelUri, nodeSet);
+            }
             return newlyImportedNodes;
+        }
+        public virtual UANodeSet GetUANodeSet(string modeluri)
+        {
+            if (_importedUANodeSetsByUri.TryGetValue(modeluri, out var nodeSet))
+            {
+                return nodeSet;
+            }
+            return null;
         }
 
         public virtual List<NodeStateHierarchyReference> GetHierarchyReferences(NodeState nodeState)

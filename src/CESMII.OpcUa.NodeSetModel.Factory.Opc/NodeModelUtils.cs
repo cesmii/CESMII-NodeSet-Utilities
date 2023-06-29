@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml;
 using System.Linq;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
+using System;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -121,6 +122,28 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             var xmlElem = doc.DocumentElement;
             return xmlElem;
         }
+        public static System.Xml.XmlElement EncodeAsXML(Action<IEncoder> encode)
+        {
+            var context = new ServiceMessageContext();
+            var ms = new System.IO.MemoryStream();
+            using (var xmlWriter = new System.Xml.XmlTextWriter(ms, System.Text.Encoding.UTF8))
+            {
+                xmlWriter.WriteStartDocument();
+
+                using (var encoder = new XmlEncoder(new System.Xml.XmlQualifiedName("uax:ExtensionObject", null), xmlWriter, context))
+                {
+                    encode(encoder);
+                    xmlWriter.WriteEndDocument();
+                    xmlWriter.Flush();
+                }
+            }
+            var xml = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+            var doc = new System.Xml.XmlDocument();
+            doc.LoadXml(xml.Substring(1));
+            var xmlElem = doc.DocumentElement;
+            return xmlElem;
+        }
+
         public static System.Xml.XmlElement GetVariantAsXML(Variant value, IServiceMessageContext context)
         {
             var ms = new System.IO.MemoryStream();

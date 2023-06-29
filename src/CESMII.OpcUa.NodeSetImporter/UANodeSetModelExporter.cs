@@ -120,7 +120,16 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 exportedNodeSet.NamespaceUris = allNamespaces;
             }
-            foreach (var uaNamespace in allNamespaces.Except(namespaceUris))
+
+            // Export all referenced nodesets to capture any of their dependencies that may not be used in the model being exported
+            foreach (var otherModel in nodesetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
+            {
+                // Only need to update the namespaces table
+                _ = ExportAllNodes(otherModel, null, namespaces, null);
+            }
+            var allNamespacesIncludingDependencies = namespaces.ToArray();
+
+            foreach (var uaNamespace in allNamespacesIncludingDependencies.Except(namespaceUris))
             {
                 if (!requiredModels.Any(m => m.ModelUri == uaNamespace))
                 {
@@ -158,6 +167,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 PublicationDateSpecified = nodesetModel.PublicationDate != null,
                 RolePermissions = null,
                 Version = nodesetModel.Version,
+                XmlSchemaUri = nodesetModel.XmlSchemaUri != nodesetModel.ModelUri ? nodesetModel.XmlSchemaUri : null
             };
             if (exportedNodeSet.Models != null)
             {
@@ -184,17 +194,20 @@ namespace CESMII.OpcUa.NodeSetModel
 
         private static List<UANode> ExportAllNodes(NodeSetModel nodesetModel, Dictionary<string, string> aliases, NamespaceTable namespaces, HashSet<string> nodeIdsUsed)
         {
-            var items = new List<UANode>();
-            foreach (var node in nodesetModel.AllNodesByNodeId /*.Where(n => n.Value.Namespace == opcNamespace)*/.OrderBy(n => n.Key))
+            var items = new Dictionary<string, UANode>();
+            foreach (var nodeModel in nodesetModel.AllNodesByNodeId.Values /*.Where(n => n.Value.Namespace == opcNamespace)*/.OrderBy(n => n.NodeId))
             {
-                var result = NodeModelExportOpc.GetUANode(node.Value, namespaces, aliases, nodeIdsUsed);
-                items.Add(result.ExportedNode);
+                var result = NodeModelExportOpc.GetUANode(nodeModel, namespaces, aliases, nodeIdsUsed, items);
+                if (result.ExportedNode != null)
+                {
+                    items[result.ExportedNode.NodeId] = result.ExportedNode;
+                }
                 if (result.AdditionalNodes != null)
                 {
-                    items.AddRange(result.AdditionalNodes);
+                    result.AdditionalNodes.ForEach(n => items[n.NodeId] = n);
                 }
             }
-            return items;
+            return items.Values.ToList();
         }
 
 

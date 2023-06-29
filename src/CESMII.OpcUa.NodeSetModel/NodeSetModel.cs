@@ -526,6 +526,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public class StructureField
         {
             public string Name { get; set; }
+            public string SymbolicName { get;set; }
             public virtual BaseTypeModel DataType { get; set; }
             /// <summary>
             /// n > 1: the Value is an array with the specified number of dimensions.
@@ -552,6 +553,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public StructureField(StructureField field)
             {
                 this.Name = field.Name;
+                this.SymbolicName = field.SymbolicName;
                 this.DataType = field.DataType;
                 this.ValueRank = field.ValueRank;
                 this.ArrayDimensions = field.ArrayDimensions;
@@ -576,6 +578,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 public class UaEnumField
         {
             public string Name { get; set; }
+            public string SymbolicName { get; set; }
             public virtual List<LocalizedText> DisplayName { get; set; }
             public virtual List<LocalizedText> Description { get; set; }
             public long Value { get; set; }
