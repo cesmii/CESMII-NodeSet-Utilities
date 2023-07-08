@@ -116,7 +116,7 @@ namespace CESMII.OpcUa.NodeSetImporter
 
                     if (!NewNodeSetFound && FailOnExisting)
                     {
-                        string names = String.Join(", ", _results.Models.Select(m => m.NameVersion));
+                        string names = string.Join(", ", _results.Models.Select(m => m.NameVersion));
                         _results.ErrorMessage = $"All selected NodeSets or newer versions of them ({names}) have already been imported";
                         return _results;
                     }
@@ -135,7 +135,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         }
                         _results.ResolveDependencies();
 
-                        if (!rerun && _results.MissingModels.Any())
+                        if (_results.MissingModels.Any()) //!rerun && <- kept inside, will cause an endless loop if imported NodeSet does not have a matching Version
                         {
                             // No more cached models were added, but we are still missing models: invoke the resolver if provided
                             if (_nodeSetResolver != null && !_results.MissingModels.SequenceEqual(previousMissingModels))
@@ -184,6 +184,15 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             var remainingModels = new List<ModelValue>(models);
             var orderedModels = new List<ModelValue>();
+            ///TODO-Markus: Next lines were removed in the CESMII original version but existed in mine. Not sure if they are needed, Can you check
+            //var standalone = models.Where(m => !m.Dependencies.Any()).ToList();
+            //orderedModels.AddRange(standalone);
+            //foreach (var imr in standalone)
+            //{
+            //    remainingModels.Remove(imr);
+            //}
+
+
 
             bool modelAdded;
             do

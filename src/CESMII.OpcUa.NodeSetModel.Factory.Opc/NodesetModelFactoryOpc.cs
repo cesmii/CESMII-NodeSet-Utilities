@@ -16,7 +16,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class NodeModelFactoryOpc : NodeModelFactoryOpc<NodeModel>
     {
-        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, bool doNotReimport = false, List<NodeState> importedNodes = null)
+        //CM: The whole purpose of the "importedNodes" is to get a list of all NEWLY imported nodes - not merged with previous imported ones. Therefore an "out" keyword is better here
+        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, out List<NodeState> importedNodes, bool doNotReimport = false)
         {
             if (!nodeSet.Models.Any())
             {
@@ -50,9 +51,16 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         var requiredModelInfo = nodesetModel.RequiredModels.FirstOrDefault(rm => rm.ModelUri == requiredModel.ModelUri);
                         if (requiredModelInfo == null)
                         {
-                            throw new Exception("Required model not populated");
+                            ///This code checks if the requiredModels outside of the current nodesetModel contain the requested Model, if so it allows to continue
+                            var requiredModelInfo2 = requiredModels.FirstOrDefault(rm => rm.ModelUri == requiredModel.ModelUri);
+                            if (requiredModelInfo2 == null)
+                                throw new Exception("Required model not found");
+                            var tRequired = opcContext.GetOrAddNodesetModel(model);
+                            if (tRequired == null)
+                                throw new Exception("Required model not found");
+                            loadedModels.Add(tRequired);
                         }
-                        if (requiredModelInfo.AvailableModel == null)
+                        if (requiredModelInfo != null && requiredModelInfo.AvailableModel == null)
                         {
                             var availableModel = opcContext.GetOrAddNodesetModel(requiredModel);
                             if (availableModel != null)
@@ -76,11 +84,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodeSet.Items = new UANode[0];
             }
 
-            var newImportedNodes = opcContext.ImportUANodeSet(nodeSet);
+            importedNodes = opcContext.ImportUANodeSet(nodeSet); //CM: The whole purpose of the "importedNodes" is to get a list of all NEWLY imported nodes - not merged with previous imported ones. Therefore an "out" keyword is better here
 
             // TODO Read nodeset poperties like author etc. and expose them in Profile editor
 
-            foreach (var node in newImportedNodes)
+            foreach (var node in importedNodes)
             {
                 var nodeModel = NodeModelFactoryOpc.Create(opcContext, node, customState, out var bAdded);
                 if (nodeModel != null && !bAdded)
@@ -92,10 +100,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         nodesetModel.UnknownNodes.Add(nodeModel);
                     }
                 }
-            }
-            if (importedNodes != null)
-            {
-                importedNodes.AddRange(newImportedNodes);
             }
             return Task.FromResult(loadedModels);
         }
