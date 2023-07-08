@@ -184,15 +184,6 @@ namespace CESMII.OpcUa.NodeSetImporter
         {
             var remainingModels = new List<ModelValue>(models);
             var orderedModels = new List<ModelValue>();
-            ///TODO-Markus: Next lines were removed in the CESMII original version but existed in mine. Not sure if they are needed, Can you check
-            //var standalone = models.Where(m => !m.Dependencies.Any()).ToList();
-            //orderedModels.AddRange(standalone);
-            //foreach (var imr in standalone)
-            //{
-            //    remainingModels.Remove(imr);
-            //}
-
-
 
             bool modelAdded;
             do

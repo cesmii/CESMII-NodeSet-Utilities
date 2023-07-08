@@ -14,6 +14,7 @@ using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using CESMII.OpcUa.NodeSetImporter;
 using Opc.Ua.Export;
 using Microsoft.Extensions.Logging;
+using Opc.Ua;
 
 namespace CESMII.OpcUa.NodeSetModel
 {
@@ -119,7 +120,8 @@ namespace CESMII.OpcUa.NodeSetModel
         /// <returns></returns>
         public async Task<List<NodeSetModel>> LoadNodeSetModelAsync(IOpcUaContext opcContext, UANodeSet nodeSet)
         {
-            return await NodeModelFactoryOpc.LoadNodeSetAsync(opcContext, nodeSet, null, new Dictionary<string, string>(), out _, true);
+            var newNodes = new List<NodeState>();
+            return await NodeModelFactoryOpc.LoadNodeSetAsync(opcContext, nodeSet, null, new Dictionary<string, string>(), newNodes, true);
         }
     }
 }

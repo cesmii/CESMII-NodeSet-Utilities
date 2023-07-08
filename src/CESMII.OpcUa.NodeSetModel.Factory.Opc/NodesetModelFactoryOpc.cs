@@ -17,7 +17,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     public class NodeModelFactoryOpc : NodeModelFactoryOpc<NodeModel>
     {
         //CM: The whole purpose of the "importedNodes" is to get a list of all NEWLY imported nodes - not merged with previous imported ones. Therefore an "out" keyword is better here
-        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, out List<NodeState> importedNodes, bool doNotReimport = false)
+        public static Task<List<NodeSetModel>> LoadNodeSetAsync(IOpcUaContext opcContext, UANodeSet nodeSet, Object customState, Dictionary<string, string> Aliases, List<NodeState> importedNodes, bool doNotReimport = false)
         {
             if (!nodeSet.Models.Any())
             {
@@ -84,11 +84,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 nodeSet.Items = new UANode[0];
             }
 
-            importedNodes = opcContext.ImportUANodeSet(nodeSet); //CM: The whole purpose of the "importedNodes" is to get a list of all NEWLY imported nodes - not merged with previous imported ones. Therefore an "out" keyword is better here
+            var newimportedNodes = opcContext.ImportUANodeSet(nodeSet); //CM: The whole purpose of the "importedNodes" is to get a list of all NEWLY imported nodes - not merged with previous imported ones. Therefore an "out" keyword is better here
 
             // TODO Read nodeset poperties like author etc. and expose them in Profile editor
 
-            foreach (var node in importedNodes)
+            foreach (var node in newimportedNodes)
             {
                 var nodeModel = NodeModelFactoryOpc.Create(opcContext, node, customState, out var bAdded);
                 if (nodeModel != null && !bAdded)
@@ -101,6 +101,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                 }
             }
+            if (importedNodes != null)
+                importedNodes.AddRange(newimportedNodes);
             return Task.FromResult(loadedModels);
         }
     }
