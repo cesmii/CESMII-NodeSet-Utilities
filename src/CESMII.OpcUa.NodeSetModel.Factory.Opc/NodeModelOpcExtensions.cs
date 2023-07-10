@@ -68,7 +68,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             get
             {
                 if (_UNECEEngineeringUnits == null)
-                {                    
+                {
                     // Load UNECE units if not already loaded
                     _UNECEEngineeringUnits = new List<EUInformation>();
                     var fileName = Path.Combine(Path.GetDirectoryName(typeof(VariableModel).Assembly.Location), "NodeSets", "UNECE_to_OPCUA.csv");
@@ -160,7 +160,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         public static EUInformation GetEUInformation(VariableModel.EngineeringUnitInfo engineeringUnitDescription)
         {
             if (engineeringUnitDescription == null) return null;
-            
+
             List<EUInformation> euInfoList;
             if (!string.IsNullOrEmpty(engineeringUnitDescription.DisplayName?.Text)
                 && engineeringUnitDescription.UnitId == null
@@ -196,6 +196,70 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
         }
 
+        /// <summary>
+        /// Updates or creates the object of type NamespaceMetaDataType as described in https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.13
+        /// </summary>
+        /// <param name="_this"></param>
+        public static void UpdateNamespaceMetaData(this NodeSetModel _this, NodeSetModel opcUaModel)
+        {
+            var metaDataTypeNodeId = new ExpandedNodeId(ObjectTypeIds.NamespaceMetadataType, Namespaces.OpcUa);
+            var metadataObjects = _this.Objects.Where(o => o.TypeDefinition.HasBaseType(metaDataTypeNodeId.ToString())).ToList();
+            var metadataObject = metadataObjects.FirstOrDefault();
+            if (metadataObject == null)
+            {
+                metadataObject = new ObjectModel
+                {
+                    NodeSet = _this,
+                    NodeId = new ExpandedNodeId(Guid.NewGuid(), _this.ModelUri).ToString(),
+                    DisplayName = new ua.LocalizedText(_this.ModelUri).ToModel(),
+                    BrowseName = $"{Namespaces.OpcUa};{nameof(ObjectTypeIds.NamespaceMetadataType)}",
+                    Properties = new List<VariableModel>(),
+                    OtherReferencingNodes = new List<NodeModel.NodeAndReference>
+                    {
+                        new NodeModel.NodeAndReference
+                        {
+                             ReferenceType = opcUaModel.ReferenceTypes.FirstOrDefault(rt => rt.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasComponent, Namespaces.OpcUa).ToString()),
+                             Node = opcUaModel.Objects.FirstOrDefault(o => o.NodeId == new ExpandedNodeId(ObjectIds.Server, Namespaces.OpcUa).ToString()),
+                        }
+                    }
+                };
+                _this.Objects.Add(metadataObject);
+            }
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceUri), _this.ModelUri, true);
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespacePublicationDate), _this.PublicationDate?.ToString(), true);
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceVersion), _this.Version, true);
+
+            // Only create if not already authored
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.IsNamespaceSubset), "false", false);
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNodeIdTypes), null, false);
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNumericNodeIdRange), null, false);
+            CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticStringNodeIdPattern), null, false);
+        }
+
+        private static void CreateOrReplaceProperty(NodeSetModel _this, ObjectModel metadataObject, string browseName, string value, bool replaceIfExists)
+        {
+            string qualifiedBrowseName = $"{Namespaces.OpcUa};{browseName}";
+            var previousProp = metadataObject.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{browseName}");
+            if (replaceIfExists || previousProp == null)
+            {
+                var encodedValue = $"{{\"Value\":{{\"Type\":12,\"Body\":\"{value}\"}}}}";
+                if (previousProp != null)
+                {
+                    previousProp.Value = encodedValue;
+                }
+                else
+                {
+                    metadataObject.Properties.Add(new PropertyModel
+                    {
+                        NodeSet = _this,
+                        NodeId = new ExpandedNodeId(Guid.NewGuid(), _this.ModelUri).ToString(),
+                        BrowseName = $"{Namespaces.OpcUa};{browseName}",
+                        DisplayName = new ua.LocalizedText(browseName).ToModel(),
+                        Value = encodedValue,
+                    });
+                }
+            }
+        }
     }
 
 }
