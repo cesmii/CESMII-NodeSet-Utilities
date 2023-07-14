@@ -16,6 +16,7 @@
 ====>Expected child '' but was 'http://opcfoundation.org/UA/2008/02/Types.xsd:LocalizedText' - comparing <NULL> to <uax:LocalizedText...> at /UANodeSet[1]/UAVariable[6]/Value[1]/ListOfLocalizedText[1]/LocalizedText[13]
 ====>Expected child '' but was 'http://opcfoundation.org/UA/2008/02/Types.xsd:LocalizedText' - comparing <NULL> to <uax:LocalizedText...> at /UANodeSet[1]/UAVariable[6]/Value[1]/ListOfLocalizedText[1]/LocalizedText[14]
 ====>Expected child '' but was 'http://opcfoundation.org/UA/2008/02/Types.xsd:LocalizedText' - comparing <NULL> to <uax:LocalizedText...> at /UANodeSet[1]/UAVariable[6]/Value[1]/ListOfLocalizedText[1]/LocalizedText[15]
+====>Expected text value '1.0.0' but was '5.0.0' - comparing <uax:String ...>1.0.0</uax:String> at /UANodeSet[1]/UAVariable[131]/Value[1]/String[1]/text()[1] to <uax:String ...>5.0.0</uax:String> at /UANodeSet[1]/UAVariable[115]/Value[1]/String[1]/text()[1]
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Extensions' but was '' - comparing <Extensions...> at /UANodeSet[1]/Extensions[1] to <NULL>
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.

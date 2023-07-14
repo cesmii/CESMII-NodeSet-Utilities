@@ -3,20 +3,20 @@
 ====>Expected attribute value '1.04.4' but was '1.04.7' - comparing <RequiredModel Version="1.04.4"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@Version to <RequiredModel Version="1.04.7"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@Version
 ====>Expected attribute value '2020-01-08T00:00:00Z' but was '2020-07-15T00:00:00Z' - comparing <RequiredModel PublicationDate="2020-01-08T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate to <RequiredModel PublicationDate="2020-07-15T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate
 ###14#Feature#ReleaseStatus attribute not supported#ReleaseStatus attribute
-====>Expected attribute name '/UANodeSet[1]/UAVariable[199]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[199]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[196]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[200]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[200]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[197]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[201]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[201]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[72]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[202]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[202]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[208]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[203]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[203]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[73]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[204]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[204]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[74]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[205]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[205]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[209]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[206]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[206]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[194]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[207]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[207]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[195]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[208]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[208]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[75]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[209]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[209]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[206]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[210]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[210]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[76]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[211]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[211]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[77]
-====>Expected attribute name '/UANodeSet[1]/UAVariable[212]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[212]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[207]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[199]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[199]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[143]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[200]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[200]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[144]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[201]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[201]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[207]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[202]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[202]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[155]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[203]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[203]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[208]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[204]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[204]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[209]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[205]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[205]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[156]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[206]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[206]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[141]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[207]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[207]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[142]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[208]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[208]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[210]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[209]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[209]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[153]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[210]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[210]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[211]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[211]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[211]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[212]
+====>Expected attribute name '/UANodeSet[1]/UAVariable[212]/@ReleaseStatus' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[212]/@ReleaseStatus to <UAVariable...> at /UANodeSet[1]/UAVariable[154]
 ###28#Feature#Preserve comments#C2-194
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.

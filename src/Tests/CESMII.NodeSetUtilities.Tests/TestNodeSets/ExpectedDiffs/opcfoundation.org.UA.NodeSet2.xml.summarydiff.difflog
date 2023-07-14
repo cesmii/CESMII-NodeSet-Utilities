@@ -1,7 +1,7 @@
 ###1#By Design#By Design#XMLSchemaUri required
 ====>Expected attribute name '/UANodeSet[1]/Models[1]/Model[1]' - comparing <Model...> at /UANodeSet[1]/Models[1]/Model[1] to <Model...> at /UANodeSet[1]/Models[1]/Model[1]/@XmlSchemaUri
 ###1#Feature#Support EventNotifier attribute#Support EventNotifier attribute
-====>Expected attribute name '/UANodeSet[1]/UAObject[36]/@EventNotifier' - comparing <UAObject...> at /UANodeSet[1]/UAObject[36]/@EventNotifier to <UAObject...> at /UANodeSet[1]/UAObject[461]
+====>Expected attribute name '/UANodeSet[1]/UAObject[36]/@EventNotifier' - comparing <UAObject...> at /UANodeSet[1]/UAObject[36]/@EventNotifier to <UAObject...> at /UANodeSet[1]/UAObject[119]
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
  *
