@@ -85,6 +85,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 Documentation = _model.Documentation,
                 Category = _model.Categories?.ToArray(),
             };
+            _exportedSoFar.Add(nodeIdForExport, node);
             if (Enum.TryParse<ReleaseStatus>(_model.ReleaseStatus, out var releaseStatus))
             {
                 node.ReleaseStatus = releaseStatus;
@@ -541,7 +542,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
                 var engUnitProp = new UAVariable
                 {
-                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(_model.EngUnitNodeId) ? _model.EngUnitNodeId : $"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases),
+                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(_model.EngUnitNodeId) ? _model.EngUnitNodeId : NodeModelOpcExtensions.GetNewNodeId(_model.Namespace), namespaces, aliases),
                     BrowseName = BrowseNames.EngineeringUnits, // TODO preserve non-standard browsenames (detected based on data type)
                     DisplayName = new uaExport.LocalizedText[] { new uaExport.LocalizedText { Value = BrowseNames.EngineeringUnits } },
                     ParentNodeId = dataVariable.NodeId,
@@ -567,6 +568,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 }
                 if (_model.EngineeringUnit != null)
                 {
+                    // Ensure EU type gets added to aliases
+                    _ = GetNodeIdForExport(DataTypeIds.EUInformation.ToString(), namespaces, aliases);
+
                     EUInformation engUnits = NodeModelOpcExtensions.GetEUInformation(_model.EngineeringUnit);
                     var euXmlElement = NodeModelUtils.GetExtensionObjectAsXML(engUnits);
                     engUnitProp.Value = euXmlElement;
@@ -654,6 +658,8 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
 
                 if (minValue.HasValue && maxValue.HasValue)
                 {
+                    // Ensure EU type gets added to aliases
+                    _ = GetNodeIdForExport(DataTypeIds.Range.ToString(), namespaces, aliases);
                     var range = new ua.Range
                     {
                         Low = minValue.Value,
@@ -663,7 +669,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 }
                 var euRangeProp = new UAVariable
                 {
-                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(rangeNodeId) ? rangeNodeId : $"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases),
+                    NodeId = GetNodeIdForExport(!String.IsNullOrEmpty(rangeNodeId) ? rangeNodeId : NodeModelOpcExtensions.GetNewNodeId(_model.Namespace), namespaces, aliases),
                     BrowseName = rangeBrowseName,
                     DisplayName = new uaExport.LocalizedText[] { new uaExport.LocalizedText { Value = rangeBrowseName } },
                     ParentNodeId = parentNodeId,
@@ -969,7 +975,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 }
                 else
                 {
-                    enumValuesNodeId = GetNodeIdForExport($"nsu={_model.Namespace};g={Guid.NewGuid()}", namespaces, aliases);
+                    enumValuesNodeId = GetNodeIdForExport(NodeModelOpcExtensions.GetNewNodeId(_model.Namespace), namespaces, aliases);
                     enumValuesProp = new uaExport.UAVariable
                     {
                         NodeId = enumValuesNodeId,
@@ -1008,7 +1014,6 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             return (dataType as T, result.AdditionalNodes, result.Created);
         }
-
     }
 
     public class ReferenceTypeModelExportOpc : BaseTypeModelExportOpc<ReferenceTypeModel>

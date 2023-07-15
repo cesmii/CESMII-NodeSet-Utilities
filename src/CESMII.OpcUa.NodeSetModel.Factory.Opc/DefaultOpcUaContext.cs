@@ -138,7 +138,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public virtual List<NodeState> ImportUANodeSet(UANodeSet nodeSet)
         {
             var previousNodes = _importedNodes.ToList();
-            nodeSet.Import(_systemContext, _importedNodes);
+            if (nodeSet.Items?.Any() == true)
+            {
+                nodeSet.Import(_systemContext, _importedNodes);
+            }
             var newlyImportedNodes = _importedNodes.Except(previousNodes).ToList();
             if (newlyImportedNodes.Any())
             {

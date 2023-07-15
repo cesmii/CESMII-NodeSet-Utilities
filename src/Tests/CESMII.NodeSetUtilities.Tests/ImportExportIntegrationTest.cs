@@ -15,6 +15,8 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using Microsoft.Extensions.Logging;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
+using Opc.Ua;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -74,6 +76,10 @@ namespace CESMII.NodeSetUtilities.Tests
             Assert.Single(importedNodeSetModels);
 
             var importedNodeSetModel = importedNodeSetModels.FirstOrDefault();
+
+            var opcUaModel = nodeSetModels[Namespaces.OpcUa];
+            importedNodeSetModel.UpdateNamespaceMetaData(opcUaModel);
+            importedNodeSetModel.UpdateEncodings(opcUaModel);
 
             var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(importedNodeSetModel, nodeSetModels);
 

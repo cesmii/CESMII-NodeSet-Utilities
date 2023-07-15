@@ -35,6 +35,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             var loadedModels = new List<NodeSetModel>();
 
+            NodeModelUtils.FixupNodesetVersionFromMetadata(nodeSet, opcContext.Logger);
             foreach (var model in nodeSet.Models)
             {
                 var nodesetModel = opcContext.GetOrAddNodesetModel(model);

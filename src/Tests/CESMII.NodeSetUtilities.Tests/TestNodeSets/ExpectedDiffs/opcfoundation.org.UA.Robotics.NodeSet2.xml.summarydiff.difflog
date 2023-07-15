@@ -4,7 +4,8 @@
 ====>Expected attribute value '2019-05-01T00:00:00Z' but was '2020-07-15T00:00:00Z' - comparing <RequiredModel PublicationDate="2019-05-01T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate to <RequiredModel PublicationDate="2020-07-15T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate
 ====>Expected attribute value '1.02' but was '1.03.0' - comparing <RequiredModel Version="1.02"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@Version to <RequiredModel Version="1.03.0"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@Version
 ====>Expected attribute value '2019-05-01T00:00:00Z' but was '2021-03-09T00:00:00Z' - comparing <RequiredModel PublicationDate="2019-05-01T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@PublicationDate to <RequiredModel PublicationDate="2021-03-09T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@PublicationDate
-###28#Feature#Preserve comments#C2-194
+====>Expected text value '1.01' but was '1.01.2' - comparing <String ...>1.01</String> at /UANodeSet[1]/UAVariable[2]/Value[1]/String[1]/text()[1] to <uax:String ...>1.01.2</uax:String> at /UANodeSet[1]/UAVariable[24]/Value[1]/String[1]/text()[1]
+====>Expected text value '2020-05-20T00:00:00Z' but was '2021-05-20T00:00:00Z' - comparing <DateTime ...>2020-05-20T00:00:00Z</DateTime> at /UANodeSet[1]/UAVariable[3]/Value[1]/DateTime[1]/text()[1] to <uax:DateTime ...>2021-05-20T00:00:00Z</uax:DateTime> at /UANodeSet[1]/UAVariable[25]/Value[1]/DateTime[1]/text()[1]
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
  *
