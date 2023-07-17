@@ -5,7 +5,9 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 
+using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
+using Microsoft.Extensions.Logging;
 using Opc.Ua.Export;
 using System;
 using System.Collections.Generic;
@@ -94,8 +96,9 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="filePath"></param>
         /// <param name="WasNewSet"></param>
         /// <returns>The ModelValue created or found in the results</returns>
-        public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool wasNewFile)
+        public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool wasNewFile, ILogger logger = null)
         {
+            NodeModelUtils.FixupNodesetVersionFromMetadata(nodeSet, logger);
             bool bAdded = false;
             var tModel = GetMatchingOrHigherModel(ns.ModelUri, ns.GetNormalizedPublicationDate(), ns.Version);
             if (tModel == null)

@@ -93,9 +93,9 @@ namespace CESMII.OpcUa.NodeSetModel
         }
     }
 #if NETSTANDARD2_0
-    static class DictionaryExtensions
+    public static class DictionaryExtensions
     {
-        public static bool TryAdd(this Dictionary<string, NodeModel> dict, string key, NodeModel value)
+        public static bool TryAdd<TKey, TValue>(this Dictionary<TKey, TValue> dict, TKey key, TValue value)
         {
             if (dict.ContainsKey(key)) return false;
             dict.Add(key, value);

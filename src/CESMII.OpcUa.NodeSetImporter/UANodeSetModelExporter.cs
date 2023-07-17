@@ -51,17 +51,18 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             return exportedNodeSetXml;
         }
-        public static UANodeSet ExportNodeSet(NodeSetModel nodesetModel, Dictionary<string, NodeSetModel> nodesetModels, Dictionary<string, string> aliases = null)
+        public static UANodeSet ExportNodeSet(NodeSetModel nodeSetModel, Dictionary<string, NodeSetModel> nodeSetModels, Dictionary<string, string> aliases = null)
         {
             if (aliases == null)
             {
                 aliases = new();
             }
+
             var exportedNodeSet = new UANodeSet();
             exportedNodeSet.LastModified = DateTime.UtcNow;
             exportedNodeSet.LastModifiedSpecified = true;
 
-            var namespaceUris = nodesetModel.AllNodesByNodeId.Values.Select(v => v.Namespace).Distinct().ToList();
+            var namespaceUris = nodeSetModel.AllNodesByNodeId.Values.Select(v => v.Namespace).Distinct().ToList();
 
             var requiredModels = new List<ModelTableEntry>();
 
@@ -72,13 +73,13 @@ namespace CESMII.OpcUa.NodeSetModel
                 namespaces.GetIndexOrAppend(nsUri);
             }
             var nodeIdsUsed = new HashSet<string>();
-            var items = ExportAllNodes(nodesetModel, aliases, namespaces, nodeIdsUsed);
+            var items = ExportAllNodes(nodeSetModel, aliases, namespaces, nodeIdsUsed);
 
             // remove unused aliases
             var usedAliases = aliases.Where(pk => nodeIdsUsed.Contains(pk.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            // Add aliases for all nodeids from other namespaces
-            var currentNodeSetNamespaceIndex = namespaces.GetIndex(nodesetModel.ModelUri);
+            // Add aliases for all nodeids from other namespaces: aliases can only be used on references, not on the definitions
+            var currentNodeSetNamespaceIndex = namespaces.GetIndex(nodeSetModel.ModelUri);
             bool bAliasesAdded = false;
             foreach (var nodeId in nodeIdsUsed)
             {
@@ -88,27 +89,50 @@ namespace CESMII.OpcUa.NodeSetModel
                 {
                     var namespaceUri = namespaces.GetString(parsedNodeId.NamespaceIndex);
                     var nodeIdWithUri = new ExpandedNodeId(parsedNodeId, namespaceUri).ToString();
-                    var nodeModel = nodesetModels.Select(nm => nm.Value.AllNodesByNodeId.TryGetValue(nodeIdWithUri, out var model) ? model : null).FirstOrDefault(n => n != null);
+                    var nodeModel = nodeSetModels.Select(nm => nm.Value.AllNodesByNodeId.TryGetValue(nodeIdWithUri, out var model) ? model : null).FirstOrDefault(n => n != null);
                     var displayName = nodeModel?.DisplayName?.FirstOrDefault()?.Text;
-                    if (displayName != null && !usedAliases.ContainsValue(displayName))
+                    if (displayName != null && !(nodeModel is InstanceModelBase))
                     {
-                        usedAliases.Add(nodeId, displayName);
-                        aliases.Add(nodeId, displayName);
-                        bAliasesAdded = true;
+                        if (!usedAliases.ContainsValue(displayName))
+                        {
+                            usedAliases.Add(nodeId, displayName);
+                            aliases.Add(nodeId, displayName);
+                            bAliasesAdded = true;
+                        }
+                        else
+                        {
+                            // name collision: number them
+                            int i;
+                            for(i = 1; i < 10000; i++)
+                            {
+                                var numberedDisplayName = $"{displayName}_{i}";
+                                if (!usedAliases.ContainsValue(numberedDisplayName))
+                                {
+                                    usedAliases.Add(nodeId, numberedDisplayName);
+                                    aliases.Add(nodeId, numberedDisplayName);
+                                    bAliasesAdded = true;
+                                    break;
+                                }
+                            }
+                            if (i >= 10000)
+                            {
+
+                            }
+                        }
                     }
                 }
             }
 
             var aliasList = usedAliases
                 .Select(alias => new NodeIdAlias { Alias = alias.Value, Value = alias.Key })
-                .OrderBy(kv => kv.Value)
+                .OrderBy(kv => GetNodeIdForSorting(kv.Value))
                 .ToList();
             exportedNodeSet.Aliases = aliasList.ToArray();
 
             if (bAliasesAdded)
             {
                 // Re-export with new aliases
-                items = ExportAllNodes(nodesetModel, aliases, namespaces, null);
+                items = ExportAllNodes(nodeSetModel, aliases, namespaces, null);
             }
 
             var allNamespaces = namespaces.ToArray();
@@ -122,7 +146,7 @@ namespace CESMII.OpcUa.NodeSetModel
             }
 
             // Export all referenced nodesets to capture any of their dependencies that may not be used in the model being exported
-            foreach (var otherModel in nodesetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
+            foreach (var otherModel in nodeSetModels.Values.Where(m => m.ModelUri != Namespaces.OpcUa && !namespaceUris.Contains(m.ModelUri)))
             {
                 // Only need to update the namespaces table
                 _ = ExportAllNodes(otherModel, null, namespaces, null);
@@ -133,7 +157,7 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 if (!requiredModels.Any(m => m.ModelUri == uaNamespace))
                 {
-                    if (nodesetModels.TryGetValue(uaNamespace, out var requiredNodeSetModel))
+                    if (nodeSetModels.TryGetValue(uaNamespace, out var requiredNodeSetModel))
                     {
                         var requiredModel = new ModelTableEntry
                         {
@@ -160,14 +184,14 @@ namespace CESMII.OpcUa.NodeSetModel
 
             var model = new ModelTableEntry
             {
-                ModelUri = nodesetModel.ModelUri,
+                ModelUri = nodeSetModel.ModelUri,
                 RequiredModel = requiredModels.ToArray(),
                 AccessRestrictions = 0,
-                PublicationDate = nodesetModel.PublicationDate.GetNormalizedPublicationDate(),
-                PublicationDateSpecified = nodesetModel.PublicationDate != null,
+                PublicationDate = nodeSetModel.PublicationDate.GetNormalizedPublicationDate(),
+                PublicationDateSpecified = nodeSetModel.PublicationDate != null,
                 RolePermissions = null,
-                Version = nodesetModel.Version,
-                XmlSchemaUri = nodesetModel.XmlSchemaUri != nodesetModel.ModelUri ? nodesetModel.XmlSchemaUri : null
+                Version = nodeSetModel.Version,
+                XmlSchemaUri = nodeSetModel.XmlSchemaUri != nodeSetModel.ModelUri ? nodeSetModel.XmlSchemaUri : null
             };
             if (exportedNodeSet.Models != null)
             {
@@ -192,22 +216,71 @@ namespace CESMII.OpcUa.NodeSetModel
             return exportedNodeSet;
         }
 
+        private static string GetNodeIdForSorting(string nodeId)
+        {
+            var intIdIndex = nodeId?.IndexOf("i=");
+            if (intIdIndex >= 0 && int.TryParse(nodeId.Substring(intIdIndex.Value + "i=".Length), out var intIdValue))
+            {
+                return $"{nodeId.Substring(0, intIdIndex.Value)}i={intIdValue:D10}";
+            }
+            return nodeId;
+        }
+
         private static List<UANode> ExportAllNodes(NodeSetModel nodesetModel, Dictionary<string, string> aliases, NamespaceTable namespaces, HashSet<string> nodeIdsUsed)
         {
-            var items = new Dictionary<string, UANode>();
-            foreach (var nodeModel in nodesetModel.AllNodesByNodeId.Values /*.Where(n => n.Value.Namespace == opcNamespace)*/.OrderBy(n => n.NodeId))
+            var itemsSoFar = new Dictionary<string, UANode>();
+            var itemsOrdered = new List<UANode>();
+            foreach (var nodeModel in nodesetModel.AllNodesByNodeId.Values
+                .OrderBy(GetNodeModelSortOrder)
+                .ThenBy(n => GetNodeIdForSorting(n.NodeId)))
             {
-                var result = NodeModelExportOpc.GetUANode(nodeModel, namespaces, aliases, nodeIdsUsed, items);
+                var result = NodeModelExportOpc.GetUANode(nodeModel, namespaces, aliases, nodeIdsUsed, itemsSoFar);
                 if (result.ExportedNode != null)
                 {
-                    items[result.ExportedNode.NodeId] = result.ExportedNode;
+                    if (itemsSoFar.TryAdd(result.ExportedNode.NodeId, result.ExportedNode) || !itemsOrdered.Contains(result.ExportedNode))
+                    {
+                        itemsOrdered.Add(result.ExportedNode);
+                    }
+                    else
+                    {
+                        if (itemsSoFar[result.ExportedNode.NodeId] != result.ExportedNode)
+                        {
+
+                        }
+                    }
                 }
                 if (result.AdditionalNodes != null)
                 {
-                    result.AdditionalNodes.ForEach(n => items[n.NodeId] = n);
+                    result.AdditionalNodes.ForEach(n => {
+                        if (itemsSoFar.TryAdd(n.NodeId,  n) || !itemsOrdered.Contains(n))
+                        {
+                            itemsOrdered.Add(n);
+                        }
+                        else
+                        {
+                            if (itemsSoFar[n.NodeId] != n)
+                            {
+
+                            }
+
+                        }
+                    });
                 }
             }
-            return items.Values.ToList();
+            return itemsOrdered;
+        }
+
+        static int GetNodeModelSortOrder(NodeModel nodeModel)
+        {
+            var type = nodeModel.GetType().Name;
+            return type switch
+            {
+                nameof(ReferenceTypeModel) => 1,
+                nameof(DataTypeModel) => 2,
+                nameof(ObjectTypeModel) => 3,
+                nameof(VariableTypeModel) => 4,
+                _ => 10,
+            };
         }
 
 

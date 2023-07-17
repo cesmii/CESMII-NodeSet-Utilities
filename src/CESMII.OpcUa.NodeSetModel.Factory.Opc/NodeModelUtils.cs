@@ -1,9 +1,11 @@
 ﻿using Opc.Ua;
+using export = Opc.Ua.Export;
 using System.Collections.Generic;
 using System.Xml;
 using System.Linq;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -176,5 +178,33 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return messageContext;
         }
 
+        /// <summary>
+        /// Reads a missing nodeset version from a NamespaceVersion object
+        /// </summary>
+        /// <param name="nodeSet"></param>
+        public static void FixupNodesetVersionFromMetadata(export.UANodeSet nodeSet, ILogger logger)
+        {
+            if (nodeSet?.Models == null)
+            {
+                return;
+            }
+            foreach (var model in nodeSet.Models)
+            {
+                if (string.IsNullOrEmpty(model.Version))
+                {
+                    var namespaceVersionObject = nodeSet.Items?.FirstOrDefault(n => n is export.UAVariable && n.BrowseName == BrowseNames.NamespaceVersion) as export.UAVariable;
+                    var version = namespaceVersionObject?.Value?.InnerText;
+                    if (!string.IsNullOrEmpty(version))
+                    {
+                        model.Version = version;
+                        if (logger != null)
+                        {
+                            logger.LogWarning($"Nodeset {model.ModelUri} did not specify a version, but contained a NamespaceVersion property with value {version}.");
+                        }
+                    }
+                }
+            }
+        }
     }
+
 }
