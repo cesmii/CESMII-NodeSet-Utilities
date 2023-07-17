@@ -14,7 +14,6 @@ using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using CESMII.OpcUa.NodeSetImporter;
 using Opc.Ua.Export;
 using Microsoft.Extensions.Logging;
-using Opc.Ua;
 
 namespace CESMII.OpcUa.NodeSetModel
 {
