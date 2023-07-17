@@ -135,7 +135,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         }
                         _results.ResolveDependencies();
 
-                        if (_results.MissingModels.Any()) //!rerun && <- kept inside, will cause an endless loop if imported NodeSet does not have a matching Version
+                        if (_results.MissingModels.Any())
                         {
                             // No more cached models were added, but we are still missing models: invoke the resolver if provided
                             if (_nodeSetResolver != null && !_results.MissingModels.SequenceEqual(previousMissingModels))

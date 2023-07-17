@@ -120,8 +120,7 @@ namespace CESMII.OpcUa.NodeSetModel
         /// <returns></returns>
         public async Task<List<NodeSetModel>> LoadNodeSetModelAsync(IOpcUaContext opcContext, UANodeSet nodeSet)
         {
-            var newNodes = new List<NodeState>();
-            return await NodeModelFactoryOpc.LoadNodeSetAsync(opcContext, nodeSet, null, new Dictionary<string, string>(), newNodes, true);
+            return await NodeModelFactoryOpc.LoadNodeSetAsync(opcContext, nodeSet, null, new Dictionary<string, string>(), true);
         }
     }
 }
