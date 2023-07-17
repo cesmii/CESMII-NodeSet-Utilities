@@ -116,7 +116,7 @@ namespace CESMII.OpcUa.NodeSetImporter
 
                     if (!NewNodeSetFound && FailOnExisting)
                     {
-                        string names = String.Join(", ", _results.Models.Select(m => m.NameVersion));
+                        string names = string.Join(", ", _results.Models.Select(m => m.NameVersion));
                         _results.ErrorMessage = $"All selected NodeSets or newer versions of them ({names}) have already been imported";
                         return _results;
                     }
@@ -135,7 +135,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                         }
                         _results.ResolveDependencies();
 
-                        if (!rerun && _results.MissingModels.Any())
+                        if (_results.MissingModels.Any())
                         {
                             // No more cached models were added, but we are still missing models: invoke the resolver if provided
                             if (_nodeSetResolver != null && !_results.MissingModels.SequenceEqual(previousMissingModels))

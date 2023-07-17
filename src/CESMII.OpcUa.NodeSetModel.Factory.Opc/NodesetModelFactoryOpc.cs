@@ -51,9 +51,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         var requiredModelInfo = nodesetModel.RequiredModels.FirstOrDefault(rm => rm.ModelUri == requiredModel.ModelUri);
                         if (requiredModelInfo == null)
                         {
-                            throw new Exception("Required model not populated");
+                            throw new Exception("Required model not found");
                         }
-                        if (requiredModelInfo.AvailableModel == null)
+                        if (requiredModelInfo != null && requiredModelInfo.AvailableModel == null)
                         {
                             var availableModel = opcContext.GetOrAddNodesetModel(requiredModel);
                             if (availableModel != null)
