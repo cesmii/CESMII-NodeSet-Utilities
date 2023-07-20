@@ -59,6 +59,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public virtual string GetNodeIdWithUri(NodeId nodeId, out string namespaceUri)
         {
             namespaceUri = GetNamespaceUri(nodeId.NamespaceIndex);
+            if (string.IsNullOrEmpty(namespaceUri))
+            {
+                throw ServiceResultException.Create(StatusCodes.BadNodeIdInvalid, "Namespace Index ({0}) for node id {1} is not in the namespace table.", nodeId.NamespaceIndex, nodeId);
+            }
             var nodeIdWithUri = new ExpandedNodeId(nodeId, namespaceUri).ToString();
             return nodeIdWithUri;
         }

@@ -233,6 +233,10 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                 namespaces.GetIndexOrAppend(nameSpace);
                 expandedNodeId = ExpandedNodeId.Parse(nodeId, namespaces);
             }
+            if (string.IsNullOrEmpty(namespaces.GetString(expandedNodeId.NamespaceIndex)))
+            {
+                throw ServiceResultException.Create(StatusCodes.BadNodeIdInvalid, "Namespace Uri for Node id ({0}) not specified or not found in the namespace table. Node Ids should be specified in nsu= format.", nodeId);
+            }
             _nodeIdsUsed?.Add(expandedNodeId.ToString());
             if (aliases?.TryGetValue(expandedNodeId.ToString(), out var alias) == true)
             {
