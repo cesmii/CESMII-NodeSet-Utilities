@@ -171,9 +171,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public static ServiceMessageContext GetContextWithDynamicEncodeableFactory(DataTypeModel dataType, NamespaceTable namespaces)
         {
             DynamicEncodeableFactory dynamicFactory = new(EncodeableFactory.GlobalFactory);
-#if OPCNEW // Enable once the OPC SDK supports this: https://github.com/OPCFoundation/UA-.NETStandard/pull/2146
             dynamicFactory.AddEncodingsForDataType(dataType, namespaces);
-#endif
             var messageContext = new ServiceMessageContext { Factory = dynamicFactory, NamespaceUris = namespaces };
             return messageContext;
         }

@@ -470,9 +470,16 @@ namespace NodeSetDiff
             //{
             //    nodeIdStr = nodeIdStr.Replace(alias.Key, alias.Value);
             //}
-            var nodeId = ExpandedNodeId.Parse(nodeIdStr, namespaces);
-            var exNodeId = new ExpandedNodeId(nodeId, namespaces.GetString(nodeId.NamespaceIndex));
-            return exNodeId.ToString();
+            try
+            {
+                var nodeId = ExpandedNodeId.Parse(nodeIdStr, namespaces);
+                var exNodeId = new ExpandedNodeId(nodeId, namespaces.GetString(nodeId.NamespaceIndex));
+                return exNodeId.ToString();
+            }
+            catch (ServiceResultException)
+            {
+                return nodeIdStr;
+            }
         }
         public static Diff DiffNodeSetFiles(string controlFileName, string testFileName)
         {

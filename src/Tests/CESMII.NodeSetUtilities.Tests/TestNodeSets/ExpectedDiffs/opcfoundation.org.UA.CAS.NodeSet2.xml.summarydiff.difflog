@@ -13,7 +13,6 @@
 ====>Expected attribute name '/UANodeSet[1]/UADataType[11]/Definition[1]/Field[8]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[11]/Definition[1]/Field[8]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[6]/Definition[1]/Field[8]
 ====>Expected attribute name '/UANodeSet[1]/UADataType[11]/Definition[1]/Field[9]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[11]/Definition[1]/Field[9]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[6]/Definition[1]/Field[9]
 ====>Expected attribute name '/UANodeSet[1]/UADataType[11]/Definition[1]/Field[10]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[11]/Definition[1]/Field[10]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[6]/Definition[1]/Field[10]
-====>Expected text value '1' but was '4' - comparing <uax:NamespaceIndex ...>1</uax:NamespaceIndex> at /UANodeSet[1]/UAVariable[2247]/Value[1]/QualifiedName[1]/NamespaceIndex[1]/text()[1] to <uax:NamespaceIndex ...>4</uax:NamespaceIndex> at /UANodeSet[1]/UAVariable[4078]/Value[1]/QualifiedName[1]/NamespaceIndex[1]/text()[1]
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Extensions' but was '' - comparing <Extensions...> at /UANodeSet[1]/Extensions[1] to <NULL>
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2021 The OPC Foundation, Inc. All rights reserved.

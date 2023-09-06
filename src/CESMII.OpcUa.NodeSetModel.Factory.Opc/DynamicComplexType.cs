@@ -44,10 +44,7 @@ namespace Opc.Ua.Client.ComplexTypes
     /// A complex type that performs encoding and decoding based on NodeSetModel type information, without requiring a concrete CLR type
     /// </summary>
     public class DynamicComplexType :
-        IEncodeable, IJsonEncodeable, IFormattable, IComplexTypeInstance
-#if OPCNEW // Enable once the OPC SDK supports this: https://github.com/OPCFoundation/UA-.NETStandard/pull/2146
-        , IDynamicComplexTypeInstance
-#endif
+        IEncodeable, IJsonEncodeable, IFormattable, IComplexTypeInstance, IDynamicComplexTypeInstance
     {
         #region Constructors
         /// <summary>
