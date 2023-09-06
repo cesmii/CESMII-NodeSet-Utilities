@@ -624,8 +624,15 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             if (_model.Value != null)
             {
-                ServiceMessageContext messageContext = NodeModelUtils.GetContextWithDynamicEncodeableFactory(_model.DataType, namespaces);
-                dataVariable.Value = NodeModelUtils.JsonDecodeVariant(_model.Value, messageContext);
+                if (_model.DataType != null)
+                {
+                    ServiceMessageContext messageContext = NodeModelUtils.GetContextWithDynamicEncodeableFactory(_model.DataType, namespaces);
+                    dataVariable.Value = NodeModelUtils.JsonDecodeVariant(_model.Value, messageContext);
+                }
+                else
+                {
+                    // Unknown data type
+                }
             }
 
             dataVariable.AccessLevel = _model.AccessLevel ?? 1;
@@ -764,7 +771,40 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             var method = result.ExportedNode;
             method.MethodDeclarationId = GetNodeIdForExport(_model.TypeDefinition?.NodeId, namespaces, aliases);
-            // method.ArgumentDescription = null; // TODO - not commonly used
+
+            List<Argument> arguments = new List<Argument>();
+            if (_model.InputArguments?.Any() == true)
+            {
+                foreach (var inputArg in _model.InputArguments ?? new())
+                {
+                    var argument = new Argument
+                    {
+                        Name = inputArg.BrowseName,
+                        // TODO parse into array ArrayDimensions = inputArg.ArrayDimensions,
+                        ValueRank = inputArg.ValueRank ?? -1,
+                        DataType = GetNodeIdForExport(inputArg.DataType.NodeId, namespaces, aliases),
+                        Description = new ua.LocalizedText(inputArg.Description?.FirstOrDefault()?.Text),
+                    };
+                    if (inputArg.Value != null || inputArg.Description.Count > 1 || inputArg.ModellingRule == "Optional")
+                    {
+                        // TODO Create argumentDescription
+                    }
+                    arguments.Add(argument);
+                }
+            }
+            if (arguments.Any())
+            {
+                var argumentPropertyXml = NodeModelUtils.EncodeAsXML(encoder => encoder.WriteArray(null, arguments.ToArray(), 1, BuiltInType.Null));
+                var references = method.References?.ToList() ?? new List<Reference>();
+                // TODO create InputArguments property
+                references.Add(new Reference
+                {
+                    ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasProperty.ToString(), namespaces, aliases),
+                    //Value = inputArgNodeId,
+                });
+
+            }
+
             if (method.ParentNodeId != null)
             {
                 var references = method.References?.ToList() ?? new List<Reference>();

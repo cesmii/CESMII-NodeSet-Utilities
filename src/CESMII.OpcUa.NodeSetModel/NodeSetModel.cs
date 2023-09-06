@@ -66,7 +66,7 @@ namespace CESMII.OpcUa.NodeSetModel
         virtual public NodeSetModel AvailableModel { get; set; }
     }
 
-    public class NodeModel
+    public class NodeModel /*: INodeModel*/
     {
         public virtual List<LocalizedText> DisplayName { get; set; }
         public string BrowseName { get; set; }
@@ -74,6 +74,16 @@ namespace CESMII.OpcUa.NodeSetModel
         public string GetBrowseName()
         {
             return BrowseName ?? $"{Namespace}:{DisplayName?.FirstOrDefault()?.Text}";
+        }
+        public string GetUnqualifiedBrowseName()
+        {
+            var browseName = GetBrowseName();
+            var parts = browseName.Split(new[] { ';' }, 2);
+            if (parts.Length > 1)
+            {
+                return parts[1];
+            }
+            return browseName;
         }
 
         public virtual List<LocalizedText> Description { get; set; }
@@ -92,7 +102,7 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/UA/")?.AvailableModel;
 #pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
-                return 
+                return
                     this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
                     .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
                     .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
@@ -288,12 +298,13 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual TTypeDefinition TypeDefinition { get; set; }
     }
 
-    public class ObjectModel : InstanceModel<ObjectTypeModel>
+    public class ObjectModel : InstanceModel<ObjectTypeModel>/*, IObjectModel*/
     {
         /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Objects and ObjectModel for EF
         /// </summary>
         public virtual List<NodeModel> NodesWithObjects { get; set; } = new List<NodeModel>();
+        //IObjectTypeModel IObjectModel.TypeDefinition { get => base.TypeDefinition; set => base.TypeDefinition = (value as ObjectTypeModel); }
     }
 
     public abstract class BaseTypeModel : NodeModel
@@ -362,7 +373,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
     }
 
-    public class ObjectTypeModel : BaseTypeModel
+    public class ObjectTypeModel : BaseTypeModel/*, IObjectTypeModel*/
     {
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Events and ObjectTypeModel for EF
         public virtual List<NodeModel> NodesWithEvents { get; set; } = new List<NodeModel>();
@@ -460,6 +471,13 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class MethodModel : InstanceModel<MethodModel>
     {
+        /// <summary>
+        /// InputArguments are a merged representation of the InputArguments property and any HasArgumentDescription references
+        /// The NodeId will be NULL if there was no ArgumentDescription
+        /// </summary>
+        public List<VariableModel> InputArguments { get; set; }
+        public List<VariableModel> OutputArguments { get; set; }
+
         /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Methods and MethodModel for EF
         /// </summary>

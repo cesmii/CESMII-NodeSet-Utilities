@@ -142,6 +142,9 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             {
                 btmSt.OnDelete(DeleteBehavior.Cascade);
             }
+            modelBuilder.Entity<MethodModel>()
+                .Ignore(m => m.InputArguments)
+                .Ignore(m => m.OutputArguments);
             var mmParentFk = modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")
                 .HasOne(dv => dv.Parent).WithMany()

@@ -141,6 +141,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 var referencedNode = opcContext.GetNode(reference.TargetId);
                 if (referencedNode == null)
                 {
+                    continue;
                     throw new Exception($"Referenced node {reference.TargetId} not found for {opcNode}");
                 }
 
@@ -172,7 +173,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     {
                         var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
 
-                        if (parent?.Namespace != uaChildObject.Namespace)
+                        //if (parent?.Namespace != uaChildObject.Namespace)
                         {
                             // Add the reverse reference to the referencing node (parent)
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -900,7 +901,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, variableNode, variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, $"{variableNode.GetType()} {variableNode}", variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
         }
     }
 
@@ -919,13 +920,85 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             base.Initialize(opcContext, opcNode);
             if (opcNode is MethodState methodState)
             {
-                // Already captured in NodeModel as properties: only need to parse out if we want to provide designer experience for methods
                 //_model.MethodDeclarationId = opcContext.GetNodeIdWithUri(methodState.MethodDeclarationId, out var _);
-                //_model.InputArguments = _model.Properties.Select(p => p as PropertyModel).ToList();
+                var inputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.InputArguments}");
+                if (inputArgs != null)
+                {
+                    _model.InputArguments = new List<VariableModel>();
+                    ProcessMethodArguments(opcContext, inputArgs, _model.InputArguments);
+                }
+                var outputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.OutputArguments}");
+                if (outputArgs != null)
+                {
+                    _model.OutputArguments = new List<VariableModel>();
+                    ProcessMethodArguments(opcContext, outputArgs, _model.OutputArguments);
+                }
             }
             else
             {
                 throw new Exception($"Unexpected node type for method {opcNode}");
+            }
+        }
+
+        private  void ProcessMethodArguments(IOpcUaContext opcContext, VariableModel argumentVariable, List<VariableModel> argumentList)
+        {
+            return;
+            using (var decoder = new JsonDecoder(argumentVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }))
+            {
+                var arguments = decoder.ReadVariant("Value"); //, ValueRanks.OneDimension, BuiltInType.Null, typeof(Argument));
+                if (arguments.Value != null)
+                {
+                    foreach (var argObj in arguments.Value as Array)
+                    {
+                        var arg = (argObj as ExtensionObject)?.Body as Argument;
+
+                        var dataTypeStateObj = opcContext.GetNode(arg.DataType);
+                        if (dataTypeStateObj is DataTypeState dataTypeState)
+                        {
+                            var dataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataTypeState, null);
+
+                            var argumentDescription = _model.OtherReferencedNodes
+                                .FirstOrDefault(nr => nr.Node.GetUnqualifiedBrowseName() == arg.Name 
+                                    && ((nr.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasArgumentDescription}")
+                                        || (nr.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasOptionalInputArgumentDescription}"))
+                                    );
+                            var argumentModel = argumentDescription?.Node as VariableModel;
+                            if (argumentModel == null)
+                            {
+                                // No description: create an argument variable without node id
+                                argumentModel = new VariableModel
+                                {
+                                    DisplayName = new List<NodeModel.LocalizedText> { new NodeModel.LocalizedText { Text = arg.Name } },
+                                    BrowseName = arg.Name,
+                                    Description = arg.Description?.ToModel(),
+                                };
+                                VariableTypeModelFactoryOpc.InitializeDataTypeInfo(argumentModel, opcContext, $"Method {_model} Argument {arg.Name}", arg.DataType, arg.ValueRank, new ReadOnlyList<uint>(arg.ArrayDimensions, false), new Variant(arg.Value));
+                            }
+                            else
+                            {
+                                // TODO validate variable against argument property
+                                if ((argumentDescription.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasOptionalInputArgumentDescription}"))
+                                {
+                                    argumentModel.ModellingRule = "Optional";
+                                }
+                                else
+                                {
+                                    argumentModel.ModellingRule = "Mandatory";
+                                }
+                            }
+                            argumentList.Add(argumentModel);
+                        }
+                        else
+                        {
+                            throw new Exception($"Invalid data type {arg.DataType} for argument {arg.Name} in method {_model.NodeId}.");
+                        }
+                    }
+                }
+            }
+            _model.Properties.Remove(argumentVariable);
+            if (argumentVariable is PropertyModel prop)
+            {
+                _model.NodeSet.Properties.Remove(prop);
             }
         }
     }
@@ -945,10 +1018,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         internal static void InitializeDataTypeInfo(VariableTypeModel model, IOpcUaContext opcContext, BaseVariableTypeState variableTypeNode)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, variableTypeNode, variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, $"{variableTypeNode.GetType()} {variableTypeNode}", variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
         }
 
-        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, NodeState variableNode, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
+        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, string variableNodeDiagInfo, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
         {
             var dataType = opcContext.GetNode(dataTypeNodeId);
             if (dataType is DataTypeState)
@@ -959,11 +1032,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 if (dataType == null)
                 {
-                    throw new Exception($"{variableNode.GetType()} {variableNode}: did not find data type {dataTypeNodeId} (Namespace {opcContext.NamespaceUris.GetString(dataTypeNodeId.NamespaceIndex)}).");
+                    throw new Exception($"{variableNodeDiagInfo}: did not find data type {dataTypeNodeId} (Namespace {opcContext.NamespaceUris.GetString(dataTypeNodeId.NamespaceIndex)}).");
                 }
                 else
                 {
-                    throw new Exception($"{variableNode.GetType()} {variableNode}: Unexpected node state {dataTypeNodeId}/{dataType?.GetType().FullName}.");
+                    throw new Exception($"{variableNodeDiagInfo}: Unexpected node state {dataTypeNodeId}/{dataType?.GetType().FullName}.");
                 }
             }
             if (valueRank != -1)
