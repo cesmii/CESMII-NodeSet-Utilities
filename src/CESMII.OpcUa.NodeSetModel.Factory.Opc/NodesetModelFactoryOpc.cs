@@ -900,7 +900,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, variableNode, variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, $"{variableNode.GetType()} {variableNode}", variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
         }
     }
 
@@ -919,7 +919,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             base.Initialize(opcContext, opcNode);
             if (opcNode is MethodState methodState)
             {
-                // Already captured in NodeModel as properties: only need to parse out if we want to provide designer experience for methods
                 //_model.MethodDeclarationId = opcContext.GetNodeIdWithUri(methodState.MethodDeclarationId, out var _);
                 //_model.InputArguments = _model.Properties.Select(p => p as PropertyModel).ToList();
             }
