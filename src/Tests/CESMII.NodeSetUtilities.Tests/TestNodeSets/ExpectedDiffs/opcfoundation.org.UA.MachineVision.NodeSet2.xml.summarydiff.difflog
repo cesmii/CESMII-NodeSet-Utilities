@@ -5,6 +5,13 @@
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Definition' but was '' - comparing <Definition...> at /UANodeSet[1]/UADataType[7]/Definition[1] to <NULL>
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Definition' but was '' - comparing <Definition...> at /UANodeSet[1]/UADataType[8]/Definition[1] to <NULL>
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Definition' but was '' - comparing <Definition...> at /UANodeSet[1]/UADataType[9]/Definition[1] to <NULL>
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariableType[1]/Value[1]/ExtensionObject[1]/Body[1]/ResultDataType[1]/InternalRecipeId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariableType[1]/Value[1]/ExtensionObject[1]/Body[1]/ResultDataType[1]/InternalConfigurationId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariable[133]/Value[1]/ExtensionObject[1]/Body[1]/ConfigurationDataType[1]/InternalId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariable[121]/Value[1]/ExtensionObject[1]/Body[1]/ConfigurationDataType[1]/InternalId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariable[169]/Value[1]/ExtensionObject[1]/Body[1]/ResultDataType[1]/InternalRecipeId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariable[169]/Value[1]/ExtensionObject[1]/Body[1]/ResultDataType[1]/InternalConfigurationId[1]/EncodingMask[1]
+====>Expected child '' but was 'http://opcfoundation.org/UA/MachineVision/Types.xsd:EncodingMask' - comparing <NULL> to <EncodingMask...> at /UANodeSet[1]/UAVariable[44]/Value[1]/ExtensionObject[1]/Body[1]/ConfigurationDataType[1]/InternalId[1]/EncodingMask[1]
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Extensions' but was '' - comparing <Extensions...> at /UANodeSet[1]/Extensions[1] to <NULL>
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.

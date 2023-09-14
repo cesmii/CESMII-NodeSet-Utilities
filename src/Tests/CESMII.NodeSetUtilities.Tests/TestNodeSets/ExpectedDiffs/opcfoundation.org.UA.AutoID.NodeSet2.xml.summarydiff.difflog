@@ -26,11 +26,8 @@
 ====>Expected text value 'The battery of the (active) tag is low' but was 'The battery of the (active) tag is low.' - comparing <uax:Text ...>The battery of the (active) tag is low</uax:Text> at /UANodeSet[1]/UAVariable[1]/Value[1]/ListOfExtensionObject[1]/ExtensionObject[22]/Body[1]/EnumValueType[1]/Description[1]/Text[1]/text()[1] to <uax:Text ...>The battery of the (active) tag is low.</uax:Text> at /UANodeSet[1]/UAVariable[3]/Value[1]/ListOfExtensionObject[1]/ExtensionObject[22]/Body[1]/EnumValueType[1]/Description[1]/Text[1]/text()[1]
 ====>Expected attribute name '/UANodeSet[1]/UAVariable[15]/@Historizing' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[15]/@Historizing to <UAVariable...> at /UANodeSet[1]/UAVariable[123]
 ====>Expected attribute name '/UANodeSet[1]/UAVariable[16]/@Historizing' - comparing <UAVariable...> at /UANodeSet[1]/UAVariable[16]/@Historizing to <UAVariable...> at /UANodeSet[1]/UAVariable[124]
-====>Expected attribute name '/UANodeSet[1]/UADataType[22]/Definition[1]/Field[8]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[22]/Definition[1]/Field[8]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[27]/Definition[1]/Field[8]
 ====>Expected attribute name '/UANodeSet[1]/UADataType[26]/Definition[1]/@IsUnion' - comparing <Definition...> at /UANodeSet[1]/UADataType[26]/Definition[1]/@IsUnion to <Definition...> at /UANodeSet[1]/UADataType[7]/Definition[1]
 ====>Expected attribute name '/UANodeSet[1]/UADataType[27]/Definition[1]/@IsUnion' - comparing <Definition...> at /UANodeSet[1]/UADataType[27]/Definition[1]/@IsUnion to <Definition...> at /UANodeSet[1]/UADataType[19]/Definition[1]
-====>Expected attribute name '/UANodeSet[1]/UADataType[28]/Definition[1]/Field[1]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[28]/Definition[1]/Field[1]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[24]/Definition[1]/Field[1]
-====>Expected attribute name '/UANodeSet[1]/UADataType[28]/Definition[1]/Field[3]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[28]/Definition[1]/Field[3]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[24]/Definition[1]/Field[3]
 ====>Expected child '#comment' but was '' - comparing <!--
  * Copyright (c) 2005-2020 The OPC Foundation, Inc. All rights reserved.
  *
