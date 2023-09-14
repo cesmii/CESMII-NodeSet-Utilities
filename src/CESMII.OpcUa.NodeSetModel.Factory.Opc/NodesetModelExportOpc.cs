@@ -830,6 +830,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
                         Description = field.Description.ToExport().ToArray(),
                         ArrayDimensions = field.ArrayDimensions,
                         IsOptional = field.IsOptional,
+                        AllowSubTypes = field.AllowSubTypes,
                     };
                     if (field.ValueRank != null)
                     {

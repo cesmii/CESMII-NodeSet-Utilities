@@ -945,10 +945,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         internal static void InitializeDataTypeInfo(VariableTypeModel model, IOpcUaContext opcContext, BaseVariableTypeState variableTypeNode)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, variableTypeNode, variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, $"{variableTypeNode.GetType()} {variableTypeNode}", variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
         }
 
-        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, NodeState variableNode, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
+        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, string variableNodeDiagInfo, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
         {
             var dataType = opcContext.GetNode(dataTypeNodeId);
             if (dataType is DataTypeState)
@@ -959,11 +959,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 if (dataType == null)
                 {
-                    throw new Exception($"{variableNode.GetType()} {variableNode}: did not find data type {dataTypeNodeId} (Namespace {opcContext.NamespaceUris.GetString(dataTypeNodeId.NamespaceIndex)}).");
+                    throw new Exception($"{variableNodeDiagInfo}: did not find data type {dataTypeNodeId} (Namespace {opcContext.NamespaceUris.GetString(dataTypeNodeId.NamespaceIndex)}).");
                 }
                 else
                 {
-                    throw new Exception($"{variableNode.GetType()} {variableNode}: Unexpected node state {dataTypeNodeId}/{dataType?.GetType().FullName}.");
+                    throw new Exception($"{variableNodeDiagInfo}: Unexpected node state {dataTypeNodeId}/{dataType?.GetType().FullName}.");
                 }
             }
             if (valueRank != -1)
@@ -1028,7 +1028,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                                 ArrayDimensions = field.ArrayDimensions != null && field.ArrayDimensions.Any() ? String.Join(",", field.ArrayDimensions) : null,
                                 MaxStringLength = field.MaxStringLength != 0 ? field.MaxStringLength : null,
                                 Description = field.Description.ToModel(),
-                                IsOptional = field.IsOptional,
+                                IsOptional = field.IsOptional && sd.StructureType == StructureType.StructureWithOptionalFields,
+                                AllowSubTypes = field.IsOptional && (sd.StructureType == StructureType.StructureWithSubtypedValues || sd.StructureType == StructureType.UnionWithSubtypedValues),
                                 FieldOrder = order++,
                             };
                             _model.StructureFields.Add(structureField);
