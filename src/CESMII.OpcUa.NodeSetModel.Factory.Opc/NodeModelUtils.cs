@@ -56,6 +56,31 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var parsedBody = xmlDecoder.ReadExtensionObjectBody(extObj.TypeId);
                     value.Value = new ExtensionObject(extObj.TypeId, parsedBody);
                 }
+                else if (value.Value is ExtensionObject[] extObjList && extObjList.Any(e => e.Encoding==ExtensionObjectEncoding.Xml && e.Body is XmlElement))
+                {
+                    var newExtObjList = new ExtensionObject[extObjList.Length];
+                    int i = 0;
+                    bool bReencoded = false;
+                    foreach (var extObj2 in extObjList)
+                    {
+                        if (extObj2.Encoding == ExtensionObjectEncoding.Xml && extObj2.Body is XmlElement extObj2XmlBody)
+                        {
+                            var xmlDecoder = new XmlDecoder(extObj2XmlBody, context);
+                            var parsedBody = xmlDecoder.ReadExtensionObjectBody(extObj2.TypeId);
+                            newExtObjList[i] = new ExtensionObject(extObj2.TypeId, parsedBody);
+                            bReencoded = true;
+                        }
+                        else
+                        {
+                            newExtObjList[i] = extObj2;
+                        }
+                        i++;
+                    }
+                    if (bReencoded)
+                    {
+                        value.Value = newExtObjList;
+                    }
+                }
             }
             using (var encoder = new JsonEncoder(context, true))
             {
