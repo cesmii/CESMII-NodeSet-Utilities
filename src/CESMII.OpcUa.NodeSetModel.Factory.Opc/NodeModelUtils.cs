@@ -6,6 +6,9 @@ using System.Linq;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
 using System;
 using Microsoft.Extensions.Logging;
+using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -31,7 +34,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         {
             return JsonEncodeVariant(systemContext, value, null, reencodeExtensionsAsJson);
         }
-        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType, bool reencodeExtensionsAsJson = false)
+        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType, bool reencodeExtensionsAsJson = false, bool encodeJsonScalarsAsValues = false)
         {
             ServiceMessageContext context;
             if (systemContext != null)
@@ -56,7 +59,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var parsedBody = xmlDecoder.ReadExtensionObjectBody(extObj.TypeId);
                     value.Value = new ExtensionObject(extObj.TypeId, parsedBody);
                 }
-                else if (value.Value is ExtensionObject[] extObjList && extObjList.Any(e => e.Encoding==ExtensionObjectEncoding.Xml && e.Body is XmlElement))
+                else if (value.Value is ExtensionObject[] extObjList && extObjList.Any(e => e.Encoding == ExtensionObjectEncoding.Xml && e.Body is XmlElement))
                 {
                     var newExtObjList = new ExtensionObject[extObjList.Length];
                     int i = 0;
@@ -81,14 +84,66 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         value.Value = newExtObjList;
                     }
                 }
+                else if (value.Value is byte[] byteArray && value.TypeInfo.BuiltInType == BuiltInType.ByteString && dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Byte}"))
+                {
+                    // The XML decoder returns byte arrays as a bytestring variant: fix it up so we don't get a base64 encoded JSON value
+                    value = new Variant(byteArray, new TypeInfo(BuiltInType.Byte, ValueRanks.OneDimension));
+            }
             }
             using (var encoder = new JsonEncoder(context, true))
             {
                 encoder.ForceNamespaceUri = true;
-                //encoder.ForceNamespaceUriForIndex1 = true;
+                encoder.ForceNamespaceUriForIndex1 = true;
                 encoder.WriteVariant("Value", value);
 
-                var encodedValue = encoder.CloseAndReturnText();
+                var encodedVariant = encoder.CloseAndReturnText();
+                var parsedValue = JsonConvert.DeserializeObject<JObject>(encodedVariant, new JsonSerializerSettings { Formatting = Newtonsoft.Json.Formatting.None });
+
+                string encodedValue;
+                NodeModelOpcExtensions.JsonValueType jsonValueType;
+                if (encodeJsonScalarsAsValues &&
+                    ((jsonValueType = dataType.GetJsonValueType()) == NodeModelOpcExtensions.JsonValueType.Value || jsonValueType == NodeModelOpcExtensions.JsonValueType.String))
+                {
+                    if (parsedValue["Value"]["Body"] is JValue jValue)
+                    {
+                        if (jValue.Value is string stringValue)
+                        {
+                            encodedValue = stringValue;
+                        }
+                        else if (jValue.Value is bool boolValue)
+                        {
+                            // Ensure proper casing, ToString() return True/False vs. json's true/false
+                            encodedValue = JsonConvert.SerializeObject(jValue, Newtonsoft.Json.Formatting.None);
+                        }
+                        else
+                        {
+                            encodedValue = JsonConvert.SerializeObject(jValue, Newtonsoft.Json.Formatting.None);
+                            encodedValue = encodedValue.Trim('"');
+                            var encodedValue2 = jValue.Value?.ToString();
+                            if (encodedValue != encodedValue2 && !(jValue.Value is DateTime))
+                            {
+
+                            }
+                        }
+                    }
+                    else if (parsedValue["Value"]["Body"] is JArray jArray)
+                    {
+                        encodedValue = JsonConvert.SerializeObject(jArray, Newtonsoft.Json.Formatting.None);
+                    }
+                    else
+                    {
+                        encodedValue = null;
+                    }
+                    if (encodedValue.Length >= 2 && encodedValue.StartsWith("\"") && encodedValue.EndsWith("'\""))
+                    {
+                        encodedValue = encodedValue.Substring(1, encodedValue.Length - 2);
+                    }
+                }
+                else
+                {
+                    encodedValue = parsedValue["Value"].ToString(Newtonsoft.Json.Formatting.None);
+                }
+
                 return encodedValue;
             }
         }
@@ -117,14 +172,66 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         //    return defaultValues;
         //}
 
-        public static XmlElement JsonDecodeVariant(string jsonVariant, IServiceMessageContext context)
+        public static Variant JsonDecodeVariant(string jsonVariant, IServiceMessageContext context, DataTypeModel dataType = null, bool EncodeJsonScalarsAsString = false)
         {
+            if (jsonVariant == null)
+            {
+                return Variant.Null;
+            }
+            if ((jsonVariant?.TrimStart()?.StartsWith("{\"Value\"") == false))
+            {
+                NodeModelOpcExtensions.JsonValueType? jsonValueType;
+                if (EncodeJsonScalarsAsString && ((jsonValueType = dataType?.GetJsonValueType()) == NodeModelOpcExtensions.JsonValueType.Value || jsonValueType == NodeModelOpcExtensions.JsonValueType.String))
+                {
+                    uint? dataTypeId = null;
+                    if (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Enumeration}"))
+                    {
+                        dataTypeId = DataTypes.Int32;
+                    }
+                    else
+                    {
+                        var dtNodeId = ExpandedNodeId.Parse(dataType.NodeId, context.NamespaceUris);
+                        var builtInType = TypeInfo.GetBuiltInType(dtNodeId, new PartialTypeTree(dataType, context.NamespaceUris));
+                        if (builtInType != BuiltInType.Null)
+                        {
+                            dataTypeId = (uint)builtInType;
+                        }
+
+                        else
+                        {
+                            if (dtNodeId.IdType == IdType.Numeric && dtNodeId.NamespaceIndex == 0)
+                            {
+                                dataTypeId = (uint)dtNodeId.Identifier;
+                            }
+                        }
+                    }
+                    if (dataTypeId != null)
+                    {
+                        // TODO more reliable check for array (handle a scalar string that starts with [ ).
+                        if (jsonValueType == NodeModelOpcExtensions.JsonValueType.String && !jsonVariant.StartsWith("["))
+                        {
+                            // encode and quote it
+                            jsonVariant = JsonConvert.ToString(jsonVariant);
+                        }
+                        jsonVariant = $"{{\"Value\":{{\"Type\":{dataTypeId},\"Body\":{jsonVariant}}}}}";
+                    }
+                }
+                else
+        {
+                    jsonVariant = $"{{\"Value\":{jsonVariant}";
+                }
+            }
             using (var decoder = new JsonDecoder(jsonVariant, context))
             {
-                var value = decoder.ReadVariant("Value");
-                var xml = GetVariantAsXML(value, context);
-                return xml;
+                var variant = decoder.ReadVariant("Value");
+                return variant;
             }
+        }
+        public static XmlElement JsonDecodeVariantToXml(string jsonVariant, IServiceMessageContext context, DataTypeModel dataType = null, bool EncodeJsonScalarsAsString = false)
+        {
+            var variant = JsonDecodeVariant(jsonVariant, context, dataType, EncodeJsonScalarsAsString);
+            var xml = GetVariantAsXML(variant, context);
+            return xml;
         }
 
         public static System.Xml.XmlElement GetExtensionObjectAsXML(object extensionBody)
@@ -166,7 +273,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             var xml = System.Text.Encoding.UTF8.GetString(ms.ToArray());
             var doc = new System.Xml.XmlDocument();
-            doc.LoadXml(xml.Substring(1));
+            // Skip any BOM markers or the XML loader fails
+            doc.LoadXml(xml[0] > 255 ? xml.Substring(1) : xml);
             var xmlElem = doc.DocumentElement;
             return xmlElem;
         }
@@ -226,6 +334,100 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         }
                     }
                 }
+            }
+        }
+
+        private class PartialTypeTree : ITypeTable
+        {
+            private DataTypeModel _dataType;
+            private NamespaceTable _namespaceUris;
+
+            public PartialTypeTree(DataTypeModel dataType, NamespaceTable namespaceUris)
+            {
+                this._dataType = dataType;
+                this._namespaceUris = namespaceUris;
+            }
+
+            public NodeId FindSuperType(NodeId typeId)
+            {
+                var expandedNodeId = new ExpandedNodeId(typeId, _namespaceUris.GetString(typeId.NamespaceIndex)).ToString();
+                var type = this._dataType;
+                do
+                {
+                    if (type.NodeId == expandedNodeId)
+                    {
+                        return ExpandedNodeId.Parse(type.SuperType.NodeId, _namespaceUris);
+                    }
+                    type = type.SuperType as DataTypeModel;
+                } while (type != null);
+                return null;
+            }
+
+
+            public NodeId FindDataTypeId(ExpandedNodeId encodingId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public NodeId FindDataTypeId(NodeId encodingId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public NodeId FindReferenceType(QualifiedName browseName)
+            {
+                throw new NotImplementedException();
+            }
+
+            public QualifiedName FindReferenceTypeName(NodeId referenceTypeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IList<NodeId> FindSubTypes(ExpandedNodeId typeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public NodeId FindSuperType(ExpandedNodeId typeId)
+            {
+                throw new NotImplementedException();
+            }
+
+
+            public bool IsEncodingFor(NodeId expectedTypeId, ExtensionObject value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsEncodingFor(NodeId expectedTypeId, object value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsEncodingOf(ExpandedNodeId encodingId, ExpandedNodeId datatypeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsKnown(ExpandedNodeId typeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsKnown(NodeId typeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsTypeOf(ExpandedNodeId subTypeId, ExpandedNodeId superTypeId)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool IsTypeOf(NodeId subTypeId, NodeId superTypeId)
+            {
+                throw new NotImplementedException();
             }
         }
     }

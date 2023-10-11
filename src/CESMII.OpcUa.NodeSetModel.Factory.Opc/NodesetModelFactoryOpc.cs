@@ -63,7 +63,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         }
                     }
                 }
-                if (nodeSet.Aliases?.Length > 0)
+                if (nodeSet.Aliases?.Length > 0 && Aliases != null)
                 {
                     foreach (var alias in nodeSet.Aliases)
                     {
@@ -671,7 +671,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         {
             created = false;
             opcContext.NamespaceUris.GetIndexOrAppend(opcModelInfo.ModelUri); // Ensure the namespace is in the namespace table
-            var nodeModelBase = opcContext.GetModelForNode<TNodeModel>(nodeId);
+            var nodeModelBase = opcContext.GetModelForNode<NodeModel>(nodeId);
             var nodeModel = nodeModelBase as TNodeModel;
             if (nodeModel == null)
             {
@@ -807,7 +807,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             if (uaType.SuperTypeId != null)
             {
                 var superTypeNodeId = new ExpandedNodeId(uaType.SuperTypeId, opcContext.NamespaceUris.GetString(uaType.SuperTypeId.NamespaceIndex)).ToString();
-                var superTypeModel = opcContext.GetModelForNode<TBaseTypeModel>(superTypeNodeId) as BaseTypeModel;
+                var superTypeModel = opcContext.GetModelForNode<BaseTypeModel>(superTypeNodeId);
                 if (superTypeModel == null)
                 {
                     var superTypeState = opcContext.GetNode(uaType.SuperTypeId) as BaseTypeState;
@@ -885,13 +885,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))
                     {
-                        using (var x = new JsonDecoder(xmlNamespaceVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }))
+                        var variant = NodeModelUtils.JsonDecodeVariant(xmlNamespaceVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris },
+                            opcContext.GetModelForNode<DataTypeModel>($"nsu={Namespaces.OpcUa};{DataTypeIds.String}"), true);
+                        var namespaceUri = variant.Value as string;
+                        if (!string.IsNullOrEmpty(namespaceUri))
                         {
-                            var stringVariant = x.ReadVariant("Value");
-                            if (stringVariant.Value is string namespaceUri && !string.IsNullOrEmpty(namespaceUri))
-                            {
-                                this._model.NodeSet.XmlSchemaUri = namespaceUri;
-                            }
+                            this._model.NodeSet.XmlSchemaUri = namespaceUri;
                         }
                     }
                 }

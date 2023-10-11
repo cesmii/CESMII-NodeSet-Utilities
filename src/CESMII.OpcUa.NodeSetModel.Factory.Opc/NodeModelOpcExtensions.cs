@@ -9,7 +9,9 @@ using System.Reflection;
 using Opc.Ua.Export;
 using System;
 
-using CESMII.OpcUa.NodeSetModel;
+using CESMII.OpcUa.NodeSetModel.Factory.Opc;
+using Newtonsoft.Json;
+using Microsoft.Extensions.Logging;
 
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
@@ -40,6 +42,51 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
             return model.DisplayName.FirstOrDefault()?.Text;
         }
+        public enum JsonValueType
+        {
+            /// <summary>
+            /// JSON object
+            /// </summary>
+            Object,
+            /// <summary>
+            /// Scalar, to be quoted
+            /// </summary>
+            String,
+            /// <summary>
+            /// Scalar, not to be quoted
+            /// </summary>
+            Value
+        }
+
+        public static bool IsJsonScalar(this DataTypeModel dataType)
+        {
+            return GetJsonValueType(dataType) != JsonValueType.Object;
+        }
+        public static JsonValueType GetJsonValueType(this DataTypeModel dataType)
+        {
+            if (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.String}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Int64}") // numeric, but encoded as string
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.UInt64}") // numeric, but encoded as string
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.DateTime}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.ByteString}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.String}")
+                )
+            {
+                return JsonValueType.String;
+            }
+            if (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Boolean}")
+                || (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Number}")
+                    && !dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Decimal}") // numeric, but encoded as Scale/Value object
+                    )
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.StatusCode}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Enumeration}")
+                )
+            {
+                return JsonValueType.Value;
+            }
+            return JsonValueType.Object;
+        }
+
         internal static void SetEngineeringUnits(this VariableModel model, EUInformation euInfo)
         {
             model.EngineeringUnit = new VariableModel.EngineeringUnitInfo

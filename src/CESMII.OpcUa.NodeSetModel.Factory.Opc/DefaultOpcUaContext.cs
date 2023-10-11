@@ -47,6 +47,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
 
         public bool ReencodeExtensionsAsJson { get; set; }
+        public bool EncodeJsonScalarsAsValues { get; set; }
 
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
         private Dictionary<string, UANodeSet> _importedUANodeSetsByUri = new();
@@ -92,7 +93,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return _systemContext.NamespaceUris.GetString(namespaceIndex);
         }
 
-        public virtual NodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
+        public virtual TNodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
         {
             var expandedNodeId = ExpandedNodeId.Parse(nodeId, _systemContext.NamespaceUris);
             var uaNamespace = GetNamespaceUri(expandedNodeId.NamespaceIndex);
@@ -102,7 +103,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
             {
-                return nodeModel;
+                return nodeModel as TNodeModel;
             }
             return null;
         }
@@ -177,7 +178,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
         {
-            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson);
+            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson, EncodeJsonScalarsAsValues);
         }
     }
 }
