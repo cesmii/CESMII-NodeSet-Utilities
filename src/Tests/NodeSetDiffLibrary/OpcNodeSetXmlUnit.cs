@@ -505,6 +505,18 @@ namespace NodeSetDiff
             controlFile = NormalizeAliasesAndNamespaces(controlFile, controlAliases, controlNamespaces);
             testFile = NormalizeAliasesAndNamespaces(testFile, testAliases, testNamespaces);
 
+            var aliasTestFile = testFile;
+            foreach(var alias in controlAliases) 
+            {
+                aliasTestFile = aliasTestFile
+                    .Replace($"ReferenceType=\"{alias.Value}\"", $"ReferenceType=\"{alias.Key}\"")
+                    .Replace($"DataType=\"{alias.Value}\"", $"DataType=\"{alias.Key}\"")
+                    ;
+            }
+            GeneratedSortedXmlFile(testFileName, aliasTestFile, controlFile);
+            //GeneratedSortedXmlFile(testFileName, aliasTestFile);
+            //GeneratedSortedXmlFile(controlFileName, controlFile);
+
             var diffHelper = new OpcNodeSetXmlUnit(controlAliases, controlNamespaces, testAliases, testNamespaces, controlFile, testFile);
 
             Diff d = DiffBuilder
@@ -521,6 +533,127 @@ namespace NodeSetDiff
                         && new[] { "UAObject", "UAVariable", "UAMethod", "UAView", }.Contains(a.OwnerElement.LocalName)))
                      .Build();
             return d;
+        }
+
+        private static void GeneratedSortedXmlFile(string fileName, string xml, string controlXml = null)
+        {
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(xml);
+            XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDoc.NameTable);
+            nsmgr.AddNamespace("ua", "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd");
+            var nodeSet = xmlDoc.SelectSingleNode("ua:UANodeSet", nsmgr);
+
+            XmlDocument controlDoc = null;
+            XmlNode controlNodeSet = null;
+            XmlNamespaceManager controlNsmgr;
+            if (controlXml != null)
+            {
+                controlDoc = new XmlDocument();
+                controlDoc.LoadXml(controlXml);
+                controlNsmgr = new XmlNamespaceManager(controlDoc.NameTable);
+                controlNsmgr.AddNamespace("ua", "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd");
+                controlNodeSet = controlDoc.SelectSingleNode("ua:UANodeSet", controlNsmgr);
+            }
+
+            var allNodes = new List<XmlNode>();
+            var enumerator = nodeSet.ChildNodes.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                allNodes.Add((XmlNode)enumerator.Current);
+            }
+            nodeSet.RemoveAll();
+            IEnumerable<XmlNode> orderedNodes;
+            if (controlNodeSet != null)
+            {
+                // Order the nodes in the order of the control nodeset
+                var controlEnum = controlNodeSet.ChildNodes.GetEnumerator();
+                while (controlEnum.MoveNext())
+                {
+                    var controlNode = (XmlNode)controlEnum.Current;
+                    var controlNodeNodeId = (controlNode as XmlElement)?.GetAttribute("NodeId");
+                    if (!string.IsNullOrEmpty(controlNodeNodeId))
+                    {
+                        var matchingNode = allNodes.FirstOrDefault(n => (n as XmlElement)?.GetAttribute("NodeId") == controlNodeNodeId);
+                        if (matchingNode != null)
+                        {
+                            nodeSet.AppendChild(matchingNode);
+                            allNodes.Remove(matchingNode);
+                            // Add references in the control nodeset order
+                            var referencesNode = matchingNode.SelectSingleNode("ua:References", nsmgr);
+                            if (referencesNode != null)
+                            {
+                                var allReferenceNodes = new List<XmlNode>();
+                                var refEnumerator = referencesNode.ChildNodes.GetEnumerator();
+                                while (refEnumerator.MoveNext())
+                                {
+                                    allReferenceNodes.Add((XmlNode)refEnumerator.Current);
+                                }
+                                referencesNode.RemoveAll();
+
+                                var controlReferencesNode = controlNode.SelectSingleNode("ua:References", nsmgr);
+                                if (controlReferencesNode != null)
+                                {
+                                    var controlRefEnumerator = controlReferencesNode.ChildNodes.GetEnumerator();
+                                    while (controlRefEnumerator.MoveNext())
+                                    {
+                                        var controlRef = (XmlElement)controlRefEnumerator.Current;
+                                        var controlRefType = controlRef?.GetAttribute("ReferenceType");
+                                        if (controlRefType != null && !string.IsNullOrEmpty(controlRef.InnerText))
+                                        {
+                                            var matchingRef = allReferenceNodes.FirstOrDefault(r => (r as XmlElement)?.GetAttribute("ReferenceType") == controlRefType && (r as XmlElement)?.InnerText == controlRef.InnerText);
+                                            if (matchingRef != null)
+                                            {
+                                                referencesNode.AppendChild(matchingRef);
+                                                allReferenceNodes.Remove(matchingRef);
+                                            }
+                                        }
+                                    }
+                                }
+                                allReferenceNodes.ForEach(n => referencesNode.AppendChild(n));
+                            }
+                        }
+                    }
+                    else if (new string[] { "Models", "Aliases", "NamespaceUris" }.Contains(controlNode.LocalName))
+                    {
+                        var fallbackNode = allNodes.FirstOrDefault(n => (n as XmlElement)?.LocalName == controlNode.LocalName);
+                        if (fallbackNode != null)
+                        {
+                            nodeSet.AppendChild(fallbackNode);
+                            allNodes.Remove(fallbackNode);
+                        }
+                    }
+                }
+                // add any remaining nodes not matched to the control nodeset
+                allNodes.ForEach(n => nodeSet.AppendChild(n));
+            }
+            else
+            {
+                orderedNodes = allNodes.OrderBy(n => (n as XmlElement)?.GetAttribute("NodeId"));
+                foreach (var node in orderedNodes)
+                {
+                    nodeSet.AppendChild(node);
+                    if (node is XmlElement elem)
+                    {
+                        var referencesNode = elem.SelectSingleNode("ua:References", nsmgr);
+                        if (referencesNode != null)
+                        {
+                            var allReferenceNodes = new List<XmlNode>();
+                            var refEnumerator = referencesNode.ChildNodes.GetEnumerator();
+                            while (refEnumerator.MoveNext())
+                            {
+                                allReferenceNodes.Add((XmlNode)refEnumerator.Current);
+                            }
+                            referencesNode.RemoveAll();
+                            var orderedReferenceNodes = allReferenceNodes.OrderBy(n => (n as XmlElement)?.GetAttribute("ReferenceType")).ThenBy(n => (n as XmlElement)?.InnerText);
+                            foreach (var refNode in orderedReferenceNodes)
+                            {
+                                referencesNode.AppendChild(refNode);
+                            }
+                        }
+                    }
+                }
+            }
+            xmlDoc.Save(fileName.Replace("NodeSet2.xml", "NodeSet2.sorted.xml"));
         }
 
         private static string NormalizeAliasesAndNamespaces(string xmlString, Dictionary<string, string> aliases, NamespaceTable namespaces)
