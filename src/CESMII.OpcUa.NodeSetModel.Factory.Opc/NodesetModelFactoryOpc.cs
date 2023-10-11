@@ -918,13 +918,121 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             base.Initialize(opcContext, opcNode);
             if (opcNode is MethodState methodState)
             {
+                var references = opcContext.GetHierarchyReferences(methodState);
+                foreach (var reference in references.Where(r => r.ReferenceTypeId == ReferenceTypeIds.HasProperty))
+                {
+                    var referencedNode = opcContext.GetNode(reference.TargetId);
+                    if (referencedNode?.BrowseName == "InputArguments" || referencedNode?.BrowseName == "OutputArguments")
+                    {
+                        if (referencedNode is PropertyState argumentProp && argumentProp.Value is ExtensionObject[] arguments)
+                        {
+                            var argumentInfo = new PropertyState<Argument[]>(methodState)
+                            {
+                                NodeId = argumentProp.NodeId,
+                                TypeDefinitionId = argumentProp.TypeDefinitionId,
+                                ModellingRuleId = argumentProp.ModellingRuleId,
+                                DataType = argumentProp.DataType,
+                            };
+                            argumentInfo.Value = new Argument[arguments.Length];
+                            for (int arg = 0; arg < arguments.Length; arg++)
+                            {
+                                argumentInfo.Value[arg] = arguments[arg].Body as Argument;
+                            }
+                            if (referencedNode?.BrowseName == "InputArguments")
+                            {
+                                methodState.InputArguments = argumentInfo;
+                            }
+                            else
+                            {
+                                methodState.OutputArguments = argumentInfo;
+                            }
+                        }
+                    }
+                }
+
                 //_model.MethodDeclarationId = opcContext.GetNodeIdWithUri(methodState.MethodDeclarationId, out var _);
-                //_model.InputArguments = _model.Properties.Select(p => p as PropertyModel).ToList();
+                var inputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.InputArguments}");
+                if (inputArgs != null)
+                {
+                    _model.InputArguments = new List<VariableModel>();
+                    ProcessMethodArguments(_model, BrowseNames.InputArguments, inputArgs, _model.InputArguments, opcContext);
+                }
+                var outputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.OutputArguments}");
+                if (outputArgs != null)
+                {
+                    _model.OutputArguments = new List<VariableModel>();
+                    ProcessMethodArguments(_model, BrowseNames.OutputArguments, outputArgs, _model.OutputArguments, opcContext);
+                }
             }
             else
             {
                 throw new Exception($"Unexpected node type for method {opcNode}");
             }
+        }
+
+        private void ProcessMethodArguments(MethodModel methodModel, string browseName, VariableModel argumentVariable, List<VariableModel> modelArguments, IOpcUaContext opcContext)
+        {
+            var arguments = NodeModelUtils.JsonDecodeVariant(argumentVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }, argumentVariable.DataType, true); // TODO get from opcContext!
+            if (arguments.Value != null)
+            {
+                foreach (var argObj in arguments.Value as Array)
+                {
+                    var arg = (argObj as ExtensionObject)?.Body as Argument;
+
+                    var dataTypeStateObj = opcContext.GetNode(arg.DataType);
+                    if (dataTypeStateObj is DataTypeState dataTypeState)
+                    {
+                        var dataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataTypeState, null);
+
+                        var argumentDescription = _model.OtherReferencedNodes
+                            .FirstOrDefault(nr => nr.Node.GetUnqualifiedBrowseName() == arg.Name
+                                && ((nr.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasArgumentDescription}")
+                                    || (nr.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasOptionalInputArgumentDescription}"))
+                                );
+                        var argumentModel = argumentDescription?.Node as VariableModel;
+                        if (argumentModel == null)
+                        {
+                            // No description: create an argument variable
+                            argumentModel = new VariableModel
+                            {
+                                DisplayName = new List<NodeModel.LocalizedText> { new NodeModel.LocalizedText { Text = arg.Name } },
+                                BrowseName = arg.Name,
+                                Description = arg.Description?.ToModel(),
+                                NodeId = argumentVariable.NodeId,
+                                NodeSet = argumentVariable.NodeSet,
+                                CustomState = argumentVariable.CustomState,
+                            };
+                            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(argumentModel, opcContext, $"Method {_model} Argument {arg.Name}", arg.DataType, arg.ValueRank, new ReadOnlyList<uint>(arg.ArrayDimensions, false), new Variant(arg.Value));
+                        }
+                        else
+                        {
+                            // TODO validate variable against argument property
+                            if ((argumentDescription.ReferenceType as ReferenceTypeModel).HasBaseType($"{Namespaces.OpcUa};{ReferenceTypeIds.HasOptionalInputArgumentDescription}"))
+                            {
+                                argumentModel.ModellingRule = "Optional";
+                            }
+                            else
+                            {
+                                argumentModel.ModellingRule = "Mandatory";
+                            }
+                        }
+                        modelArguments.Add(argumentModel);
+                    }
+                    else
+                    {
+                        throw new Exception($"Invalid data type {arg.DataType} for argument {arg.Name} in method {_model.NodeId}.");
+                    }
+                }
+            }
+        
+            //if (argumentVariable.OtherReferencedNodes?.Any() != true && argumentVariable.OtherReferencingNodes?.Any() != true)
+            //{
+            //    var argumentProperty = NodeModelOpcExtensions.GetArgumentProperty(methodModel, browseName, modelArguments, opcContext);
+            //}
+            //else
+            //{
+
+            //}
         }
     }
 

@@ -29,7 +29,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             CreateModel(modelBuilder, CascadeDelete);
 
         }
-        public static void CreateModel(ModelBuilder modelBuilder, bool cascadeDelete = false)
+        public static void CreateModel(ModelBuilder modelBuilder, bool cascadeDelete = false, bool methodArgs = false)
         {
             modelBuilder.Owned<NodeModel.LocalizedText>();
             modelBuilder.Owned<NodeModel.NodeAndReference>();
@@ -141,6 +141,12 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             if (cascadeDelete)
             {
                 btmSt.OnDelete(DeleteBehavior.Cascade);
+            }
+            if (!methodArgs)
+            {
+                modelBuilder.Entity<MethodModel>()
+                    .Ignore(m => m.InputArguments)
+                    .Ignore(m => m.OutputArguments);
             }
             var mmParentFk = modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")

@@ -461,6 +461,13 @@ namespace CESMII.OpcUa.NodeSetModel
     public class MethodModel : InstanceModel<MethodModel>
     {
         /// <summary>
+        /// InputArguments are a merged representation of the InputArguments property and any HasArgumentDescription references
+        /// The NodeId will be NULL if there was no ArgumentDescription
+        /// </summary>
+        public List<VariableModel> InputArguments { get; set; }
+        public List<VariableModel> OutputArguments { get; set; }
+
+        /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Methods and MethodModel for EF
         /// </summary>
         public virtual List<NodeModel> NodesWithMethods { get; set; } = new List<NodeModel>();

@@ -88,7 +88,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     // The XML decoder returns byte arrays as a bytestring variant: fix it up so we don't get a base64 encoded JSON value
                     value = new Variant(byteArray, new TypeInfo(BuiltInType.Byte, ValueRanks.OneDimension));
-            }
+                }
             }
             using (var encoder = new JsonEncoder(context, true))
             {
@@ -217,7 +217,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                 }
                 else
-        {
+                {
                     jsonVariant = $"{{\"Value\":{jsonVariant}";
                 }
             }
