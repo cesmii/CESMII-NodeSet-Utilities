@@ -92,7 +92,7 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/UA/")?.AvailableModel;
 #pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
-                return 
+                return
                     this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
                     .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
                     .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
@@ -544,6 +544,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public uint? MaxStringLength { get; set; }
             public virtual List<LocalizedText> Description { get; set; }
             public bool IsOptional { get; set; }
+            public bool AllowSubTypes { get; set; }
             /// <summary>
             /// Used to preserve field order if stored in a relational database (via EF etc.)
             /// </summary>
@@ -560,6 +561,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 this.MaxStringLength = field.MaxStringLength;
                 this.Description = field.Description;
                 this.IsOptional = field.IsOptional;
+                this.AllowSubTypes = field.AllowSubTypes;
                 this.FieldOrder = field.FieldOrder;
             }
 

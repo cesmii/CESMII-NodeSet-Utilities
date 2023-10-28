@@ -6,8 +6,6 @@
 ====>Expected attribute value '2018-05-15T00:00:00Z' but was '2020-07-15T00:00:00Z' - comparing <RequiredModel PublicationDate="2018-05-15T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate to <RequiredModel PublicationDate="2020-07-15T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[1]/@PublicationDate
 ====>Expected attribute value '1.01' but was '1.03.0' - comparing <RequiredModel Version="1.01"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@Version to <RequiredModel Version="1.03.0"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@Version
 ====>Expected attribute value '2013-12-02T00:00:00Z' but was '2021-03-09T00:00:00Z' - comparing <RequiredModel PublicationDate="2013-12-02T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@PublicationDate to <RequiredModel PublicationDate="2021-03-09T00:00:00Z"...> at /UANodeSet[1]/Models[1]/Model[1]/RequiredModel[2]/@PublicationDate
-###4#FeatureSymbolic name for Structure Fields not captured#Symbolic name for Structure Fields not captured
-====>Expected attribute name '/UANodeSet[1]/UADataType[20]/Definition[1]/Field[9]/@SymbolicName' - comparing <Field...> at /UANodeSet[1]/UADataType[20]/Definition[1]/Field[9]/@SymbolicName to <Field...> at /UANodeSet[1]/UADataType[6]/Definition[1]/Field[9]
 ###1#Feature#Export: preserve extensions#?
 ====>Expected child 'http://opcfoundation.org/UA/2011/03/UANodeSet.xsd:Extensions' but was '' - comparing <Extensions...> at /UANodeSet[1]/Extensions[1] to <NULL>
 ###28#Feature#Preserve comments#C2-194

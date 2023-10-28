@@ -49,6 +49,7 @@ namespace CESMII.NodeSetUtilities.Tests
             var logger = new XUnitTestLogger<Integration>(output, LogLevel.Warning);
 
             var opcContext = new DefaultOpcUaContext(logger);
+            opcContext.ReencodeExtensionsAsJson = true;
             var importer = new UANodeSetModelImporter(opcContext);
 
             var nodeSets = await importer.ImportNodeSetModelAsync(nodesetXml);
@@ -70,6 +71,7 @@ namespace CESMII.NodeSetUtilities.Tests
             Dictionary<string, NodeSetModel> nodeSetModels = new();
             var logger = new XUnitTestLogger<Integration>(output, LogLevel.Warning);
             var opcContext = new DefaultOpcUaContext(nodeSetModels, logger);
+            opcContext.ReencodeExtensionsAsJson = true;
             var importer = new UANodeSetModelImporter(opcContext);
 
             var importedNodeSetModels = await importer.ImportNodeSetModelAsync(nodesetXml);

@@ -44,10 +44,7 @@ namespace Opc.Ua.Client.ComplexTypes
     /// A complex type that performs encoding and decoding based on NodeSetModel type information, without requiring a concrete CLR type
     /// </summary>
     public class DynamicComplexType :
-        IEncodeable, IJsonEncodeable, IFormattable, IComplexTypeInstance
-#if OPCNEW // Enable once the OPC SDK supports this: https://github.com/OPCFoundation/UA-.NETStandard/pull/2146
-        , IDynamicComplexTypeInstance
-#endif
+        IEncodeable, IJsonEncodeable, IFormattable, IComplexTypeInstance, IDynamicComplexTypeInstance
     {
         #region Constructors
         /// <summary>
@@ -282,7 +279,7 @@ namespace Opc.Ua.Client.ComplexTypes
                     {
                         hasOptionalFields = true;
                     }
-                    DynamicTypePropertyInfo property = GetPropertyTypeInfo(field.Name, fieldDt, field.IsOptional, field.ValueRank, dynamicFactory, namespaceUris);
+                    DynamicTypePropertyInfo property = GetPropertyTypeInfo(field.SymbolicName ?? field.Name, fieldDt, field.IsOptional, field.AllowSubTypes, field.ValueRank, dynamicFactory, namespaceUris);
                     property.XmlSchemaUri = field.Owner.NodeSet.XmlSchemaUri;
                     properties.Add(property);
                 }
@@ -293,14 +290,14 @@ namespace Opc.Ua.Client.ComplexTypes
             }
             else if (dataType.EnumFields?.Any() == true || dataType.HasBaseType(new ExpandedNodeId(DataTypeIds.Enumeration, Namespaces.OpcUa).ToString()))
             {
-                DynamicTypePropertyInfo property = GetPropertyTypeInfo(dataType.BrowseName, dataType, false, null, dynamicFactory, namespaceUris);
+                DynamicTypePropertyInfo property = GetPropertyTypeInfo(dataType.BrowseName, dataType, false, false, null, dynamicFactory, namespaceUris);
                 property.IsEnum = true;
                 properties.Add(property);
             }
             return properties;
         }
 
-        private static DynamicTypePropertyInfo GetPropertyTypeInfo(string propertyName, DataTypeModel dataType, bool isOptional, int? valueRank, IDynamicEncodeableFactory dynamicFactory, NamespaceTable namespaceUris)
+        private static DynamicTypePropertyInfo GetPropertyTypeInfo(string propertyName, DataTypeModel dataType, bool isOptional, bool allowSubTypes, int? valueRank, IDynamicEncodeableFactory dynamicFactory, NamespaceTable namespaceUris)
         {
             var builtInType = DynamicEncodeableFactory.GetBuiltInType(dataType as DataTypeModel, namespaceUris);
             Type systemType = builtInType != BuiltInType.Null ? null : typeof(DynamicComplexType);
@@ -350,6 +347,7 @@ namespace Opc.Ua.Client.ComplexTypes
                 BuiltInType = builtInType,
                 SystemType = systemType,
                 IsOptional = isOptional,
+                AllowSubTypes = allowSubTypes,
                 IsEnum = isEnum,
             };
             return property;
@@ -598,7 +596,7 @@ namespace Opc.Ua.Client.ComplexTypes
             }
             if (valueRank == ValueRanks.Scalar)
             {
-                EncodeProperty(encoder, property.Name, propertyValue, builtInType, property.SystemType, false);
+                EncodeProperty(encoder, property.Name, propertyValue, builtInType, property.SystemType, false, property.AllowSubTypes);
             }
             else if (valueRank >= ValueRanks.OneDimension)
             {
@@ -618,7 +616,7 @@ namespace Opc.Ua.Client.ComplexTypes
         /// <summary>
         /// Encode a scalar property based on the property type.
         /// </summary>
-        private void EncodeProperty(IEncoder encoder, string name, object propertyValue, BuiltInType builtInType, Type systemType, bool isEnum)
+        private void EncodeProperty(IEncoder encoder, string name, object propertyValue, BuiltInType builtInType, Type systemType, bool isEnum, bool allowSubTypes)
         {
             if (systemType?.IsEnum == true)
             {
@@ -662,7 +660,14 @@ namespace Opc.Ua.Client.ComplexTypes
                 default:
                     if (propertyValue is IEncodeable encodableValue)
                     {
-                        encoder.WriteEncodeable(name, encodableValue, systemType);
+                        if (allowSubTypes)
+                        {
+                            encoder.WriteExtensionObject(name, new ExtensionObject(encodableValue));
+                        }
+                        else
+                        {
+                            encoder.WriteEncodeable(name, encodableValue, systemType);
+                        }
                         break;
                     }
                     throw ServiceResultException.Create(StatusCodes.BadEncodingError,
@@ -701,7 +706,7 @@ namespace Opc.Ua.Client.ComplexTypes
             int valueRank = property.ValueRank;
             if (valueRank == ValueRanks.Scalar)
             {
-                DecodeProperty(decoder, property.Name, property.BuiltInType, property.SystemType, property.IsEnum, property.TypeId);
+                DecodeProperty(decoder, property.Name, property.BuiltInType, property.SystemType, property.IsEnum, property.AllowSubTypes, property.TypeId);
             }
             else if (valueRank >= ValueRanks.OneDimension)
             {
@@ -721,7 +726,7 @@ namespace Opc.Ua.Client.ComplexTypes
         /// <summary>
         /// Decode a scalar property based on the property type.
         /// </summary>
-        private void DecodeProperty(IDecoder decoder, string name, BuiltInType builtInType, Type systemType, bool isEnum, ExpandedNodeId typeId)
+        private void DecodeProperty(IDecoder decoder, string name, BuiltInType builtInType, Type systemType, bool isEnum, bool allowSubTypes, ExpandedNodeId typeId)
         {
             //var propertyType = property.PropertyType;
             if (systemType?.IsEnum == true)
@@ -765,20 +770,24 @@ namespace Opc.Ua.Client.ComplexTypes
                     }
                     goto case BuiltInType.Int32;
                 default:
-                    if (decoder.Context.Factory.EncodeableTypes.TryGetValue(/*ExpandedNodeId.ToNodeId(*/typeId/*, decoder.Context.NamespaceUris)*/, out var encodableType))
+                    Type encodeableType = null;
+                    if (!decoder.Context.Factory.EncodeableTypes.TryGetValue(typeId, out encodeableType))
                     {
-                        //if (decoder is XmlDecoder xmlDecoder)
-                        //{
-                        //    if (xmlDecoder.Peek("EncodingMask"))
-                        //    {
-                        //        var mask = decoder.ReadInt32("EncodingMask");// as XmlDecoder)?.Skip(new XmlQualifiedName("EncodingMask", XmlNamespace));
-                        //    }
-                        //}
-                        m_propertyDict[name] = decoder.ReadEncodeable(name, encodableType, typeId);
+                        if (typeof(IEncodeable).IsAssignableFrom(systemType))
+                        {
+                            encodeableType = systemType;
+                        }
                     }
-                    else if (typeof(IEncodeable).IsAssignableFrom(systemType))
+                    if (encodeableType != null)
                     {
-                        m_propertyDict[name] = decoder.ReadEncodeable(name, systemType, typeId);
+                        if (allowSubTypes)
+                        {
+                            m_propertyDict[name] = decoder.ReadExtensionObject(name)?.Body;
+                        }
+                        else
+                        {
+                            m_propertyDict[name] = decoder.ReadEncodeable(name, encodeableType, typeId);
+                        }
                     }
                     else
                     {
@@ -864,6 +873,10 @@ namespace Opc.Ua.Client.ComplexTypes
         /// Indicates optional structure field: important for JSON and XML encodingmask
         /// </summary>
         public bool IsOptional { get; set; }
+        /// <summary>
+        /// Indicates if subtypes are allowed: uses ExtensionObject encoding to capture the type/encoding id
+        /// </summary>
+        public bool AllowSubTypes { get; set; }
         /// <inheritdoc/>
         public ExpandedNodeId TypeId { get; set; }
         /// <inheritdoc/>
@@ -874,6 +887,8 @@ namespace Opc.Ua.Client.ComplexTypes
         public ExpandedNodeId JsonEncodingId { get; set; }
         public bool IsEnum { get; set; }
         public string XmlSchemaUri { get; set; }
+
+        public override string ToString() => $"{Name} {TypeId} {XmlEncodingId} {XmlSchemaUri}";
     }
 
 

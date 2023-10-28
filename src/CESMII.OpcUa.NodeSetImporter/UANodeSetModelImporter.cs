@@ -14,6 +14,7 @@ using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using CESMII.OpcUa.NodeSetImporter;
 using Opc.Ua.Export;
 using Microsoft.Extensions.Logging;
+using Opc.Ua;
 
 namespace CESMII.OpcUa.NodeSetModel
 {
@@ -69,10 +70,27 @@ namespace CESMII.OpcUa.NodeSetModel
         /// <exception cref="NodeSetResolverException"></exception>
         public async Task<List<NodeSetModel>> ImportNodeSetModelAsync(string nodeSetXML, string identifier = null, object tenantId = null, bool failOnExistingNodeSet = false, bool loadAllDependentModels = false)
         {
+            _opcContext.NamespaceUris.GetIndexOrAppend(Namespaces.OpcUa);
             var resolvedNodeSets = _nodeSetCacheManager.ImportNodeSets(new List<string> { nodeSetXML }, failOnExistingNodeSet, tenantId);
             if (!string.IsNullOrEmpty(resolvedNodeSets.ErrorMessage))
             {
                 throw new NodeSetResolverException($"{resolvedNodeSets.ErrorMessage}");
+            }
+
+            var firstNewNodeset = resolvedNodeSets.Models.FirstOrDefault(m => m.NewInThisImport || m.RequestedForThisImport);
+            if (firstNewNodeset?.NodeSet?.NamespaceUris?.Any() == true)
+            {
+                // Ensure namespaces are in the context and in proper order
+                var namespaces = firstNewNodeset.NodeSet.NamespaceUris.ToList();
+                if (namespaces[0] != Namespaces.OpcUa)
+                {
+                    namespaces.Insert(0, Namespaces.OpcUa);
+                }
+                namespaces.ForEach(n => _opcContext.NamespaceUris.GetIndexOrAppend(n));
+                if (!namespaces.Take(_opcContext.NamespaceUris.Count).SequenceEqual(_opcContext.NamespaceUris.ToArray().Take(namespaces.Count)))
+                {
+                    throw new Exception($"Namespace table for {firstNewNodeset} is not in the order required by the nodeset.");
+                }
             }
 
             List<NodeSetModel> allLoadedNodesetModels = new();

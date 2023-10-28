@@ -137,6 +137,13 @@ namespace NodeSetDiff
 
                     }
                 }
+                if (xPath.StartsWith("/UANodeSet/UAVariable/Value/ExtensionObject/Body")
+                    || xPath.StartsWith("/UANodeSet/UAVariableType/Value/ExtensionObject/Body"))
+                {
+                    //Structures are not ordered
+                    // TODO verify array order
+                    return ComparisonResult.EQUAL;
+                }
             }
             if (c.Type == ComparisonType.CHILD_NODELIST_LENGTH || c.Type == ComparisonType.ELEMENT_NUM_ATTRIBUTES)
             {
@@ -219,15 +226,15 @@ namespace NodeSetDiff
                                 // Differences in Alias don't change the semantics of the nodeset: ignore
                                 return ComparisonResult.EQUAL;
                             }
-                            if (detailsNonNull.Target.LocalName == "UAVariable" || detailsNonNull.Target.LocalName == "UAObject") 
+                            if (detailsNonNull.Target.LocalName == "UAVariable" || detailsNonNull.Target.LocalName == "UAObject")
                             {
                                 // Is this node referenced by one of the type system OPC UA nodes: ignore these are deprecated
                                 if (IsChildOfTypeSystemNode(detailsNonNull.Target, aliasesNonNull, namespacesNonNull))
                                 {
                                     return ComparisonResult.EQUAL;
                                 }
-                                if (new string [] { 
-                                    
+                                if (new string[] {
+
                                     BrowseNames.NamespaceMetadataType, BrowseNames.NamespaceUri, BrowseNames.NamespaceVersion, BrowseNames.NamespacePublicationDate, BrowseNames.IsNamespaceSubset, BrowseNames.StaticNodeIdTypes, BrowseNames.StaticNumericNodeIdRange, BrowseNames.StaticStringNodeIdPattern,
                                     BrowseNames.DefaultJson, BrowseNames.DefaultXml, BrowseNames.DefaultBinary,
                                 }
@@ -470,9 +477,16 @@ namespace NodeSetDiff
             //{
             //    nodeIdStr = nodeIdStr.Replace(alias.Key, alias.Value);
             //}
-            var nodeId = ExpandedNodeId.Parse(nodeIdStr, namespaces);
-            var exNodeId = new ExpandedNodeId(nodeId, namespaces.GetString(nodeId.NamespaceIndex));
-            return exNodeId.ToString();
+            try
+            {
+                var nodeId = ExpandedNodeId.Parse(nodeIdStr, namespaces);
+                var exNodeId = new ExpandedNodeId(nodeId, namespaces.GetString(nodeId.NamespaceIndex));
+                return exNodeId.ToString();
+            }
+            catch (ServiceResultException)
+            {
+                return nodeIdStr;
+            }
         }
         public static Diff DiffNodeSetFiles(string controlFileName, string testFileName)
         {
