@@ -56,8 +56,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         ILogger IOpcUaContext.Logger => _logger;
 
+        public bool UseLocalNodeIds { get; set; }
 
-        public virtual string GetNodeIdWithUri(NodeId nodeId, out string namespaceUri)
+        public virtual string GetModelNodeId(NodeId nodeId)
         {
             namespaceUri = GetNamespaceUri(nodeId.NamespaceIndex);
             if (string.IsNullOrEmpty(namespaceUri))

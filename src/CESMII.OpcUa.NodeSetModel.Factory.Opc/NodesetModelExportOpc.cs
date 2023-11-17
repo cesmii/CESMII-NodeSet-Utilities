@@ -176,6 +176,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             foreach (var uaInterface in this._model.Interfaces)
             {
                 context.Namespaces.GetIndexOrAppend(uaInterface.Namespace);
+                var referenceTypeId = context.GetModelNodeId(ReferenceTypeIds.HasInterface);
                 references.Add(new Reference
                 {
                     ReferenceType = GetNodeIdForExport(ReferenceTypeIds.HasInterface.ToString(), context),
@@ -187,7 +188,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             {
                 context.Namespaces.GetIndexOrAppend(method.Namespace);
                 var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
-                var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == method).ToList();
+                var referenceTypeId = context.GetModelNodeId(ReferenceTypeIds.HasComponent);
                 var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
                 if (otherMatchingReference != null)
                 {
@@ -202,7 +203,7 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             foreach (var uaEvent in this._model.Events)
             {
                 context.Namespaces.GetIndexOrAppend(uaEvent.Namespace);
-                var referenceTypeId = ReferenceTypeIds.GeneratesEvent.ToString();
+                var referenceTypeId = context.GetModelNodeId(ReferenceTypeIds.GeneratesEvent);
                 var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == uaEvent).ToList();
                 var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
                 if (otherMatchingReference != null)
@@ -217,11 +218,9 @@ namespace CESMII.OpcUa.NodeSetModel.Export.Opc
             }
             foreach (var variable in this._model.DataVariables)
             {
-                context.Namespaces.GetIndexOrAppend(variable.Namespace);
-                var referenceTypeId = ReferenceTypeIds.HasComponent.ToString();
-                var otherReferences = _model.OtherReferencedNodes.Where(nr => nr.Node == variable).ToList();
-                var otherMatchingReference = otherReferences.FirstOrDefault(r => (r.ReferenceType as ReferenceTypeModel).SuperType == null || (r.ReferenceType as ReferenceTypeModel)?.HasBaseType($"nsu={Namespaces.OpcUa};{referenceTypeId}") == true);
-                if (otherMatchingReference != null)
+                context.NamespaceUris.GetIndexOrAppend(variable.Namespace);
+                var referenceTypeId = context.GetModelNodeId(ReferenceTypeIds.HasComponent);
+                if (GetOtherReferenceWithDerivedReferenceType(variable, referenceTypeId) == null)
                 {
                     referenceTypeId = otherMatchingReference.ReferenceType.NodeId;
                 }

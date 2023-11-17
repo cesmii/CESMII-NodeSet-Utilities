@@ -59,6 +59,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public Dictionary<string, NodeModel> AllNodesByNodeId { get; } = new Dictionary<string, NodeModel>();
         public string HeaderComments { get; set; }
+        public int? NamespaceIndex { get; set; }
     }
     public class RequiredModelInfo
     {
@@ -84,7 +85,53 @@ namespace CESMII.OpcUa.NodeSetModel
 
         [IgnoreDataMember]
         public string Namespace { get => NodeSet?.ModelUri; }
-        public string NodeId { get; set; }
+        public string NodeId
+        {
+            get
+            {
+                if (_namespace != null)
+                {
+                    return $"nsu={_namespace};{NodeIdIdentifier}";
+                }
+                if (NodeSet.NamespaceIndex == 0)
+                {
+                    return NodeIdIdentifier;
+                }
+                return $"ns={NodeSet.NamespaceIndex};{NodeIdIdentifier}";
+            }
+            set
+            {
+                var nodeIdParts = value.Split(new[] { ';' }, 2);
+                if (nodeIdParts.Length > 1)
+                {
+                    if (nodeIdParts[0].StartsWith("nsu="))
+                    {
+                        // For use with EF proxies, we avoid accessing the NodeModel.NodeSet property. Instead save the namespace in a private _namespace variable
+                        _namespace = nodeIdParts[0].Substring("nsu=".Length);
+                    }
+                    else if (nodeIdParts[0].StartsWith("ns="))
+                    {
+                        if (NodeSet?.NamespaceIndex != null)
+                        {
+                            throw new Exception($"Invalid NodeId: node ids must be absolute.");
+                        }
+                        if (nodeIdParts[0].Substring("ns=".Length) != NodeSet?.NamespaceIndex?.ToString(CultureInfo.InvariantCulture))
+                        {
+                            throw new Exception($"Mismatching namespace index in {value}. Expected {NodeSet.NamespaceIndex}");
+                        }
+                        _namespace = null;
+                    }
+                    NodeIdIdentifier = nodeIdParts[1];
+                }
+                else
+                {
+                    NodeIdIdentifier = value;
+                }
+            }
+        }
+        private string _namespace;
+
+        public string NodeIdIdentifier { get; set; }
         public object CustomState { get; set; }
         public virtual List<string> Categories { get; set; }
 

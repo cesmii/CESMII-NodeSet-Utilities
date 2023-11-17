@@ -11,7 +11,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     {
         // OPC utilities
         NamespaceTable NamespaceUris { get; }
-        string GetNodeIdWithUri(NodeId nodeId, out string namespaceUri);
+        /// <summary>
+        /// NodeIds in the NodeModel will not use namespace URIs ("nsu=", absolute NodeIds) but namespace indices ("ns=", local NodeIds). 
+        /// Use only if the NodeModel is generated in the context of a specific OPC server, or in a specific set of nodesets that are loaded in a specific order.
+        /// </summary>
+        bool UseLocalNodeIds { get; }
+        /// <summary>
+        /// /
+        /// </summary>
+        /// <param name="nodeId"></param>
+        /// 
+        /// <returns></returns>
+        string GetModelNodeId(NodeId nodeId);
 
         // OPC NodeState cache
         NodeState GetNode(NodeId nodeId);

@@ -355,8 +355,9 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         public static bool UpdateNamespaceMetaData(this NodeSetModel _this, IOpcUaContext opcContext, bool createIfNotExist = true)
         {
             bool addedMetadata = false;
-            var metaDataTypeNodeId = new ExpandedNodeId(ObjectTypeIds.NamespaceMetadataType, Namespaces.OpcUa);
-            var metadataObjects = _this.Objects.Where(o => o.TypeDefinition.HasBaseType(metaDataTypeNodeId.ToString()) && o.Parent.NodeId == new ExpandedNodeId(ObjectIds.Server_Namespaces, Namespaces.OpcUa).ToString()).ToList();
+            var metaDataTypeNodeId = opcContext.GetModelNodeId(ObjectTypeIds.NamespaceMetadataType);
+            var serverNamespacesNodeId = opcContext.GetModelNodeId(ObjectIds.Server_Namespaces);
+            var metadataObjects = _this.Objects.Where(o => o.TypeDefinition.HasBaseType(metaDataTypeNodeId) && o.Parent.NodeId == serverNamespacesNodeId).ToList();
             var metadataObject = metadataObjects.FirstOrDefault();
             if (metadataObject == null)
             {
@@ -439,7 +440,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 if (dataType.StructureFields?.Any() == true)
                 {
                     // Ensure there's an encoding for the data type
-                    var hasEncodingNodeId = new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString();
+                    var hasEncodingNodeId = context.GetModelNodeId(ReferenceTypeIds.HasEncoding);
                     var encodingReferences = dataType.OtherReferencedNodes.Where(nr => (nr.ReferenceType as ReferenceTypeModel).HasBaseType(hasEncodingNodeId)).ToList();
 
                     foreach (var encodingBrowseName in new[] { BrowseNames.DefaultXml, BrowseNames.DefaultJson, BrowseNames.DefaultBinary })
