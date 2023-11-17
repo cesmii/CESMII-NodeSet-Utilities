@@ -106,11 +106,12 @@ namespace CESMII.OpcUa.NodeSetModel
 
             var requiredModels = new List<ModelTableEntry>();
 
-            var context = new ExportContext
+            var context = new ExportContext(logger, nodeSetModels)
             {
                 Namespaces = new NamespaceTable(new[] { Namespaces.OpcUa }),
                 Aliases = aliases,
-                EncodeJsonScalarsAsString = encodeJsonScalarsAsString,
+                ReencodeExtensionsAsJson = true,
+                EncodeJsonScalarsAsValue = encodeJsonScalarsAsValue,
                 _nodeIdsUsed = new HashSet<string>(),
                 _exportedSoFar = new Dictionary<string, UANode>(),
             };
@@ -119,7 +120,7 @@ namespace CESMII.OpcUa.NodeSetModel
             context.Namespaces = new NamespaceTable(new[] { Namespaces.OpcUa });
             foreach (var nsUri in namespaceUris)
             {
-                context.Namespaces.GetIndexOrAppend(nsUri);
+                context.NamespaceUris.GetIndexOrAppend(nsUri);
             }
             var items = ExportAllNodes(nodeSetModel, context);
 
@@ -127,7 +128,7 @@ namespace CESMII.OpcUa.NodeSetModel
             var usedAliases = aliases.Where(pk => context._nodeIdsUsed.Contains(pk.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
             // Add aliases for all nodeids from other namespaces: aliases can only be used on references, not on the definitions
-            var currentNodeSetNamespaceIndex = context.Namespaces.GetIndex(nodeSetModel.ModelUri);
+            var currentNodeSetNamespaceIndex = context.NamespaceUris.GetIndex(nodeSetModel.ModelUri);
             bool bAliasesAdded = false;
             foreach (var nodeId in context._nodeIdsUsed)
             {
@@ -135,7 +136,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 if (parsedNodeId.NamespaceIndex != currentNodeSetNamespaceIndex
                     && !usedAliases.ContainsKey(nodeId))
                 {
-                    var namespaceUri = context.Namespaces.GetString(parsedNodeId.NamespaceIndex);
+                    var namespaceUri = context.NamespaceUris.GetString(parsedNodeId.NamespaceIndex);
                     var nodeIdWithUri = new ExpandedNodeId(parsedNodeId, namespaceUri).ToString();
                     var nodeModel = nodeSetModels.Select(nm => nm.Value.AllNodesByNodeId.TryGetValue(nodeIdWithUri, out var model) ? model : null).FirstOrDefault(n => n != null);
                     var displayName = nodeModel?.DisplayName?.FirstOrDefault()?.Text;
@@ -184,7 +185,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 items = ExportAllNodes(nodeSetModel, context);
             }
 
-            var allNamespaces = context.Namespaces.ToArray();
+            var allNamespaces = context.NamespaceUris.ToArray();
             if (allNamespaces.Length > 1)
             {
                 exportedNodeSet.NamespaceUris = allNamespaces.Where(ns => ns != Namespaces.OpcUa).ToArray();
@@ -202,7 +203,7 @@ namespace CESMII.OpcUa.NodeSetModel
                 context._nodeIdsUsed = null;
                 _ = ExportAllNodes(otherModel, context);
             }
-            var allNamespacesIncludingDependencies = context.Namespaces.ToArray();
+            var allNamespacesIncludingDependencies = context.NamespaceUris.ToArray();
 
             foreach (var uaNamespace in allNamespacesIncludingDependencies.Except(namespaceUris))
             {
