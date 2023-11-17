@@ -79,11 +79,10 @@ namespace CESMII.NodeSetUtilities.Tests
 
             var importedNodeSetModel = importedNodeSetModels.FirstOrDefault();
 
-            var opcUaModel = nodeSetModels[Namespaces.OpcUa];
-            importedNodeSetModel.UpdateNamespaceMetaData(opcUaModel);
-            importedNodeSetModel.UpdateEncodings(opcUaModel);
+            importedNodeSetModel.UpdateNamespaceMetaData(opcContext);
+            importedNodeSetModel.UpdateEncodings(opcContext);
 
-            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(importedNodeSetModel, nodeSetModels);
+            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(importedNodeSetModel, nodeSetModels, logger);
 
             // Write the exported XML
             var nodeSetFileName = GetFileNameFromNamespace(importedNodeSetModel.ModelUri);

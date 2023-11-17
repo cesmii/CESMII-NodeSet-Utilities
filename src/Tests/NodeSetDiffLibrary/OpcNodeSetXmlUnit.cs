@@ -9,7 +9,6 @@ using System.Xml;
 using Opc.Ua;
 using Opc.Ua.Export;
 using System.Text;
-using System.Xml.Linq;
 using System.Text.RegularExpressions;
 
 namespace NodeSetDiff
@@ -29,8 +28,35 @@ namespace NodeSetDiff
         private readonly string _controlFile;
         private readonly string _testFile;
         private readonly bool _ignoreRequiredVersion;
-        private XDocument _controlDoc;
-        private XDocument _testDoc;
+        private XmlDocument _controlDoc;
+        private XmlDocument _testDoc;
+        private Dictionary<string, XmlElement> _controlRootCache;
+        public Dictionary<string, XmlElement> ControlRootCache
+        {
+            get
+            {
+                if (_controlRootCache == null)
+                {
+                    _controlRootCache = BuildRootElementCache(_controlDoc, _controlAliases, _controlNamespaces);
+                }
+
+                return _controlRootCache;
+            }
+        }
+        private Dictionary<string, XmlElement> _testRootCache;
+        public Dictionary<string, XmlElement> TestRootCache
+        {
+            get
+            {
+                if (_testRootCache == null)
+                {
+                    _testRootCache = BuildRootElementCache(_testDoc, _testAliases, _testNamespaces);
+                }
+
+                return _testRootCache;
+            }
+        }
+
         private UANodeSet _controlNodeSet;
         public UANodeSet ControlNodeSet
         {
@@ -206,15 +232,23 @@ namespace NodeSetDiff
                                 var nodeId = NormalizeNodeId(detailsNonNull.Target.ParentNode.ParentNode.Attributes.GetNamedItem("NodeId").Value, aliasesNonNull, namespacesNonNull);
 
                                 // Check for matching reverse references (IsForward true/false)
-                                var nullDoc = c.ControlDetails.Target == null ? _controlDoc : _testDoc;
+                                Dictionary<string, XmlElement> cache;
 
-                                var nodes = nullDoc.Root.Descendants().Where(e => NormalizeNodeId(e.Attribute("NodeId")?.Value, aliasesNull, namespacesNull) == referencedNodeId).ToList();
-                                foreach (var node in nodes)
+                                if (c.ControlDetails.Target == null)
                                 {
-                                    var matchingRefs = node.Descendants().Where(e => e.Name.LocalName == "Reference" && (e?.Attribute("IsForward")?.Value?.ToLowerInvariant() ?? "true") == (isForward ? "false" : "true")
-                                        && NormalizeNodeId(e.Value, aliasesNull, namespacesNull) == nodeId
-                                        && NormalizeNodeId(e.Attribute("ReferenceType")?.Value, aliasesNull, namespacesNull) == referenceType
-                                        ).ToList();
+                                    cache = ControlRootCache;
+                                }
+                                else
+                                {
+                                    cache = TestRootCache;
+                                }
+                                if (cache.TryGetValue(referencedNodeId, out var node))//var node = nullDoc.Root.Descendants().FirstOrDefault(e => NormalizeNodeId(e.Attribute("NodeId")?.Value, aliasesNull, namespacesNull) == referencedNodeId);//.ToList();
+                                {
+                                    var references = node.ChildNodes.OfType<XmlElement>().FirstOrDefault(e => e.Name == "References");
+                                    var matchingRefs = references.ChildNodes.OfType<XmlElement>().Where(e => e.LocalName == "Reference" && (e.GetAttributeNode("IsForward")?.Value?.ToLowerInvariant() ?? "true") == (isForward ? "false" : "true")
+                                        && NormalizeNodeId(e.InnerText, aliasesNull, namespacesNull) == nodeId
+                                        && NormalizeNodeId(e.GetAttribute("ReferenceType"), aliasesNull, namespacesNull) == referenceType
+                                        );
                                     if (matchingRefs.Any())
                                     {
                                         return ComparisonResult.EQUAL;
@@ -264,6 +298,17 @@ namespace NodeSetDiff
             }
             if (c.Type == ComparisonType.ATTR_NAME_LOOKUP)
             {
+                if (c.TestDetails.XPath == "/UANodeSet[1]/@LastModified" && c.ControlDetails.Value == null)
+                {
+                    // Ignore if control had no LastModified attribute
+                    return ComparisonResult.EQUAL;
+                }
+                if (c.TestDetails.XPath == "/UANodeSet[1]/Models[1]/Model[1]/@XmlSchemaUri" && c.ControlDetails.Value == null)
+                {
+                    // Ignore if control had no XmlSchemaUri attribute
+                    return ComparisonResult.EQUAL;
+                }
+
                 if (c.ControlDetails.XPath.EndsWith("@Locale"))
                 {
                     if (c.ControlDetails.Target.Attributes["Locale"]?.Value == "en"
@@ -353,7 +398,24 @@ namespace NodeSetDiff
             return outcome;
         }
 
-        private static bool IsChildOfTypeSystemNode(XmlNode uaNode, Dictionary<string, string> aliases, NamespaceTable namespaces)
+        private Dictionary<string, XmlElement> BuildRootElementCache(XmlDocument doc, Dictionary<string, string> aliases, NamespaceTable namespaces)
+        {
+            var cache = new Dictionary<string, XmlElement>();
+            foreach (var rootNode in doc.ChildNodes.OfType<XmlElement>().FirstOrDefault().ChildNodes.OfType<XmlElement>().ToList())//.Root.Descendants())
+            {
+                if (rootNode is XmlElement elem)
+                {
+                    var rootNodeId = NormalizeNodeId(elem.GetAttribute("NodeId"), aliases, namespaces);
+                    if (rootNodeId != null)
+                    {
+                        cache[rootNodeId] = elem;
+                    }
+                }
+            }
+            return cache;
+        }
+
+        private bool IsChildOfTypeSystemNode(XmlNode uaNode, Dictionary<string, string> aliases, NamespaceTable namespaces)
         {
             if (uaNode == null) return false;
             var reverseReferences = GetReverseReferences(uaNode);
@@ -381,11 +443,11 @@ namespace NodeSetDiff
         {
             if (_controlDoc == null)
             {
-                _controlDoc = XDocument.Parse(c.OwnerDocument.OuterXml);
+                _controlDoc = c.OwnerDocument;
             }
             if (_testDoc == null)
             {
-                _testDoc = XDocument.Parse(t.OwnerDocument.OuterXml);
+                _testDoc = t.OwnerDocument;
             }
             if (c.NodeType == XmlNodeType.Element)
             {
@@ -417,6 +479,9 @@ namespace NodeSetDiff
                             return
                                 IsEqualNodeId(c.GetAttribute("ReferenceType"), t.GetAttribute("ReferenceType"))
                                 && IsEqualNodeId(c.InnerText, t.InnerText);
+                        case "Category":
+                            return
+                                c.InnerText == t.InnerText;
                         case "Definition":
                         case "Field":
                             return
@@ -462,26 +527,71 @@ namespace NodeSetDiff
 
         private bool IsEqualNodeId(string cNodeId, string tNodeId)
         {
+            if (cNodeId == tNodeId)
+            {
+                return true;
+            }
+            if (cNodeId == null || tNodeId == null)
+            {
+                return false;
+            }
+            if (cNodeId.StartsWith("nsu=") && tNodeId.StartsWith("nsu="))
+            {
+                return cNodeId == tNodeId;
+            }
             var bEqual = NormalizeNodeId(cNodeId, _controlAliases, _controlNamespaces) == NormalizeNodeId(tNodeId, _testAliases, _testNamespaces);
             return bEqual;
         }
 
-        private static string NormalizeNodeId(string nodeIdStr, Dictionary<string, string> aliases, NamespaceTable namespaces)
+
+        private string NormalizeNodeId(string nodeIdStr, Dictionary<string, string> aliases, NamespaceTable namespaces)
         {
-            if (string.IsNullOrEmpty(nodeIdStr)) return nodeIdStr;
-            if (aliases.TryGetValue(nodeIdStr, out var value))
-            {
-                nodeIdStr = value;
-            }
-            //foreach (var alias in aliases.OrderByDescending(a => a.Key.Length))
-            //{
-            //    nodeIdStr = nodeIdStr.Replace(alias.Key, alias.Value);
-            //}
+            if (string.IsNullOrEmpty(nodeIdStr)) return null;
+
             try
             {
+                if (!nodeIdStr.StartsWith("ns=")) 
+                {
+                    //if (nodeIdStr.StartsWith("nsu=http://opcfoundation.org/UA/;"))
+                    //{
+                    //    var ns0NodeIdStr = nodeIdStr.Substring(33);
+                    //    nodeIdcache.TryAdd(nodeIdStr, ns0NodeIdStr);
+                    //    return ns0NodeIdStr;
+                    //}
+                    if (aliases.TryGetValue(nodeIdStr, out var aliasValue))
+                    {
+                        return aliasValue;
+                    }
+
+                    aliases.TryAdd(nodeIdStr, nodeIdStr);
+                    return nodeIdStr;
+                }
+                if (nodeIdStr[4]==';')
+                {
+                    uint namespaceIndex = (uint) (nodeIdStr[3] - '0');
+                    if (namespaceIndex >= 0 && namespaceIndex <= 9)
+                    {
+                        var namespaceUri = namespaces.GetString(namespaceIndex);
+                        if (namespaceUri != null)
+                        {
+                            var nsuNodeIdstr = $"nsu={namespaceUri}{nodeIdStr.Substring(4)}";
+                            aliases.TryAdd(nodeIdStr, nsuNodeIdstr);
+                            return nsuNodeIdstr;
+                        }
+                    }
+                }
+                if (aliases.TryGetValue(nodeIdStr, out var value))
+                {
+                    return value;
+                }
                 var nodeId = ExpandedNodeId.Parse(nodeIdStr, namespaces);
                 var exNodeId = new ExpandedNodeId(nodeId, namespaces.GetString(nodeId.NamespaceIndex));
-                return exNodeId.ToString();
+                var exNodeIdStr = exNodeId.ToString();
+                if (!aliases.TryAdd(nodeIdStr, exNodeIdStr)) // Cache for performance
+                {
+
+                }
+                return exNodeIdStr;
             }
             catch (ServiceResultException)
             {
@@ -513,7 +623,7 @@ namespace NodeSetDiff
                     .Replace($"DataType=\"{alias.Value}\"", $"DataType=\"{alias.Key}\"")
                     ;
             }
-            GeneratedSortedXmlFile(testFileName, aliasTestFile, controlFile);
+            //GeneratedSortedXmlFile(testFileName, aliasTestFile, controlFile);
             //GeneratedSortedXmlFile(testFileName, aliasTestFile);
             //GeneratedSortedXmlFile(controlFileName, controlFile);
 
@@ -524,7 +634,7 @@ namespace NodeSetDiff
                      .WithTest(Input.FromString(testFile))
                      .CheckForSimilar()
                      .WithDifferenceEvaluator(diffHelper.OpcNodeSetDifferenceEvaluator)
-                     .WithNodeMatcher(new DefaultNodeMatcher(new ElementSelector[] { diffHelper.OpcElementSelector }))
+                     .WithNodeMatcher(new OpcNodeMatcher(diffHelper))
                      .WithAttributeFilter(a =>
                         !((
                             a.LocalName == "ParentNodeId" // ParentNodeId is not part of the address space/information model, ignore entirely
@@ -680,7 +790,6 @@ namespace NodeSetDiff
             using (var nodeSetStream = File.OpenRead(file))
             {
                 UANodeSet nodeSet = UANodeSet.Read(nodeSetStream);
-                var aliases = nodeSet.Aliases?.ToDictionary(a => a.Alias, a => a.Value) ?? new Dictionary<string, string>();
                 if (nodeSet.NamespaceUris?.Any() == true)
                 {
                     foreach (var ns in nodeSet.NamespaceUris)
@@ -688,6 +797,12 @@ namespace NodeSetDiff
                         namespaces.GetIndexOrAppend(ns);
                     }
                 }
+                // Normalize aliases to expanded nodeid
+                var aliases = nodeSet.Aliases?.ToDictionary(a => a.Alias, a => 
+                    a.Value.StartsWith("ns=") 
+                    ? NodeId.ToExpandedNodeId(ExpandedNodeId.Parse(a.Value, namespaces), namespaces).ToString()
+                    : a.Value)
+                    ?? new Dictionary<string, string>();
                 return (namespaces, aliases);
             }
         }
