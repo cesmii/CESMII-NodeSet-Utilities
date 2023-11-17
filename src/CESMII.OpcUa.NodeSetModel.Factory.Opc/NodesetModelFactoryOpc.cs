@@ -240,11 +240,29 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var method = Create<MethodModelFactoryOpc, MethodModel>(opcContext, methodState, parent?.CustomState, recursionDepth);
                     AddChildIfNotExists(parent, parent?.Methods, method, opcContext.Logger, organizesNodeId);
                 }
+                else if(referencedNode is PropertyState propertyState)
+                {
+                    // Not allowed per spec, but tolerate (treat as Property)
+                    var parent = parentFactory();
+                    var property = Create<PropertyModelFactoryOpc, PropertyModel>(opcContext, propertyState, parent?.CustomState, recursionDepth);
+                    AddChildIfNotExists(parent, parent?.Properties, property, opcContext.Logger, organizesNodeId);
+                    var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _, recursionDepth) as ReferenceTypeModel;
+                    if (referenceTypes[0].NodeId != ReferenceTypeIds.HasComponent)
+                    {
+                        // Preserve the more specific reference type as well
+                        var nodeAndReference = new NodeModel.NodeAndReference { Node = property, ReferenceType = referenceTypeModel };
+                        AddChildIfNotExists(parent, parent?.OtherReferencedNodes, nodeAndReference, opcContext.Logger, organizesNodeId, false);
+                    }
                 }
                 else
                 {
-                    opcContext.Logger.LogWarning($"Ignoring component {referencedNode} with unexpected node type {referencedNode.GetType()}");
+                    var parent = parentFactory();
+                    if (referencedNode != null)
+                    {
+                        throw new Exception($"Property {referencedNode} has unexpected type {referencedNode.GetType()} in {parent}");
                 }
+                    throw new Exception($"Property {referencedNode} not found in {parent}");
+            }
             }
             else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HasProperty))
             {
@@ -306,10 +324,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 else
                 {
                     var parent = parentFactory();
-                    opcContext.Logger.LogWarning($"Ignoring property reference {referencedNode} with unexpected type {referencedNode.GetType()} in {parent}");
+                    if (referencedNode != null)
+                    {
+                        throw new Exception($"Property {referencedNode} has unexpected type {referencedNode.GetType()} in {parent}");
+                }
+                    throw new Exception($"Property {referencedNode} not found in {parent}");
+
                 }
             }
-
             else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HasInterface))
             {
                 // NodeModel.Interfaces
@@ -332,7 +354,11 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 else
                 {
                     var parent = parentFactory();
-                    opcContext.Logger.LogWarning($"Ignoring interface {referencedNode} with unexpected type {referencedNode.GetType()} in {parent}");
+                    if (referencedNode != null)
+                    {
+                        throw new Exception($"Interface {referencedNode} has unexpected type {referencedNode.GetType()} in {parent}");
+                    }
+                    throw new Exception($"Interface {referencedNode} not found in {parent}");
                 }
             }
             //else if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.Organizes))
@@ -377,7 +403,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
                 else
                 {
-                    throw new Exception($"Unexpected event type {referencedNode}");
+                    var parent = parentFactory();
+                    throw new Exception($"Unexpected event type {referencedNode} in {parent}");
                 }
             }
             else
@@ -401,7 +428,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
                 else
                 {
-                    opcContext.Logger.LogWarning($"Ignoring reference {referenceTypes.FirstOrDefault()} from {parent} to {referencedNode}: unable to resolve node.");
+                    new Exception($"Failed to resolve reference {referenceTypes.FirstOrDefault()} from {parent} to {referencedNode}.");
                 }
                 // Potential candidates for first class representation in the model:
                 // {ns=1;i=6030} - ConnectsTo / Hierarchical
