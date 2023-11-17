@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -142,12 +142,12 @@ namespace CESMII.OpcUa.NodeSetModel
                 var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/UA/")?.AvailableModel;
 #pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
                 return
-                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
-                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasInterface")), Node = p }))
-                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("GeneratesEvent")), Node = p }))
+                    this.Properties.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasInterface")), Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("GeneratesEvent")), Node = p }))
                     .Concat(this.OtherReferencedNodes)
                     ;
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -206,8 +206,6 @@ namespace CESMII.OpcUa.NodeSetModel
         public class NodeAndReference : IEquatable<NodeAndReference>
         {
             public virtual NodeModel Node { get; set; }
-            [Obsolete("Use ReferenceType instead")]
-            public string Reference { get; set; }
             public virtual NodeModel ReferenceType { get; set; }
 
             public override bool Equals(object obj)
@@ -227,9 +225,11 @@ namespace CESMII.OpcUa.NodeSetModel
 
             public override int GetHashCode()
             {
-#pragma warning disable CS0618 // Type or member is obsolete
-                return HashCode.Combine(Node, Reference, ReferenceType);
-#pragma warning restore CS0618 // Type or member is obsolete
+#if !NETSTANDARD2_0
+                return HashCode.Combine(Node, ReferenceType);
+#else
+                return HashCode.Combine(Node, ReferenceType, "");
+#endif
             }
 
             public static bool operator ==(NodeAndReference left, NodeAndReference right)
