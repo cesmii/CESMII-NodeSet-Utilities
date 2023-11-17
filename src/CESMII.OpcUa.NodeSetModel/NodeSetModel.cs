@@ -250,6 +250,11 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();
         public virtual List<NodeAndReference> OtherReferencingNodes { get; set; } = new List<NodeAndReference>();
 
+        /// <summary>
+        /// Indicates that Properties, DataVariables, OtherReferencedNodes etc. have not been populated. Use to support incremental rendering of the node model graph.
+        /// </summary>
+        public bool ReferencesNotResolved { get; set; }
+
         internal virtual bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
             if (updatedNodes.Contains(this.NodeId))
@@ -586,7 +591,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public class StructureField
         {
             public string Name { get; set; }
-            public string SymbolicName { get;set; }
+            public string SymbolicName { get; set; }
             public virtual BaseTypeModel DataType { get; set; }
             /// <summary>
             /// n > 1: the Value is an array with the specified number of dimensions.

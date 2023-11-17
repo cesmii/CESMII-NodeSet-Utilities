@@ -114,13 +114,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return Task.FromResult(loadedModels);
         }
     }
-    public class NodeModelFactoryOpc<T> where T : NodeModel, new()
+    public class NodeModelFactoryOpc<TNodeModel> where TNodeModel : NodeModel, new()
     {
-
-        protected T _model;
+        protected TNodeModel _model;
         protected ILogger Logger;
 
-        protected virtual void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected virtual void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
             Logger.LogTrace($"Creating node model for {opcNode}");
             // TODO capture multiple locales from a nodeset: UA library seems to offer only one locale
@@ -139,6 +138,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 _model.Categories.AddRange(opcNode.Categories);
             }
             _model.Documentation = opcNode.NodeSetDocumentation;
+
+            if (recursionDepth <= 0)
+            {
+                _model.ReferencesNotResolved = true;
+                return;
+            }
+
+            recursionDepth--;
+            _model.ReferencesNotResolved = false;
 
             var references = opcContext.GetHierarchyReferences(opcNode);
 
@@ -162,18 +170,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     // TODO UANodeSet.Import should already handle inverse references: investigate why these are not processed
                     // Workaround for now:
                     AddChildToNodeModel(
-                        () => NodeModelFactoryOpc<T>.Create(opcContext, referencedNode, this._model.CustomState, out _),
-                        opcContext, referenceType, referenceTypes, opcNode);
+                        () => NodeModelFactoryOpc<TNodeModel>.Create(opcContext, referencedNode, this._model.CustomState, out _, recursionDepth),
+                        opcContext, referenceType, referenceTypes, opcNode, recursionDepth);
                 }
                 else
                 {
-                    AddChildToNodeModel(() => this._model, opcContext, referenceType, referenceTypes, referencedNode);
+                    AddChildToNodeModel(() => this._model, opcContext, referenceType, referenceTypes, referencedNode, recursionDepth);
                 }
             }
             Logger.LogTrace($"Created node model {this._model} for {opcNode}");
         }
 
-        private static void AddChildToNodeModel(Func<NodeModel> parentFactory, IOpcUaContext opcContext, ReferenceTypeState referenceType, List<BaseTypeState> referenceTypes, NodeState referencedNode)
+        private static void AddChildToNodeModel(Func<NodeModel> parentFactory, IOpcUaContext opcContext, ReferenceTypeState referenceType, List<BaseTypeState> referenceTypes, NodeState referencedNode, int recursionDepth)
         {
             var organizesNodeId = opcContext.GetModelNodeId(ReferenceTypeIds.Organizes);
             if (referenceTypes.Any(n => n.NodeId == ReferenceTypeIds.HasComponent))
@@ -182,11 +190,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     // NodeModel.Objects
                     var parent = parentFactory();
-                    var uaChildObject = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, objectState, parent?.CustomState);
+                    var uaChildObject = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, objectState, parent?.CustomState, recursionDepth);
                     if (uaChildObject != null)
                     {
-                        var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
-
+                        var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _, recursionDepth) as ReferenceTypeModel;
                         if (parent?.Namespace != uaChildObject.Namespace)
                         {
                             // Add the reverse reference to the referencing node (parent)
@@ -271,6 +278,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedNode is PropertyState propertyState)
                 {
                     var parent = parentFactory();
+                    var property = Create<PropertyModelFactoryOpc, PropertyModel>(opcContext, propertyState, parent?.CustomState, recursionDepth);
                     AddChildIfNotExists(parent, parent?.Properties, property, opcContext.Logger, organizesNodeId);
                     var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _, recursionDepth) as ReferenceTypeModel;
                     if (referenceTypes[0].NodeId != ReferenceTypeIds.HasProperty)
@@ -284,6 +292,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     // Surprisingly, properties can also be of type DataVariable
                     var parent = parentFactory();
+                    var variable = Create<DataVariableModelFactoryOpc, DataVariableModel>(opcContext, variableState, parent?.CustomState, recursionDepth);
                     AddChildIfNotExists(parent, parent?.Properties, variable, opcContext.Logger, organizesNodeId);
                     var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _, recursionDepth) as ReferenceTypeModel;
                     if (referenceTypes[0].NodeId != ReferenceTypeIds.HasProperty)
@@ -306,7 +315,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedNode is BaseObjectTypeState interfaceTypeState)
                 {
                     var parent = parentFactory();
-                    var uaInterface = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent?.CustomState);
+                    var uaInterface = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, interfaceTypeState, parent?.CustomState, recursionDepth);
                     if (uaInterface != null)
                     {
                         AddChildIfNotExists(parent, parent?.Interfaces, uaInterface, opcContext.Logger, organizesNodeId);
@@ -352,7 +361,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (referencedNode is BaseObjectTypeState eventTypeState)
                 {
                     var parent = parentFactory();
-                    var uaEvent = Create<ObjectTypeModelFactoryOpc, ObjectTypeModel>(opcContext, eventTypeState, parent?.CustomState);
+                    var uaEvent = Create<ObjectTypeModelFactoryOpc, ObjectTypeModel>(opcContext, eventTypeState, parent?.CustomState, recursionDepth);
                     if (uaEvent != null)
                     {
                         AddChildIfNotExists(parent, parent?.Events, uaEvent, opcContext.Logger, organizesNodeId);
@@ -374,10 +383,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 // NodeModel.OtherReferencedNodes
                 var parent = parentFactory();
-                var referencedModel = Create(opcContext, referencedNode, parent?.CustomState, out _);
+                var referencedModel = Create(opcContext, referencedNode, parent?.CustomState, out _, recursionDepth);
                 if (referencedModel != null)
                 {
-                    var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _) as ReferenceTypeModel;
+                    var referenceTypeModel = ReferenceTypeModelFactoryOpc.Create(opcContext, referenceType, null, out _, recursionDepth) as ReferenceTypeModel;
                     var nodeAndReference = new NodeModel.NodeAndReference
                     {
                         Node = referencedModel,
@@ -585,54 +594,54 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
 
 
-        public static NodeModel Create(IOpcUaContext opcContext, NodeState node, object customState, out bool added)
+        public static NodeModel Create(IOpcUaContext opcContext, NodeState node, object customState, out bool added, int recursionDepth = int.MaxValue)
         {
             NodeModel nodeModel;
             added = true;
             if (node is DataTypeState dataType)
             {
-                nodeModel = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType, customState);
+                nodeModel = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType, customState, recursionDepth);
             }
             else if (node is BaseVariableTypeState variableType)
             {
-                nodeModel = Create<VariableTypeModelFactoryOpc, VariableTypeModel>(opcContext, variableType, customState);
+                nodeModel = Create<VariableTypeModelFactoryOpc, VariableTypeModel>(opcContext, variableType, customState, recursionDepth);
             }
             else if (node is BaseObjectTypeState objectType)
             {
                 if (objectType.IsAbstract && GetBaseTypes(opcContext, objectType).Any(n => n.NodeId == ObjectTypeIds.BaseInterfaceType))
                 {
-                    nodeModel = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, objectType, customState);
+                    nodeModel = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, objectType, customState, recursionDepth);
                 }
                 else
                 {
-                    nodeModel = Create<ObjectTypeModelFactoryOpc, ObjectTypeModel>(opcContext, objectType, customState);
+                    nodeModel = Create<ObjectTypeModelFactoryOpc, ObjectTypeModel>(opcContext, objectType, customState, recursionDepth);
                 }
             }
             else if (node is BaseObjectState uaObject)
             {
-                nodeModel = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, uaObject, customState);
+                nodeModel = Create<ObjectModelFactoryOpc, ObjectModel>(opcContext, uaObject, customState, recursionDepth);
             }
             else if (node is PropertyState property)
             {
-                nodeModel = Create<PropertyModelFactoryOpc, PropertyModel>(opcContext, property, customState);
+                nodeModel = Create<PropertyModelFactoryOpc, PropertyModel>(opcContext, property, customState, recursionDepth);
             }
             else if (node is BaseDataVariableState dataVariable)
             {
-                nodeModel = Create<DataVariableModelFactoryOpc, DataVariableModel>(opcContext, dataVariable, customState);
+                nodeModel = Create<DataVariableModelFactoryOpc, DataVariableModel>(opcContext, dataVariable, customState, recursionDepth);
             }
             else if (node is MethodState methodState)
             {
-                nodeModel = Create<MethodModelFactoryOpc, MethodModel>(opcContext, methodState, customState);
+                nodeModel = Create<MethodModelFactoryOpc, MethodModel>(opcContext, methodState, customState, recursionDepth);
             }
             else if (node is ReferenceTypeState referenceState)
             {
-                nodeModel = Create<ReferenceTypeModelFactoryOpc, ReferenceTypeModel>(opcContext, referenceState, customState);
+                nodeModel = Create<ReferenceTypeModelFactoryOpc, ReferenceTypeModel>(opcContext, referenceState, customState, recursionDepth);
             }
             else
             {
                 if (!(node is ViewState))
                 {
-                    nodeModel = Create<NodeModelFactoryOpc<T>, T>(opcContext, node, customState);
+                    nodeModel = Create<NodeModelFactoryOpc<TNodeModel>, TNodeModel>(opcContext, node, customState, recursionDepth);
                 }
                 else
                 {
@@ -670,7 +679,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
 
 
-        protected static TNodeModel Create<TNodeModelOpc, TNodeModel>(IOpcUaContext opcContext, NodeState opcNode, object customState) where TNodeModelOpc : NodeModelFactoryOpc<TNodeModel>, new() where TNodeModel : NodeModel, new()
+        protected static TNodeModel2 Create<TNodeModelOpc, TNodeModel2>(IOpcUaContext opcContext, NodeState opcNode, object customState, int recursionDepth) where TNodeModelOpc : NodeModelFactoryOpc<TNodeModel2>, new() where TNodeModel2 : NodeModel, new()
         {
             var nodeId = opcContext.GetModelNodeId(opcNode.NodeId);
 
@@ -681,12 +690,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 // Node was captured into a parent: don't create separate model for it
                 return null;
             }
-
-            var nodeModel = Create<TNodeModel>(opcContext, nodeId, new ModelTableEntry { ModelUri = namespaceUri }, customState, out var created);
+            string namespaceUri = opcContext.NamespaceUris.GetString(opcNode.NodeId.NamespaceIndex);
+            var nodeModel = Create<TNodeModel2>(opcContext, nodeId, new ModelTableEntry { ModelUri = namespaceUri }, customState, out var created);
             var nodeModelOpc = new TNodeModelOpc { _model = nodeModel, Logger = opcContext.Logger };
-            if (created)
+            if (created || nodeModel.ReferencesNotResolved)
             {
-                nodeModelOpc.Initialize(opcContext, opcNode);
+                nodeModelOpc.Initialize(opcContext, opcNode, recursionDepth);
             }
             else
             {
@@ -695,7 +704,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return nodeModel;
         }
 
-        public static TNodeModel Create<TNodeModel>(IOpcUaContext opcContext, string nodeId, ModelTableEntry opcModelInfo, object customState, out bool created) where TNodeModel : NodeModel, new()
+        public static TNodeModel2 Create<TNodeModel2>(IOpcUaContext opcContext, string nodeId, ModelTableEntry opcModelInfo, object customState, out bool created) where TNodeModel2 : NodeModel, new()
         {
             created = false;
             opcContext.NamespaceUris.GetIndexOrAppend(opcModelInfo.ModelUri); // Ensure the namespace is in the namespace table
@@ -705,19 +714,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             {
                 if (nodeModelBase != null)
                 {
-                    throw new Exception($"Internal error - Type mismatch for node {nodeId}: NodeModel of type {typeof(TNodeModel)} was previously created with type {nodeModelBase.GetType()}.");
+                    throw new Exception($"Internal error - Type mismatch for node {nodeId}: NodeModel of type {typeof(TNodeModel2)} was previously created with type {nodeModelBase.GetType()}.");
                 }
-                nodeModel = new TNodeModel();
-                nodeModel.NodeId = nodeId;
-                nodeModel.CustomState = customState;
-                created = true;
-
                 var nodesetModel = opcContext.GetOrAddNodesetModel(opcModelInfo);
+
+                nodeModel = new TNodeModel2();
+                nodeModel.NodeSet = nodesetModel;
                 if (nodesetModel.CustomState == null)
                 {
                     nodesetModel.CustomState = customState;
                 }
-                nodeModel.NodeSet = nodesetModel;
+                nodeModel.NodeId = nodeId;
+                nodeModel.CustomState = customState;
+                created = true;
+
                 if (!nodesetModel.AllNodesByNodeId.ContainsKey(nodeModel.NodeId))
                 {
                     nodesetModel.AllNodesByNodeId.Add(nodeModel.NodeId, nodeModel);
@@ -767,7 +777,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     // Node already processed
                     opcContext.Logger.LogWarning($"Node {nodeModel} was already in the nodeset model.");
                 }
-
             }
             if (customState != null && nodeModel != null && nodeModel.CustomState == null)
             {
@@ -783,14 +792,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         where TBaseTypeModel : NodeModel, new()
         where TBaseTypeModelFactoryOpc : NodeModelFactoryOpc<TBaseTypeModel>, new()
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             var uaInstance = opcNode as BaseInstanceState;
             var variableTypeDefinition = opcContext.GetNode(uaInstance.TypeDefinitionId);
             if (variableTypeDefinition != null) //is BaseTypeState)
             {
-                var typeDefModel = NodeModelFactoryOpc.Create(opcContext, variableTypeDefinition, _model.CustomState, out _); // Create<TBaseTypeModelFactoryOpc, TBaseTypeModel>(opcContext, variableTypeDefinition, null);
+                var typeDefModel = NodeModelFactoryOpc.Create(opcContext, variableTypeDefinition, _model.CustomState, out _, recursionDepth -1); // Create<TBaseTypeModelFactoryOpc, TBaseTypeModel>(opcContext, variableTypeDefinition, null);
                 _model.TypeDefinition = typeDefModel as TBaseTypeModel;
                 if (_model.TypeDefinition == null)
                 {
@@ -810,7 +819,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             if (uaInstance.Parent != null)
             {
-                var instanceParent = NodeModelFactoryOpc.Create(opcContext, uaInstance.Parent, null, out _);
+                var instanceParent = NodeModelFactoryOpc.Create(opcContext, uaInstance.Parent, null, out _, recursionDepth - 1);
                 _model.Parent = instanceParent;
                 if (_model.Parent != instanceParent)
                 {
@@ -827,9 +836,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class BaseTypeModelFactoryOpc<TBaseTypeModel> : NodeModelFactoryOpc<TBaseTypeModel> where TBaseTypeModel : BaseTypeModel, new()
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             var uaType = opcNode as BaseTypeState;
 
             if (uaType.SuperTypeId != null)
@@ -879,12 +888,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     public class VariableModelFactoryOpc<TVariableModel> : InstanceModelFactoryOpc<TVariableModel, VariableTypeModel, VariableTypeModelFactoryOpc>
         where TVariableModel : VariableModel, new()
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             var variableNode = opcNode as BaseVariableState;
 
-            InitializeDataTypeInfo(_model, opcContext, variableNode);
+            InitializeDataTypeInfo(_model, opcContext, variableNode, recursionDepth);
             if (variableNode.AccessLevelEx != 1) _model.AccessLevel = variableNode.AccessLevelEx;
             // deprecated if (variableNode.UserAccessLevel != 1) _model.UserAccessLevel = variableNode.UserAccessLevel;
             if (variableNode.AccessRestrictions != 0) _model.AccessRestrictions = (ushort)variableNode.AccessRestrictions;
@@ -909,7 +918,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             if (string.IsNullOrEmpty(this._model.NodeSet.XmlSchemaUri) && variableNode.TypeDefinitionId == VariableTypeIds.DataTypeDictionaryType)
             {
                 var namespaceUriModelBrowseName = opcContext.GetModelBrowseName(BrowseNames.NamespaceUri);
-                if (_model.Parent.NodeId == opcContext.GetNodeIdWithUri(ObjectIds.XmlSchema_TypeSystem, out _))
+                var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == namespaceUriModelBrowseName);
                 if (_model.Parent.NodeId == opcContext.GetModelNodeId(ObjectIds.XmlSchema_TypeSystem))
                 {
                     if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))
@@ -926,9 +935,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
         }
 
-        internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode)
+        internal static void InitializeDataTypeInfo(VariableModel _model, IOpcUaContext opcContext, BaseVariableState variableNode, int recursionDepth)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, $"{variableNode.GetType()} {variableNode}", variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(_model, opcContext, $"{variableNode.GetType()} {variableNode}", variableNode.DataType, variableNode.ValueRank, variableNode.ArrayDimensions, variableNode.WrappedValue, recursionDepth);
         }
     }
 
@@ -942,9 +951,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class MethodModelFactoryOpc : InstanceModelFactoryOpc<MethodModel, MethodModel, MethodModelFactoryOpc> // TODO determine if intermediate base classes of MethodState are worth exposing in the model
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             if (opcNode is MethodState methodState)
             {
                 var references = opcContext.GetHierarchyReferences(methodState);
@@ -1001,7 +1010,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
         }
 
-        private void ProcessMethodArguments(MethodModel methodModel, string browseName, VariableModel argumentVariable, List<VariableModel> modelArguments, IOpcUaContext opcContext)
+        private void ProcessMethodArguments(MethodModel methodModel, string browseName, VariableModel argumentVariable, List<VariableModel> modelArguments, IOpcUaContext opcContext, int recursionDepth)
         {
             var arguments = NodeModelUtils.JsonDecodeVariant(argumentVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }, argumentVariable.DataType, true); // TODO get from opcContext!
             if (arguments.Value != null)
@@ -1013,7 +1022,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var dataTypeStateObj = opcContext.GetNode(arg.DataType);
                     if (dataTypeStateObj is DataTypeState dataTypeState)
                     {
-                        var dataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataTypeState, null);
+                        var dataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataTypeState, null, recursionDepth);
 
                         var argumentDescription = _model.OtherReferencedNodes
                             .FirstOrDefault(nr => nr.Node.GetUnqualifiedBrowseName() == arg.Name
@@ -1031,10 +1040,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                                 Description = arg.Description?.ToModel(),
                                 NodeSet = argumentVariable.NodeSet,
                                 NodeId = argumentVariable.NodeId,
-                                NodeSet = argumentVariable.NodeSet,
                                 CustomState = argumentVariable.CustomState,
                             };
-                            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(argumentModel, opcContext, $"Method {_model} Argument {arg.Name}", arg.DataType, arg.ValueRank, new ReadOnlyList<uint>(arg.ArrayDimensions, false), new Variant(arg.Value));
+                            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(argumentModel, opcContext, $"Method {_model} Argument {arg.Name}", arg.DataType, arg.ValueRank, new ReadOnlyList<uint>(arg.ArrayDimensions, false), new Variant(arg.Value), recursionDepth);
                         }
                         else
                         {
@@ -1070,28 +1078,28 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class VariableTypeModelFactoryOpc : BaseTypeModelFactoryOpc<VariableTypeModel>
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             var variableTypeState = opcNode as BaseVariableTypeState;
-            InitializeDataTypeInfo(_model, opcContext, variableTypeState);
+            InitializeDataTypeInfo(_model, opcContext, variableTypeState, recursionDepth);
             //variableTypeState.ValueRank
             //variableTypeState.Value
             //variableTypeState.ArrayDimensions
             //_model.
         }
 
-        internal static void InitializeDataTypeInfo(VariableTypeModel model, IOpcUaContext opcContext, BaseVariableTypeState variableTypeNode)
+        internal static void InitializeDataTypeInfo(VariableTypeModel model, IOpcUaContext opcContext, BaseVariableTypeState variableTypeNode, int recursionDepth)
         {
-            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, $"{variableTypeNode.GetType()} {variableTypeNode}", variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue);
+            VariableTypeModelFactoryOpc.InitializeDataTypeInfo(model, opcContext, $"{variableTypeNode.GetType()} {variableTypeNode}", variableTypeNode.DataType, variableTypeNode.ValueRank, variableTypeNode.ArrayDimensions, variableTypeNode.WrappedValue, recursionDepth);
         }
 
-        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, string variableNodeDiagInfo, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue)
+        internal static void InitializeDataTypeInfo(IVariableDataTypeInfo model, IOpcUaContext opcContext, string variableNodeDiagInfo, NodeId dataTypeNodeId, int valueRank, ReadOnlyList<uint> arrayDimensions, Variant wrappedValue, int recursionDepth)
         {
             var dataType = opcContext.GetNode(dataTypeNodeId);
             if (dataType is DataTypeState)
             {
-                model.DataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null);
+                model.DataType = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null, recursionDepth);
             }
             else
             {
@@ -1122,9 +1130,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
     }
     public class DataTypeModelFactoryOpc : BaseTypeModelFactoryOpc<DataTypeModel>
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
 
             var dataTypeState = opcNode as DataTypeState;
             if (dataTypeState.DataTypeDefinition?.Body != null)
@@ -1148,7 +1156,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         var dataType = opcContext.GetNode(field.DataType);
                         if (dataType is DataTypeState)
                         {
-                            var dataTypeModel = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null);
+                            var dataTypeModel = Create<DataTypeModelFactoryOpc, DataTypeModel>(opcContext, dataType as DataTypeState, null, recursionDepth);
                             if (dataTypeModel == null)
                             {
                                 throw new Exception($"Unable to resolve data type {dataType.DisplayName}");
@@ -1227,9 +1235,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class ReferenceTypeModelFactoryOpc : BaseTypeModelFactoryOpc<ReferenceTypeModel>
     {
-        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode)
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
         {
-            base.Initialize(opcContext, opcNode);
+            base.Initialize(opcContext, opcNode, recursionDepth);
             var referenceTypeState = opcNode as ReferenceTypeState;
 
             _model.InverseName = referenceTypeState.InverseName?.ToModel();
