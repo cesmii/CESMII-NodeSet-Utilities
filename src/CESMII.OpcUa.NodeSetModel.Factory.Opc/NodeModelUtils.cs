@@ -9,6 +9,10 @@ using Microsoft.Extensions.Logging;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -28,14 +32,16 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public static string JsonEncodeVariant(Variant value, bool reencodeExtensionsAsJson = false)
         {
-            return JsonEncodeVariant(null, value, null, reencodeExtensionsAsJson = false);
+            return JsonEncodeVariant(null, value, null, reencodeExtensionsAsJson = false).Json;
         }
         public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, bool reencodeExtensionsAsJson = false)
         {
-            return JsonEncodeVariant(systemContext, value, null, reencodeExtensionsAsJson);
+            return JsonEncodeVariant(systemContext, value, null, reencodeExtensionsAsJson).Json;
         }
-        public static string JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType, bool reencodeExtensionsAsJson = false, bool encodeJsonScalarsAsValues = false)
+        public static (string Json, bool IsScalar) JsonEncodeVariant(ISystemContext systemContext, Variant value, DataTypeModel dataType, bool reencodeExtensionsAsJson = false, bool encodeJsonScalarsAsValues = false)
         {
+            bool isScalar = false;
+
             ServiceMessageContext context;
             if (systemContext != null)
             {
@@ -101,9 +107,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
                 string encodedValue;
                 NodeModelOpcExtensions.JsonValueType jsonValueType;
-                if (encodeJsonScalarsAsValues &&
+                if (encodeJsonScalarsAsValues && dataType != null &&
                     ((jsonValueType = dataType.GetJsonValueType()) == NodeModelOpcExtensions.JsonValueType.Value || jsonValueType == NodeModelOpcExtensions.JsonValueType.String))
                 {
+                    isScalar = true;
                     if (parsedValue["Value"]["Body"] is JValue jValue)
                     {
                         if (jValue.Value is string stringValue)
@@ -141,10 +148,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
                 else
                 {
-                    encodedValue = parsedValue["Value"].ToString(Newtonsoft.Json.Formatting.None);
+                    encodedValue = parsedValue["Value"]?.ToString(Newtonsoft.Json.Formatting.None);
                 }
 
-                return encodedValue;
+                return (encodedValue, isScalar);
             }
         }
 
@@ -337,6 +344,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
         }
 
+        public static DataTypeModel GetDataTypeModel(IOpcUaContext opcContext, Variant field)
+        {
+            var builtinType = field.TypeInfo.BuiltInType;
+            var dataTypeNodeId = opcContext.GetModelNodeId(new NodeId((uint)builtinType));
+            var dataTypeModel = opcContext.GetModelForNode<DataTypeModel>(dataTypeNodeId);
+            return dataTypeModel;
+        }
+
         public static string ReadHeaderComment(string nodeSetXml)
         {
             string headerComments = "";
@@ -357,7 +372,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     } while (!firstLine.Contains("-->"));
                     sbHeaderComment.AppendLine(firstLine);
                     headerComments = sbHeaderComment.ToString();
-            }
+                }
                 //var doc = XElement.Load(nodesetXmlReader);
                 //var comments = doc.DescendantNodes().OfType<XComment>();
                 //foreach (XComment comment in comments)
@@ -382,17 +397,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             public NodeId FindSuperType(NodeId typeId)
             {
-                var expandedNodeId = new ExpandedNodeId(typeId, _namespaceUris.GetString(typeId.NamespaceIndex)).ToString();
                 var type = this._dataType;
                 do
                 {
-                    if (type.NodeId == expandedNodeId)
+                    if (ExpandedNodeId.Parse(type.NodeId, _namespaceUris) == typeId)
                     {
                         return ExpandedNodeId.Parse(type.SuperType.NodeId, _namespaceUris);
                     }
                     type = type.SuperType as DataTypeModel;
                 } while (type != null);
                 return null;
+            }
+            public Task<NodeId> FindSuperTypeAsync(NodeId typeId, CancellationToken ct = default)
+            {
+                return Task.FromResult(FindSuperType(typeId));
             }
 
 
@@ -422,6 +440,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
 
             public NodeId FindSuperType(ExpandedNodeId typeId)
+            {
+                throw new NotImplementedException();
+            }
+            public Task<NodeId> FindSuperTypeAsync(ExpandedNodeId typeId, CancellationToken ct = default)
             {
                 throw new NotImplementedException();
             }

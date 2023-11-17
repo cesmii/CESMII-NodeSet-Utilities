@@ -33,7 +33,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         NodeSetModel GetOrAddNodesetModel(ModelTableEntry model, bool createNew = true);
         TNodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel;
         ILogger Logger { get; }
-        string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null);
+        (string Json, bool IsScalar) JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null);
+        Variant JsonDecodeVariant(string jsonVariant, DataTypeModel dataType = null);
         List<NodeState> ImportUANodeSet(UANodeSet nodeSet);
         UANodeSet GetUANodeSet(string modeluri);
         

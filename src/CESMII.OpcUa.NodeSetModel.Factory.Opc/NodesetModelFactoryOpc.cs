@@ -938,8 +938,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))
                     {
-                        var variant = NodeModelUtils.JsonDecodeVariant(xmlNamespaceVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris },
-                            opcContext.GetModelForNode<DataTypeModel>($"nsu={Namespaces.OpcUa};{DataTypeIds.String}"), true);
+                        var variant = opcContext.JsonDecodeVariant(xmlNamespaceVariable.Value);
                         var namespaceUri = variant.Value as string;
                         if (!string.IsNullOrEmpty(namespaceUri))
                         {
@@ -1027,7 +1026,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         private void ProcessMethodArguments(MethodModel methodModel, string browseName, VariableModel argumentVariable, List<VariableModel> modelArguments, IOpcUaContext opcContext, int recursionDepth)
         {
-            var arguments = NodeModelUtils.JsonDecodeVariant(argumentVariable.Value, new ServiceMessageContext { NamespaceUris = opcContext.NamespaceUris }, argumentVariable.DataType, true); // TODO get from opcContext!
+            var arguments = opcContext.JsonDecodeVariant(argumentVariable.Value, argumentVariable.DataType); // TODO get from opcContext!
             if (arguments.Value != null)
             {
                 foreach (var argObj in arguments.Value as Array)
@@ -1138,7 +1137,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             if (wrappedValue.Value != null)
             {
                 var encodedValue = opcContext.JsonEncodeVariant(wrappedValue, model.DataType);
-                model.Value = encodedValue;
+                model.Value = encodedValue.Json;
             }
         }
 

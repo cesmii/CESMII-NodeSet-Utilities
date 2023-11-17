@@ -71,7 +71,7 @@ namespace CESMII.NodeSetUtilities.Tests
                         DisplayName = new List<NodeModel.LocalizedText> { "Height" },
                         DataType = uaBaseModel.DataTypes.FirstOrDefault(ot => ot.BrowseName.EndsWith("Float")),
                         EngineeringUnit = new VariableModel.EngineeringUnitInfo { DisplayName = "metre"  },
-                        Value = JsonEncodeVariant((float) 0),
+                        Value = NodeModelUtils.JsonEncodeVariant((float) 0),
                     },
                 },
             };
@@ -146,7 +146,7 @@ namespace CESMII.NodeSetUtilities.Tests
                         DisplayName = new List<NodeModel.LocalizedText> { "Height" },
                         DataType = uaBaseModel.DataTypes.FirstOrDefault(ot => ot.BrowseName.EndsWith("Float")),
                         EngineeringUnit = new VariableModel.EngineeringUnitInfo { DisplayName = "metre"  },
-                        Value = JsonEncodeVariant((float) 0),
+                        Value = NodeModelUtils.JsonEncodeVariant((float) 0),
                     },
                 },
             };
@@ -213,7 +213,7 @@ namespace CESMII.NodeSetUtilities.Tests
                         DisplayName = new List<NodeModel.LocalizedText> { "Height" },
                         DataType = uaBaseModel.DataTypes.FirstOrDefault(ot => ot.BrowseName.EndsWith("Float")),
                         EngineeringUnit = new VariableModel.EngineeringUnitInfo { DisplayName = "metre"  },
-                        Value = JsonEncodeVariant((float) 0),
+                        Value = NodeModelUtils.JsonEncodeVariant((float) 0),
                     },
                 },
             };

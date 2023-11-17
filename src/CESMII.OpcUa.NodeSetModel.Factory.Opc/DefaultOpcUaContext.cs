@@ -47,7 +47,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         }
 
         public bool ReencodeExtensionsAsJson { get; set; }
-        public bool EncodeJsonScalarsAsValues { get; set; }
+        public bool EncodeJsonScalarsAsValue { get; set; }
 
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
         private Dictionary<string, UANodeSet> _importedUANodeSetsByUri = new();
@@ -178,6 +178,18 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             var references = new List<NodeStateHierarchyReference>();
             nodeState.GetHierarchyReferences(_systemContext, null, hierarchy, references);
             return references;
+        }
+
+        public virtual (string Json, bool IsScalar) JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
+        {
+            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson, EncodeJsonScalarsAsValue);
+        }
+
+        public virtual Variant JsonDecodeVariant(string jsonVariant, DataTypeModel dataType = null)
+        {
+            dataType ??= this.GetModelForNode<DataTypeModel>(this.GetModelNodeId(DataTypeIds.String));
+            var variant = NodeModelUtils.JsonDecodeVariant(jsonVariant, new ServiceMessageContext { NamespaceUris = _systemContext.NamespaceUris }, dataType, EncodeJsonScalarsAsValue);
+            return variant;
         }
 
         public string GetModelBrowseName(QualifiedName browseName)

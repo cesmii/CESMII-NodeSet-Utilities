@@ -16,6 +16,7 @@ using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua;
 using System.Xml.Serialization;
 using System.Xml;
+using Microsoft.Extensions.Logging;
 
 namespace CESMII.OpcUa.NodeSetModel
 {
@@ -78,16 +79,15 @@ namespace CESMII.OpcUa.NodeSetModel
                         else
                         {
                             sb.AppendLine(nodesetModel.HeaderComments);
-                }
+                        }
                         sb.Append(Encoding.UTF8.GetString(xmlBytes, secondLineIndex, xmlBytes.Length - secondLineIndex));
                         exportedNodeSetXml = sb.ToString();
                     }
                     else
                     {
-                exportedNodeSetXml = Encoding.UTF8.GetString(ms.ToArray());
-            }
-            return exportedNodeSetXml;
-        }
+                        exportedNodeSetXml = Encoding.UTF8.GetString(ms.ToArray());
+                    }
+                }
             }
             return (exportedNodeSetXml, exportedNodeSet);
         }

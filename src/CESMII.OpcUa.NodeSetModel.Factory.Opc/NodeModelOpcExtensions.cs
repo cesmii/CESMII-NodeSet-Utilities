@@ -329,7 +329,6 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     argumentDataType);
                 var argumentProperty = new PropertyModel
                 {
-                    NodeId = modelArguments[0].NodeId,
                     NodeSet = modelArguments[0].NodeSet,
                     NodeId = modelArguments[0].NodeId,
                     CustomState = modelArguments[0].CustomState,
@@ -341,7 +340,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     TypeDefinition = opcContext.GetModelForNode<VariableTypeModel>($"nsu={Namespaces.OpcUa};{VariableTypeIds.PropertyType}"),
                     ValueRank = 1,
                     ArrayDimensions = $"{arguments.Count}",
-                    Value = argumentPropertyJson,
+                    Value = argumentPropertyJson.Json,
                     ModellingRule = "Mandatory",
                 };
                 return argumentProperty;
