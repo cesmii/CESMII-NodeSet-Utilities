@@ -137,10 +137,15 @@ namespace CESMII.OpcUa.NodeSetImporter
 
                         if (_results.MissingModels.Any())
                         {
-                            // No more cached models were added, but we are still missing models: invoke the resolver if provided
-                            if (_nodeSetResolver != null && !_results.MissingModels.SequenceEqual(previousMissingModels))
+                            if (_results.MissingModels.SequenceEqual(previousMissingModels))
                             {
-                                previousMissingModels = _results.MissingModels.ToList();
+                                rerun = false;
+                                continue;
+                            }
+                            previousMissingModels = _results.MissingModels.ToList();
+                            // No more cached models were added, but we are still missing models: invoke the resolver if provided
+                            if (_nodeSetResolver != null)
+                            {
                                 try
                                 {
                                     var newNodeSetsXml = _nodeSetResolver.ResolveNodeSetsAsync(_results.MissingModels.ToList()).Result;
