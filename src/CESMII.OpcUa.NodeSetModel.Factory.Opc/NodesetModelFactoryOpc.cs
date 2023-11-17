@@ -723,7 +723,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     }
                     else if (nodeModel is MethodModel method)
                     {
-                        // TODO nodesetModel.Methods.Add(method);
+                        nodesetModel.Methods.Add(method);    
                     }
                     else if (nodeModel is ReferenceTypeModel referenceType)
                     {

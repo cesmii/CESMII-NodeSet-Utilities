@@ -48,6 +48,7 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public virtual List<InterfaceModel> Interfaces { get; set; } = new List<InterfaceModel>();
         public virtual List<ObjectModel> Objects { get; set; } = new List<ObjectModel>();
+        public virtual List<MethodModel> Methods { get; set; } = new();
 
         public virtual List<PropertyModel> Properties { get; set; } = new List<PropertyModel>();
         public virtual List<DataVariableModel> DataVariables { get; set; } = new List<DataVariableModel>();
@@ -240,6 +241,10 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             foreach (var node in this.Methods)
             {
+                if (model.ModelUri == node.Namespace && !model.Methods.Contains(node))
+                {
+                    model.Methods.Add(node);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.Properties)
