@@ -1,4 +1,4 @@
-﻿using Opc.Ua;
+using Opc.Ua;
 
 using System;
 using System.Collections.Generic;
@@ -36,5 +36,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null);
         List<NodeState> ImportUANodeSet(UANodeSet nodeSet);
         UANodeSet GetUANodeSet(string modeluri);
+        
+        string GetModelBrowseName(QualifiedName browseName);
+        QualifiedName GetBrowseNameFromModel(string modelBrowseName);
+
     }
 }

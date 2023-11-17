@@ -127,7 +127,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             _model.DisplayName = opcNode.DisplayName.ToModel();
 
             var browseNameNamespace = opcContext.NamespaceUris.GetString(opcNode.BrowseName.NamespaceIndex);
-            _model.BrowseName = $"{browseNameNamespace};{opcNode.BrowseName.Name}";
+            _model.BrowseName = opcContext.GetModelBrowseName(opcNode.BrowseName);
             _model.SymbolicName = opcNode.SymbolicName;
             _model.Description = opcNode.Description.ToModel();
             if (opcNode.Categories != null)
@@ -896,9 +896,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
 
             var invalidBrowseNameOnTypeInformation = _model.Properties.Where(p =>
-                    (p.BrowseName.EndsWith(BrowseNames.EnumValues) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.EnumValues}")
-                || (p.BrowseName.EndsWith(BrowseNames.EnumStrings) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.EnumStrings}")
-                || (p.BrowseName.EndsWith(BrowseNames.OptionSetValues) && p.BrowseName != $"{Namespaces.OpcUa};{BrowseNames.OptionSetValues}")
+                    (p.BrowseName.EndsWith(BrowseNames.EnumValues) && p.BrowseName != opcContext.GetModelBrowseName(BrowseNames.EnumValues))
+                || (p.BrowseName.EndsWith(BrowseNames.EnumStrings) && p.BrowseName != opcContext.GetModelBrowseName(BrowseNames.EnumStrings))
+                || (p.BrowseName.EndsWith(BrowseNames.OptionSetValues) && p.BrowseName != opcContext.GetModelBrowseName(BrowseNames.OptionSetValues))
             );
             if (invalidBrowseNameOnTypeInformation.Any())
             {
@@ -908,8 +908,9 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             if (string.IsNullOrEmpty(this._model.NodeSet.XmlSchemaUri) && variableNode.TypeDefinitionId == VariableTypeIds.DataTypeDictionaryType)
             {
-                var xmlNamespaceVariable = _model.Properties.FirstOrDefault(dv => dv.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.NamespaceUri}");
+                var namespaceUriModelBrowseName = opcContext.GetModelBrowseName(BrowseNames.NamespaceUri);
                 if (_model.Parent.NodeId == opcContext.GetNodeIdWithUri(ObjectIds.XmlSchema_TypeSystem, out _))
+                if (_model.Parent.NodeId == opcContext.GetModelNodeId(ObjectIds.XmlSchema_TypeSystem))
                 {
                     if (xmlNamespaceVariable != null && !string.IsNullOrEmpty(xmlNamespaceVariable.Value))
                     {
@@ -979,17 +980,19 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 }
 
                 //_model.MethodDeclarationId = opcContext.GetNodeIdWithUri(methodState.MethodDeclarationId, out var _);
-                var inputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.InputArguments}");
+                var inputArgsModelBrowseName = opcContext.GetModelBrowseName(BrowseNames.InputArguments);
+                var inputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == inputArgsModelBrowseName);
                 if (inputArgs != null)
                 {
                     _model.InputArguments = new List<VariableModel>();
-                    ProcessMethodArguments(_model, BrowseNames.InputArguments, inputArgs, _model.InputArguments, opcContext);
+                    ProcessMethodArguments(_model, BrowseNames.InputArguments, inputArgs, _model.InputArguments, opcContext, recursionDepth);
                 }
-                var outputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{BrowseNames.OutputArguments}");
+                var outputArgsModelBrowseName = opcContext.GetModelBrowseName(BrowseNames.OutputArguments);
+                var outputArgs = _model.Properties.FirstOrDefault(p => p.BrowseName == outputArgsModelBrowseName);
                 if (outputArgs != null)
                 {
                     _model.OutputArguments = new List<VariableModel>();
-                    ProcessMethodArguments(_model, BrowseNames.OutputArguments, outputArgs, _model.OutputArguments, opcContext);
+                    ProcessMethodArguments(_model, BrowseNames.OutputArguments, outputArgs, _model.OutputArguments, opcContext, recursionDepth);
                 }
             }
             else
@@ -1026,6 +1029,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                                 DisplayName = new List<NodeModel.LocalizedText> { new NodeModel.LocalizedText { Text = arg.Name } },
                                 BrowseName = arg.Name,
                                 Description = arg.Description?.ToModel(),
+                                NodeSet = argumentVariable.NodeSet,
                                 NodeId = argumentVariable.NodeId,
                                 NodeSet = argumentVariable.NodeSet,
                                 CustomState = argumentVariable.CustomState,
@@ -1135,7 +1139,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     UADataType uaStruct = null;
                     if (uaNodeSet != null)
                     {
-                        uaStruct = uaNodeSet.Items.FirstOrDefault(n => n.NodeId == opcNode.NodeId) as UADataType;
+                        var opcNodeIdStr = opcNode.NodeId.ToString();
+                        uaStruct = uaNodeSet.Items.FirstOrDefault(n => n.NodeId == opcNodeIdStr) as UADataType;
                     }
 
                     foreach (var field in sd.Fields)
@@ -1183,7 +1188,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                     var enumFields = dataTypeState.DataTypeDefinition.Body as EnumDefinition;
                     if (enumFields != null)
                     {
-                        _model.IsOptionSet = enumFields.IsOptionSet || _model.HasBaseType(new ExpandedNodeId(DataTypeIds.OptionSet, Namespaces.OpcUa).ToString());
+                        _model.IsOptionSet = enumFields.IsOptionSet || _model.HasBaseType(opcContext.GetModelNodeId(DataTypeIds.OptionSet));
                         _model.EnumFields = new List<DataTypeModel.UaEnumField>();
 
                         // The OPC SDK does not put the SymbolicName into the node state: read from UANodeSet

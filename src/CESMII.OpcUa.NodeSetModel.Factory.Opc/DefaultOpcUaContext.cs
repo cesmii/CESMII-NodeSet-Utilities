@@ -1,4 +1,4 @@
-﻿using Opc.Ua;
+using Opc.Ua;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -60,10 +60,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual string GetModelNodeId(NodeId nodeId)
         {
+            string namespaceUri;
             namespaceUri = GetNamespaceUri(nodeId.NamespaceIndex);
             if (string.IsNullOrEmpty(namespaceUri))
             {
                 throw ServiceResultException.Create(StatusCodes.BadNodeIdInvalid, "Namespace Index ({0}) for node id {1} is not in the namespace table.", nodeId.NamespaceIndex, nodeId);
+            }
+            if (UseLocalNodeIds)
+            {
+                return nodeId.ToString();
             }
             var nodeIdWithUri = new ExpandedNodeId(nodeId, namespaceUri).ToString();
             return nodeIdWithUri;
@@ -121,6 +126,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 {
                     nodesetModel.XmlSchemaUri = model.XmlSchemaUri;
                 }
+                if (UseLocalNodeIds)
+                {
+                    nodesetModel.NamespaceIndex = NamespaceUris.GetIndexOrAppend(nodesetModel.ModelUri);
+                }
                 if (model.RequiredModel != null)
                 {
                     foreach (var requiredModel in model.RequiredModel)
@@ -177,9 +186,27 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return references;
         }
 
-        public virtual string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
+        public string GetModelBrowseName(QualifiedName browseName)
         {
-            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson, EncodeJsonScalarsAsValues);
+            if (UseLocalNodeIds)
+            {
+                return browseName.ToString();
+            }
+            return $"{NamespaceUris.GetString(browseName.NamespaceIndex)};{browseName.Name}";
+        }
+
+        public QualifiedName GetBrowseNameFromModel(string modelBrowseName)
+        {
+            if (UseLocalNodeIds)
+            {
+                return QualifiedName.Parse(modelBrowseName);
+            }
+            var parts = modelBrowseName.Split(new[] { ';' }, 2);
+            if (parts.Length == 1)
+        {
+                return new QualifiedName(parts[0]);
+            }
+            return new QualifiedName(parts[1], (ushort) NamespaceUris.GetIndex(parts[0]));
         }
     }
 }

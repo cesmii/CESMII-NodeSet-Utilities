@@ -84,7 +84,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                         value.Value = newExtObjList;
                     }
                 }
-                else if (value.Value is byte[] byteArray && value.TypeInfo.BuiltInType == BuiltInType.ByteString && dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Byte}"))
+                else if (value.Value is byte[] byteArray && value.TypeInfo.BuiltInType == BuiltInType.ByteString && dataType?.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Byte}")== true)
                 {
                     // The XML decoder returns byte arrays as a bytestring variant: fix it up so we don't get a base64 encoded JSON value
                     value = new Variant(byteArray, new TypeInfo(BuiltInType.Byte, ValueRanks.OneDimension));

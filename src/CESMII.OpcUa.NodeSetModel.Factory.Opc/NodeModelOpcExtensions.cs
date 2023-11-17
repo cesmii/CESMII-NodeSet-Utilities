@@ -331,8 +331,9 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 {
                     NodeId = modelArguments[0].NodeId,
                     NodeSet = modelArguments[0].NodeSet,
+                    NodeId = modelArguments[0].NodeId,
                     CustomState = modelArguments[0].CustomState,
-                    BrowseName = $"{Namespaces.OpcUa};{browseName}",
+                    BrowseName = opcContext.GetModelBrowseName(browseName),
                     DisplayName = NodeModel.LocalizedText.ListFromText(browseName),
                     Description = new(),
                     Parent = methodModel,
@@ -371,7 +372,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     NodeSet = _this,
                     NodeId = GetNewNodeId(_this.ModelUri),
                     DisplayName = new ua.LocalizedText(_this.ModelUri).ToModel(),
-                    BrowseName = $"{Namespaces.OpcUa};{nameof(ObjectTypeIds.NamespaceMetadataType)}",
+                    BrowseName = opcContext.GetModelBrowseName(BrowseNames.NamespaceMetadataType), // $"{Namespaces.OpcUa};{nameof(ObjectTypeIds.NamespaceMetadataType)}",
                     Parent = parent,
                     OtherReferencingNodes = new List<NodeModel.NodeAndReference>
                     {
@@ -385,22 +386,22 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 _this.Objects.Add(metadataObject);
                 addedMetadata = true;
             }
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceUri), _this.ModelUri, true);
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespacePublicationDate), _this.PublicationDate, true);
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceVersion), _this.Version, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespaceUri, _this.ModelUri, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespacePublicationDate, _this.PublicationDate, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespaceVersion, _this.Version, true);
 
             // Only create if not already authored
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.IsNamespaceSubset), "false", false);
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNodeIdTypes), null, false);
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNumericNodeIdRange), null, false);
-            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticStringNodeIdPattern), null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.IsNamespaceSubset, "false", false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticNodeIdTypes, null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticNumericNodeIdRange, null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticStringNodeIdPattern, null, false);
             return addedMetadata;
         }
 
-        private static bool CreateOrReplaceMetaDataProperty(NodeSetModel _this, ObjectModel metadataObject, string browseName, object value, bool replaceIfExists)
+        private static bool CreateOrReplaceMetaDataProperty(NodeSetModel _this, IOpcUaContext context, ObjectModel metadataObject, QualifiedName browseName, object value, bool replaceIfExists)
         {
-            string qualifiedBrowseName = $"{Namespaces.OpcUa};{browseName}";
-            var previousProp = metadataObject.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{browseName}");
+            string modelBrowseName = context.GetModelBrowseName(browseName);
+            var previousProp = metadataObject.Properties.FirstOrDefault(p => p.BrowseName == modelBrowseName);
             if (replaceIfExists || previousProp == null)
             {
                 string encodedValue;
@@ -422,8 +423,8 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     {
                         NodeSet = _this,
                         NodeId = GetNewNodeId(_this.ModelUri),
-                        BrowseName = $"{Namespaces.OpcUa};{browseName}",
-                        DisplayName = new ua.LocalizedText(browseName).ToModel(),
+                        BrowseName = modelBrowseName,
+                        DisplayName = new ua.LocalizedText(browseName.Name).ToModel(),
                         Value = encodedValue,
                     });
                 }
@@ -445,15 +446,16 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 
                     foreach (var encodingBrowseName in new[] { BrowseNames.DefaultXml, BrowseNames.DefaultJson, BrowseNames.DefaultBinary })
                     {
-                        if (!encodingReferences.Any(nr => nr.Node.BrowseName == $"{Namespaces.OpcUa};{encodingBrowseName}"))
+                        var encodingModelBrowseName = context.GetModelBrowseName(encodingBrowseName);
+                        if (!encodingReferences.Any(nr => nr.Node.BrowseName == encodingModelBrowseName))
                         {
                             var encodingId = NodeModelOpcExtensions.GetNewNodeId(dataType.Namespace);
                             var encoding = new ObjectModel
                             {
-                                NodeId = encodingId,
-                                BrowseName = $"{Namespaces.OpcUa};{encodingBrowseName}",
-                                DisplayName = new ua.LocalizedText(encodingBrowseName).ToModel(),
                                 NodeSet = dataType.NodeSet,
+                                NodeId = encodingId,
+                                BrowseName =  encodingModelBrowseName,
+                                DisplayName = new ua.LocalizedText(encodingBrowseName).ToModel(),
                                 TypeDefinition = context.GetModelForNode<ObjectTypeModel>($"nsu={Namespaces.OpcUa};{ObjectTypeIds.DataTypeEncodingType}"),
                                 Parent = dataType,
                             };

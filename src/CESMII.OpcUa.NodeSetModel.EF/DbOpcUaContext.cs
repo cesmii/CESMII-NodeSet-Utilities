@@ -101,8 +101,8 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                         // This avoids a database lookup for each referenced node (or the need to pre-fetch all nodes in the EF cache)
                         nodeModelDb = _dbContext.CreateProxy<TNodeModel>(nm =>
                         {
-                            nm.NodeId = nodeId;
                             nm.NodeSet = nodeSet;
+                            nm.NodeId = nodeId;
                         }
                         );
                         _dbContext.Attach(nodeModelDb);
