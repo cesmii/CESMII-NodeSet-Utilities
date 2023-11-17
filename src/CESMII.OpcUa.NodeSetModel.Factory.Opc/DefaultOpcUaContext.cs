@@ -99,11 +99,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual TNodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
         {
-            foreach(var nodeSetModel in _nodesetModels.Values)
+            foreach (var nodeSetModel in _nodesetModels.Values)
             {
-            if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
-            {
+                if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
+                {
                     var result = nodeModel as TNodeModel;
+                    return result;
                 }
             }
             return null;
@@ -210,10 +211,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             var parts = modelBrowseName.Split(new[] { ';' }, 2);
             if (parts.Length == 1)
-        {
+            {
                 return new QualifiedName(parts[0]);
             }
-            return new QualifiedName(parts[1], (ushort) NamespaceUris.GetIndex(parts[0]));
+            return new QualifiedName(parts[1], (ushort)NamespaceUris.GetIndex(parts[0]));
         }
     }
 }
