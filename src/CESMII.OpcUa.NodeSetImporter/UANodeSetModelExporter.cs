@@ -274,6 +274,7 @@ namespace CESMII.OpcUa.NodeSetModel
         {
             context._exportedSoFar = new Dictionary<string, UANode>();
             var itemsOrdered = new List<UANode>();
+            var itemsOrderedSet = new HashSet<UANode>();
             foreach (var nodeModel in nodesetModel.AllNodesByNodeId.Values
                 .OrderBy(GetNodeModelSortOrder)
                 .ThenBy(n => GetNodeIdForSorting(n.NodeId)))
@@ -281,9 +282,10 @@ namespace CESMII.OpcUa.NodeSetModel
                 var result = NodeModelExportOpc.GetUANode(nodeModel, context);
                 if (result.ExportedNode != null)
                 {
-                    if (context._exportedSoFar.TryAdd(result.ExportedNode.NodeId, result.ExportedNode) || !itemsOrdered.Contains(result.ExportedNode))
+                    if (context._exportedSoFar.TryAdd(result.ExportedNode.NodeId, result.ExportedNode) || !itemsOrderedSet.Contains(result.ExportedNode))
                     {
                         itemsOrdered.Add(result.ExportedNode);
+                        itemsOrderedSet.Add(result.ExportedNode);
                     }
                     else
                     {
@@ -296,9 +298,10 @@ namespace CESMII.OpcUa.NodeSetModel
                 if (result.AdditionalNodes != null)
                 {
                     result.AdditionalNodes.ForEach(n => {
-                        if (context._exportedSoFar.TryAdd(n.NodeId,  n) || !itemsOrdered.Contains(n))
+                        if (context._exportedSoFar.TryAdd(n.NodeId,  n) || !itemsOrderedSet.Contains(n))
                         {
                             itemsOrdered.Add(n);
+                            itemsOrderedSet.Add(n);
                         }
                         else
                         {
@@ -316,15 +319,11 @@ namespace CESMII.OpcUa.NodeSetModel
 
         static int GetNodeModelSortOrder(NodeModel nodeModel)
         {
-            var type = nodeModel.GetType().Name;
-            return type switch
-            {
-                nameof(ReferenceTypeModel) => 1,
-                nameof(DataTypeModel) => 2,
-                nameof(ObjectTypeModel) => 3,
-                nameof(VariableTypeModel) => 4,
-                _ => 10,
-            };
+            if (nodeModel is ReferenceTypeModel) return 1;
+            if (nodeModel is DataTypeModel) return 2;
+            if (nodeModel is ObjectTypeModel) return 3;
+            if (nodeModel is VariableTypeModel) return 4;
+            return 5;
         }
 
 
