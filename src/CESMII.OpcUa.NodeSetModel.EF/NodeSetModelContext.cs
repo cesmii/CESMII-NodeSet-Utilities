@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -29,7 +29,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             CreateModel(modelBuilder, CascadeDelete);
 
         }
-        public static void CreateModel(ModelBuilder modelBuilder, bool cascadeDelete = false)
+        public static void CreateModel(ModelBuilder modelBuilder, bool cascadeDelete = false, bool methodArgs = false)
         {
             modelBuilder.Owned<NodeModel.LocalizedText>();
             modelBuilder.Owned<NodeModel.NodeAndReference>();
@@ -42,6 +42,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 .ToTable("NodeSets")
                 .Ignore(nsm => nsm.AllNodesByNodeId)
                 .Ignore(nsm => nsm.CustomState)
+                .Ignore(nm => nm.NamespaceIndex)
                 .HasKey(nsm => new { nsm.ModelUri, nsm.PublicationDate })
                 ;
             var rmb = modelBuilder.Entity<NodeSetModel>()
@@ -56,6 +57,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             }
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
+                .Ignore(nm => nm.ReferencesNotResolved)
                 .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
                 ;
             modelBuilder.Entity<NodeModel>()
@@ -142,6 +144,23 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             {
                 btmSt.OnDelete(DeleteBehavior.Cascade);
             }
+            modelBuilder.Entity<DataTypeModel>()
+                .ToTable("DataTypes");
+            modelBuilder.Entity<ObjectTypeModel>()
+                .ToTable("ObjectTypes");
+            modelBuilder.Entity<InterfaceModel>()
+                .ToTable("Interfaces");
+            modelBuilder.Entity<VariableTypeModel>()
+                .ToTable("VariableTypes");
+            modelBuilder.Entity<ReferenceTypeModel>()
+                .ToTable("ReferenceTypes");
+
+            if (!methodArgs)
+            {
+                modelBuilder.Entity<MethodModel>()
+                    .Ignore(m => m.InputArguments)
+                    .Ignore(m => m.OutputArguments);
+            }
             var mmParentFk = modelBuilder.Entity<MethodModel>()
                 .ToTable("Methods")
                 .HasOne(dv => dv.Parent).WithMany()
@@ -166,6 +185,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             DeclareNodeSetCollection<DataTypeModel>(modelBuilder, nsm => nsm.DataTypes, cascadeDelete);
             DeclareNodeSetCollection<ReferenceTypeModel>(modelBuilder, nsm => nsm.ReferenceTypes, cascadeDelete);
             DeclareNodeSetCollection<ObjectModel>(modelBuilder, nsm => nsm.Objects, cascadeDelete);
+            DeclareNodeSetCollection<MethodModel>(modelBuilder, nsm => nsm.Methods, cascadeDelete);
             DeclareNodeSetCollection<InterfaceModel>(modelBuilder, nsm => nsm.Interfaces, cascadeDelete);
             DeclareNodeSetCollection<PropertyModel>(modelBuilder, nsm => nsm.Properties, cascadeDelete);
             DeclareNodeSetCollection<DataVariableModel>(modelBuilder, nsm => nsm.DataVariables, cascadeDelete);

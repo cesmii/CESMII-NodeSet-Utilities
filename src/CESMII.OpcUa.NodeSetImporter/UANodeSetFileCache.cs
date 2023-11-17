@@ -5,13 +5,13 @@
  * Some contributions thanks to CESMII – the Smart Manufacturing Institute, 2021
  */
 using CESMII.OpcUa.NodeSetModel;
+using CESMII.OpcUa.NodeSetModel.Factory.Opc;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using Opc.Ua.Export;
 using System;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Xml.Linq;
 
 namespace CESMII.OpcUa.NodeSetImporter
 {
@@ -158,14 +158,7 @@ namespace CESMII.OpcUa.NodeSetImporter
             }
 
             #region Comment processing
-            //var nodesetXmlReader = new StringReader(nodeSetXml);
-            //var doc = XElement.Load(nodesetXmlReader);
-            //var comments = doc.DescendantNodes().OfType<XComment>();
-            //foreach (XComment comment in comments)
-            //{
-            //    //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
-            //    //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
-            //}
+            var headerComment = NodeModelUtils.ReadHeaderComment(patchedXML);
             #endregion
 
             UANodeSet tOldNodeSet = null;
@@ -205,7 +198,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                     File.WriteAllText(filePath, nodeSetXml);
                     WasNewSet = true;
                 }
-                var modelInfo = results.AddModelAndDependencies(nodeSet, importedModel, filePath, WasNewSet);
+                var modelInfo = results.AddModelAndDependencies(nodeSet, headerComment, importedModel, filePath, WasNewSet);
                 modelInfo.Model.RequestedForThisImport = requested;
             }
             return WasNewSet;

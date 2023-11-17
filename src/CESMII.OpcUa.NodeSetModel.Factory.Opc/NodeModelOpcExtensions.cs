@@ -9,7 +9,9 @@ using System.Reflection;
 using Opc.Ua.Export;
 using System;
 
-using CESMII.OpcUa.NodeSetModel;
+using CESMII.OpcUa.NodeSetModel.Factory.Opc;
+using Newtonsoft.Json;
+using Microsoft.Extensions.Logging;
 
 namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
 {
@@ -40,6 +42,62 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
             return model.DisplayName.FirstOrDefault()?.Text;
         }
+        public static string GetUnqualifiedBrowseName(this NodeModel _this)
+        {
+            var browseName = _this.GetBrowseName();
+            var parts = browseName.Split(new[] { ';' }, 2);
+            if (parts.Length > 1)
+            {
+                return parts[1];
+            }
+            return browseName;
+        }
+
+        public enum JsonValueType
+        {
+            /// <summary>
+            /// JSON object
+            /// </summary>
+            Object,
+            /// <summary>
+            /// Scalar, to be quoted
+            /// </summary>
+            String,
+            /// <summary>
+            /// Scalar, not to be quoted
+            /// </summary>
+            Value
+        }
+
+        public static bool IsJsonScalar(this DataTypeModel dataType)
+        {
+            return GetJsonValueType(dataType) != JsonValueType.Object;
+        }
+        public static JsonValueType GetJsonValueType(this DataTypeModel dataType)
+        {
+            if (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.String}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Int64}") // numeric, but encoded as string
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.UInt64}") // numeric, but encoded as string
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.DateTime}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.ByteString}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.String}")
+                )
+            {
+                return JsonValueType.String;
+            }
+            if (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Boolean}")
+                || (dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Number}")
+                    && !dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Decimal}") // numeric, but encoded as Scale/Value object
+                    )
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.StatusCode}")
+                || dataType.HasBaseType($"nsu={Namespaces.OpcUa};{DataTypeIds.Enumeration}")
+                )
+            {
+                return JsonValueType.Value;
+            }
+            return JsonValueType.Object;
+        }
+
         internal static void SetEngineeringUnits(this VariableModel model, EUInformation euInfo)
         {
             model.EngineeringUnit = new VariableModel.EngineeringUnitInfo
@@ -198,31 +256,128 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             }
         }
 
+        public static void UpdateAllMethodArgumentVariables(this NodeSetModel nodeSetModel, IOpcUaContext opcContext)
+        {
+            foreach(var nodeModel in nodeSetModel.AllNodesByNodeId.SelectMany(kv => kv.Value.Methods))
+            {
+                UpdateMethodArgumentVariables(nodeModel as MethodModel, opcContext);
+            }
+        }
+
+        public static void UpdateMethodArgumentVariables(MethodModel methodModel, IOpcUaContext opcContext)
+        {
+            UpdateMethodArgumentVariable(methodModel, BrowseNames.InputArguments, methodModel.InputArguments, opcContext);
+            UpdateMethodArgumentVariable(methodModel, BrowseNames.OutputArguments, methodModel.OutputArguments, opcContext);
+        }
+        private static void UpdateMethodArgumentVariable(MethodModel methodModel, string browseName, List<VariableModel> modelArguments, IOpcUaContext opcContext)
+        {
+            var argumentProperty = GetArgumentProperty(methodModel, browseName, modelArguments, opcContext);
+            if (argumentProperty != null)
+            {
+                var existingArgumentProperty = methodModel.Properties.FirstOrDefault(p => p.BrowseName == browseName);
+                if (existingArgumentProperty == null)
+                {
+                    methodModel.Properties.Add(argumentProperty);
+                }
+                else
+                {
+                    // Update arguments in existing property
+                    if (existingArgumentProperty.Value != argumentProperty.Value)
+                    {
+                        opcContext.Logger.LogInformation($"Updated {browseName} for method {methodModel}");
+                        opcContext.Logger.LogTrace($"Updated {browseName} for method {methodModel}. Previous arguments: {existingArgumentProperty.Value}. New arguments: {argumentProperty.Value}");
+                        existingArgumentProperty.Value = argumentProperty.Value;
+                    }
+                }
+            }
+
+        }
+        internal static PropertyModel GetArgumentProperty(MethodModel methodModel, string browseName, List<VariableModel> modelArguments, IOpcUaContext opcContext)
+        { 
+            List<Argument> arguments = new List<Argument>();
+            if (modelArguments?.Any() == true)
+            {
+                foreach (var modelArgument in modelArguments)
+                {
+                    UInt32Collection arrayDimensions = null;
+                    if (modelArgument.ArrayDimensions != null)
+                    {
+                        arrayDimensions = JsonConvert.DeserializeObject<UInt32[]>($"[{modelArgument.ArrayDimensions}]");
+                    }
+
+                    var argument = new Argument
+                    {
+                        Name = modelArgument.BrowseName,
+                        ArrayDimensions = arrayDimensions,
+                        // TODO parse into array ArrayDimensions = inputArg.ArrayDimensions,
+                        ValueRank = modelArgument.ValueRank ?? -1,
+                        DataType = ExpandedNodeId.Parse(modelArgument.DataType.NodeId, opcContext.NamespaceUris),
+                        Description = new ua.LocalizedText(modelArgument.Description?.FirstOrDefault()?.Text),
+                    };
+                    if (modelArgument.Value != null || modelArgument.Description.Count > 1 || modelArgument.ModellingRule == "Optional")
+                    {
+                        // TODO Create or update argumentDescription
+                    }
+                    arguments.Add(argument);
+                }
+            }
+            if (arguments.Any())
+            {
+                var argumentDataType = opcContext.GetModelForNode<DataTypeModel>($"nsu={Namespaces.OpcUa};{DataTypeIds.Argument}");
+                var argumentPropertyJson = opcContext.JsonEncodeVariant(                    
+                    new Variant(arguments.Select(a => new ExtensionObject(a)).ToArray()), 
+                    argumentDataType);
+                var argumentProperty = new PropertyModel
+                {
+                    NodeSet = modelArguments[0].NodeSet,
+                    NodeId = modelArguments[0].NodeId,
+                    CustomState = modelArguments[0].CustomState,
+                    BrowseName = opcContext.GetModelBrowseName(browseName),
+                    DisplayName = NodeModel.LocalizedText.ListFromText(browseName),
+                    Description = new(),
+                    Parent = methodModel,
+                    DataType = argumentDataType,
+                    TypeDefinition = opcContext.GetModelForNode<VariableTypeModel>($"nsu={Namespaces.OpcUa};{VariableTypeIds.PropertyType}"),
+                    ValueRank = 1,
+                    ArrayDimensions = $"{arguments.Count}",
+                    Value = argumentPropertyJson.Json,
+                    ModellingRule = "Mandatory",
+                };
+                return argumentProperty;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Updates or creates the object of type NamespaceMetaDataType as described in https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.13
         /// </summary>
         /// <param name="_this"></param>
-        public static bool UpdateNamespaceMetaData(this NodeSetModel _this, NodeSetModel opcUaModel)
+        public static bool UpdateNamespaceMetaData(this NodeSetModel _this, IOpcUaContext opcContext, bool createIfNotExist = true)
         {
             bool addedMetadata = false;
-            var metaDataTypeNodeId = new ExpandedNodeId(ObjectTypeIds.NamespaceMetadataType, Namespaces.OpcUa);
-            var metadataObjects = _this.Objects.Where(o => o.TypeDefinition.HasBaseType(metaDataTypeNodeId.ToString()) && o.Parent.NodeId == new ExpandedNodeId(ObjectIds.Server_Namespaces, Namespaces.OpcUa).ToString()).ToList();
+            var metaDataTypeNodeId = opcContext.GetModelNodeId(ObjectTypeIds.NamespaceMetadataType);
+            var serverNamespacesNodeId = opcContext.GetModelNodeId(ObjectIds.Server_Namespaces);
+            var metadataObjects = _this.Objects.Where(o => o.TypeDefinition.HasBaseType(metaDataTypeNodeId) && o.Parent.NodeId == serverNamespacesNodeId).ToList();
             var metadataObject = metadataObjects.FirstOrDefault();
             if (metadataObject == null)
             {
-                var parent = opcUaModel.Objects.FirstOrDefault(o => o.NodeId == new ExpandedNodeId(ObjectIds.Server, Namespaces.OpcUa).ToString());
+                if (!createIfNotExist)
+                {
+                    return false;
+                }
+                var parent = opcContext.GetModelForNode<NodeModel>($"nsu={Namespaces.OpcUa};{ObjectIds.Server}");
                 metadataObject = new ObjectModel
                 {
                     NodeSet = _this,
                     NodeId = GetNewNodeId(_this.ModelUri),
                     DisplayName = new ua.LocalizedText(_this.ModelUri).ToModel(),
-                    BrowseName = $"{Namespaces.OpcUa};{nameof(ObjectTypeIds.NamespaceMetadataType)}",
+                    BrowseName = opcContext.GetModelBrowseName(BrowseNames.NamespaceMetadataType), // $"{Namespaces.OpcUa};{nameof(ObjectTypeIds.NamespaceMetadataType)}",
                     Parent = parent,
                     OtherReferencingNodes = new List<NodeModel.NodeAndReference>
                     {
                         new NodeModel.NodeAndReference
                         {
-                             ReferenceType = opcUaModel.ReferenceTypes.FirstOrDefault(rt => rt.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasComponent, Namespaces.OpcUa).ToString()),
+                             ReferenceType = opcContext.GetModelForNode<NodeModel>($"nsu={Namespaces.OpcUa};{ReferenceTypeIds.HasComponent}"),
                              Node = parent,
                         }
                     }
@@ -230,22 +385,22 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 _this.Objects.Add(metadataObject);
                 addedMetadata = true;
             }
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceUri), _this.ModelUri, true);
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespacePublicationDate), _this.PublicationDate, true);
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.NamespaceVersion), _this.Version, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespaceUri, _this.ModelUri, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespacePublicationDate, _this.PublicationDate, true);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.NamespaceVersion, _this.Version, true);
 
             // Only create if not already authored
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.IsNamespaceSubset), "false", false);
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNodeIdTypes), null, false);
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticNumericNodeIdRange), null, false);
-            addedMetadata |= CreateOrReplaceProperty(_this, metadataObject, nameof(NamespaceMetadataState.StaticStringNodeIdPattern), null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.IsNamespaceSubset, "false", false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticNodeIdTypes, null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticNumericNodeIdRange, null, false);
+            addedMetadata |= CreateOrReplaceMetaDataProperty(_this, opcContext, metadataObject, BrowseNames.StaticStringNodeIdPattern, null, false);
             return addedMetadata;
         }
 
-        private static bool CreateOrReplaceProperty(NodeSetModel _this, ObjectModel metadataObject, string browseName, object value, bool replaceIfExists)
+        private static bool CreateOrReplaceMetaDataProperty(NodeSetModel _this, IOpcUaContext context, ObjectModel metadataObject, QualifiedName browseName, object value, bool replaceIfExists)
         {
-            string qualifiedBrowseName = $"{Namespaces.OpcUa};{browseName}";
-            var previousProp = metadataObject.Properties.FirstOrDefault(p => p.BrowseName == $"{Namespaces.OpcUa};{browseName}");
+            string modelBrowseName = context.GetModelBrowseName(browseName);
+            var previousProp = metadataObject.Properties.FirstOrDefault(p => p.BrowseName == modelBrowseName);
             if (replaceIfExists || previousProp == null)
             {
                 string encodedValue;
@@ -253,7 +408,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 {
                     encodedValue = $"{{\"Value\":{{\"Type\":13,\"Body\":\"{value:O}\"}}}}";
                 }
-                else 
+                else
                 {
                     encodedValue = $"{{\"Value\":{{\"Type\":12,\"Body\":\"{value}\"}}}}";
                 }
@@ -267,8 +422,8 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                     {
                         NodeSet = _this,
                         NodeId = GetNewNodeId(_this.ModelUri),
-                        BrowseName = $"{Namespaces.OpcUa};{browseName}",
-                        DisplayName = new ua.LocalizedText(browseName).ToModel(),
+                        BrowseName = modelBrowseName,
+                        DisplayName = new ua.LocalizedText(browseName.Name).ToModel(),
                         Value = encodedValue,
                     });
                 }
@@ -277,7 +432,7 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
             return false;
         }
 
-        public static List<string> UpdateEncodings(this NodeSetModel _this, NodeSetModel opcUaModel)
+        public static List<string> UpdateEncodings(this NodeSetModel _this, IOpcUaContext context)
         {
             var missingEncodings = new List<string>();
             foreach (var dataType in _this.DataTypes)
@@ -285,30 +440,31 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
                 if (dataType.StructureFields?.Any() == true)
                 {
                     // Ensure there's an encoding for the data type
-                    var hasEncodingNodeId = new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString();
+                    var hasEncodingNodeId = context.GetModelNodeId(ReferenceTypeIds.HasEncoding);
                     var encodingReferences = dataType.OtherReferencedNodes.Where(nr => (nr.ReferenceType as ReferenceTypeModel).HasBaseType(hasEncodingNodeId)).ToList();
 
                     foreach (var encodingBrowseName in new[] { BrowseNames.DefaultXml, BrowseNames.DefaultJson, BrowseNames.DefaultBinary })
                     {
-                        if (!encodingReferences.Any(nr => nr.Node.BrowseName == $"{Namespaces.OpcUa};{encodingBrowseName}"))
+                        var encodingModelBrowseName = context.GetModelBrowseName(encodingBrowseName);
+                        if (!encodingReferences.Any(nr => nr.Node.BrowseName == encodingModelBrowseName))
                         {
                             var encodingId = NodeModelOpcExtensions.GetNewNodeId(dataType.Namespace);
                             var encoding = new ObjectModel
                             {
-                                NodeId = encodingId,
-                                BrowseName = $"{Namespaces.OpcUa};{encodingBrowseName}",
-                                DisplayName = new ua.LocalizedText(encodingBrowseName).ToModel(),
                                 NodeSet = dataType.NodeSet,
-                                TypeDefinition = opcUaModel.ObjectTypes.FirstOrDefault(ot => ot.NodeId == new ExpandedNodeId(ObjectTypeIds.DataTypeEncodingType, Namespaces.OpcUa).ToString()),
+                                NodeId = encodingId,
+                                BrowseName =  encodingModelBrowseName,
+                                DisplayName = new ua.LocalizedText(encodingBrowseName).ToModel(),
+                                TypeDefinition = context.GetModelForNode<ObjectTypeModel>($"nsu={Namespaces.OpcUa};{ObjectTypeIds.DataTypeEncodingType}"),
                                 Parent = dataType,
                             };
                             // According to https://reference.opcfoundation.org/Core/Part6/v105/docs/F.4 only one direction of the reference is required: using inverse reference on the encoding only to keep the data type XML cleaner
                             encoding.OtherReferencingNodes.Add(new NodeModel.NodeAndReference
                             {
-                                ReferenceType = opcUaModel.ReferenceTypes.FirstOrDefault(ot => ot.NodeId == new ExpandedNodeId(ReferenceTypeIds.HasEncoding, Namespaces.OpcUa).ToString()),
+                                ReferenceType = context.GetModelForNode<ReferenceTypeModel>($"nsu={Namespaces.OpcUa};{ReferenceTypeIds.HasEncoding}"),
                                 Node = dataType,
                             });
-                            _this.Objects.Add(encoding);
+                           _this.Objects.Add(encoding);
                             missingEncodings.Add($"{dataType}: {encoding}");
                         }
                     }
@@ -321,6 +477,11 @@ namespace CESMII.OpcUa.NodeSetModel.Opc.Extensions
         {
             return new ExpandedNodeId(Guid.NewGuid(), nameSpace).ToString();
         }
+        public static string ToModel(this QualifiedName qName, NamespaceTable namespaceUris)
+        {
+            return $"{namespaceUris.GetString(qName.NamespaceIndex)};{qName.Name}";
+        }
+
         public static string GetNodeClass(this NodeModel nodeModel)
         {
             var type = nodeModel.GetType().Name;

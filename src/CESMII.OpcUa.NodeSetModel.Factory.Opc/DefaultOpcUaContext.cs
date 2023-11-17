@@ -1,4 +1,4 @@
-﻿using Opc.Ua;
+using Opc.Ua;
 
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua.Export;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -20,7 +21,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         {
             _importedNodes = new NodeStateCollection();
             _nodesetModels = new Dictionary<string, NodeSetModel>();
-            _logger = logger;
+            _logger = logger ?? NullLogger.Instance;
 
             var namespaceTable = new NamespaceTable();
             namespaceTable.GetIndexOrAppend(Namespaces.OpcUa);
@@ -36,32 +37,39 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public DefaultOpcUaContext(Dictionary<string, NodeSetModel> nodesetModels, ILogger logger) : this(logger)
         {
             _nodesetModels = nodesetModels;
-            _logger = logger;
+            _logger = logger ?? NullLogger.Instance;
         }
         public DefaultOpcUaContext(ISystemContext systemContext, NodeStateCollection importedNodes, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger)
+            : this(nodesetModels, logger)
         {
             _systemContext = systemContext;
             _importedNodes = importedNodes;
-            _nodesetModels = nodesetModels;
-            _logger = logger;
         }
 
         public bool ReencodeExtensionsAsJson { get; set; }
+        public bool EncodeJsonScalarsAsValue { get; set; }
 
         private Dictionary<NodeId, NodeState> _importedNodesByNodeId;
         private Dictionary<string, UANodeSet> _importedUANodeSetsByUri = new();
 
         public NamespaceTable NamespaceUris { get => _systemContext.NamespaceUris; }
 
-        ILogger IOpcUaContext.Logger => _logger;
+        public ILogger Logger => _logger;
 
+        public bool UseLocalNodeIds { get; set; }
+        public Dictionary<string, NodeSetModel> NodeSetModels => _nodesetModels;
 
-        public virtual string GetNodeIdWithUri(NodeId nodeId, out string namespaceUri)
+        public virtual string GetModelNodeId(NodeId nodeId)
         {
+            string namespaceUri;
             namespaceUri = GetNamespaceUri(nodeId.NamespaceIndex);
             if (string.IsNullOrEmpty(namespaceUri))
             {
                 throw ServiceResultException.Create(StatusCodes.BadNodeIdInvalid, "Namespace Index ({0}) for node id {1} is not in the namespace table.", nodeId.NamespaceIndex, nodeId);
+            }
+            if (UseLocalNodeIds)
+            {
+                return nodeId.ToString();
             }
             var nodeIdWithUri = new ExpandedNodeId(nodeId, namespaceUri).ToString();
             return nodeIdWithUri;
@@ -75,10 +83,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual NodeState GetNode(NodeId nodeId)
         {
-            if (_importedNodesByNodeId == null)
-            {
-                _importedNodesByNodeId = _importedNodes.ToDictionary(n => n.NodeId);
-            }
+            _importedNodesByNodeId ??= _importedNodes.ToDictionary(n => n.NodeId);
             NodeState nodeStateDict = null;
             if (nodeId != null)
             {
@@ -92,17 +97,15 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return _systemContext.NamespaceUris.GetString(namespaceIndex);
         }
 
-        public virtual NodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
+        public virtual TNodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
         {
-            var expandedNodeId = ExpandedNodeId.Parse(nodeId, _systemContext.NamespaceUris);
-            var uaNamespace = GetNamespaceUri(expandedNodeId.NamespaceIndex);
-            if (!_nodesetModels.TryGetValue(uaNamespace, out var nodeSetModel))
+            foreach (var nodeSetModel in _nodesetModels.Values)
             {
-                return null;
-            }
-            if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
-            {
-                return nodeModel;
+                if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
+                {
+                    var result = nodeModel as TNodeModel;
+                    return result;
+                }
             }
             return null;
         }
@@ -118,6 +121,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 if (!string.IsNullOrEmpty(model.XmlSchemaUri))
                 {
                     nodesetModel.XmlSchemaUri = model.XmlSchemaUri;
+                }
+                if (UseLocalNodeIds)
+                {
+                    nodesetModel.NamespaceIndex = NamespaceUris.GetIndexOrAppend(nodesetModel.ModelUri);
                 }
                 if (model.RequiredModel != null)
                 {
@@ -175,9 +182,39 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             return references;
         }
 
-        public virtual string JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
+        public virtual (string Json, bool IsScalar) JsonEncodeVariant(Variant wrappedValue, DataTypeModel dataType = null)
         {
-            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson);
+            return NodeModelUtils.JsonEncodeVariant(_systemContext, wrappedValue, dataType, ReencodeExtensionsAsJson, EncodeJsonScalarsAsValue);
+        }
+
+        public virtual Variant JsonDecodeVariant(string jsonVariant, DataTypeModel dataType = null)
+        {
+            dataType ??= this.GetModelForNode<DataTypeModel>(this.GetModelNodeId(DataTypeIds.String));
+            var variant = NodeModelUtils.JsonDecodeVariant(jsonVariant, new ServiceMessageContext { NamespaceUris = _systemContext.NamespaceUris }, dataType, EncodeJsonScalarsAsValue);
+            return variant;
+        }
+
+        public string GetModelBrowseName(QualifiedName browseName)
+        {
+            if (UseLocalNodeIds)
+            {
+                return browseName.ToString();
+            }
+            return $"{NamespaceUris.GetString(browseName.NamespaceIndex)};{browseName.Name}";
+        }
+
+        public QualifiedName GetBrowseNameFromModel(string modelBrowseName)
+        {
+            if (UseLocalNodeIds)
+            {
+                return QualifiedName.Parse(modelBrowseName);
+            }
+            var parts = modelBrowseName.Split(new[] { ';' }, 2);
+            if (parts.Length == 1)
+            {
+                return new QualifiedName(parts[0]);
+            }
+            return new QualifiedName(parts[1], (ushort)NamespaceUris.GetIndex(parts[0]));
         }
     }
 }

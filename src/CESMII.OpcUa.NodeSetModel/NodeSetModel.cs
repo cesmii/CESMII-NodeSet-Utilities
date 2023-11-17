@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 
@@ -48,6 +49,7 @@ namespace CESMII.OpcUa.NodeSetModel
         /// </summary>
         public virtual List<InterfaceModel> Interfaces { get; set; } = new List<InterfaceModel>();
         public virtual List<ObjectModel> Objects { get; set; } = new List<ObjectModel>();
+        public virtual List<MethodModel> Methods { get; set; } = new();
 
         public virtual List<PropertyModel> Properties { get; set; } = new List<PropertyModel>();
         public virtual List<DataVariableModel> DataVariables { get; set; } = new List<DataVariableModel>();
@@ -57,6 +59,8 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual List<ReferenceTypeModel> ReferenceTypes { get; set; } = new List<ReferenceTypeModel>();
 
         public Dictionary<string, NodeModel> AllNodesByNodeId { get; } = new Dictionary<string, NodeModel>();
+        public string HeaderComments { get; set; }
+        public int? NamespaceIndex { get; set; }
     }
     public class RequiredModelInfo
     {
@@ -78,11 +82,60 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<LocalizedText> Description { get; set; }
         public string Documentation { get; set; }
+        /// <summary>
+        /// Released, Draft, Deprecated
+        /// </summary>
         public string ReleaseStatus { get; set; }
 
         [IgnoreDataMember]
         public string Namespace { get => NodeSet?.ModelUri; }
-        public string NodeId { get; set; }
+        public string NodeId
+        {
+            get
+            {
+                if (_namespace != null)
+                {
+                    return $"nsu={_namespace};{NodeIdIdentifier}";
+                }
+                if (NodeSet.NamespaceIndex == 0)
+                {
+                    return NodeIdIdentifier;
+                }
+                return $"ns={NodeSet.NamespaceIndex};{NodeIdIdentifier}";
+            }
+            set
+            {
+                var nodeIdParts = value.Split(new[] { ';' }, 2);
+                if (nodeIdParts.Length > 1)
+                {
+                    if (nodeIdParts[0].StartsWith("nsu="))
+                    {
+                        // For use with EF proxies, we avoid accessing the NodeModel.NodeSet property. Instead save the namespace in a private _namespace variable
+                        _namespace = nodeIdParts[0].Substring("nsu=".Length);
+                    }
+                    else if (nodeIdParts[0].StartsWith("ns="))
+                    {
+                        if (NodeSet?.NamespaceIndex != null)
+                        {
+                            throw new Exception($"Invalid NodeId: node ids must be absolute.");
+                        }
+                        if (nodeIdParts[0].Substring("ns=".Length) != NodeSet?.NamespaceIndex?.ToString(CultureInfo.InvariantCulture))
+                        {
+                            throw new Exception($"Mismatching namespace index in {value}. Expected {NodeSet.NamespaceIndex}");
+                        }
+                        _namespace = null;
+                    }
+                    NodeIdIdentifier = nodeIdParts[1];
+                }
+                else
+                {
+                    NodeIdIdentifier = value;
+                }
+            }
+        }
+        private string _namespace;
+
+        public string NodeIdIdentifier { get; set; }
         public object CustomState { get; set; }
         public virtual List<string> Categories { get; set; }
 
@@ -93,12 +146,12 @@ namespace CESMII.OpcUa.NodeSetModel
                 var core = NodeSet.RequiredModels?.FirstOrDefault(n => n.ModelUri == "http://opcfoundation.org/UA/")?.AvailableModel;
 #pragma warning disable CS0618 // Type or member is obsolete - populating for backwards compat for now
                 return
-                    this.Properties.Select(p => new NodeAndReference { Reference = "HasProperty", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
-                    .Concat(this.DataVariables.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Objects.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Methods.Select(p => new NodeAndReference { Reference = "HasComponent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
-                    .Concat(this.Interfaces.Select(p => new NodeAndReference { Reference = "HasInterface", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasInterface")), Node = p }))
-                    .Concat(this.Events.Select(p => new NodeAndReference { Reference = "GeneratesEvent", ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("GeneratesEvent")), Node = p }))
+                    this.Properties.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasProperty")), Node = p })
+                    .Concat(this.DataVariables.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Objects.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Methods.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasComponent")), Node = p }))
+                    .Concat(this.Interfaces.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("HasInterface")), Node = p }))
+                    .Concat(this.Events.Select(p => new NodeAndReference { ReferenceType = core?.ReferenceTypes.FirstOrDefault(r => r.BrowseName.EndsWith("GeneratesEvent")), Node = p }))
                     .Concat(this.OtherReferencedNodes)
                     ;
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -157,8 +210,6 @@ namespace CESMII.OpcUa.NodeSetModel
         public class NodeAndReference : IEquatable<NodeAndReference>
         {
             public virtual NodeModel Node { get; set; }
-            [Obsolete("Use ReferenceType instead")]
-            public string Reference { get; set; }
             public virtual NodeModel ReferenceType { get; set; }
 
             public override bool Equals(object obj)
@@ -168,19 +219,18 @@ namespace CESMII.OpcUa.NodeSetModel
 
             public bool Equals(NodeAndReference other)
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 return other is not null &&
                        EqualityComparer<NodeModel>.Default.Equals(Node, other.Node) &&
-                       Reference == other.Reference &&
                        EqualityComparer<NodeModel>.Default.Equals(ReferenceType, other.ReferenceType);
-#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             public override int GetHashCode()
             {
-#pragma warning disable CS0618 // Type or member is obsolete
-                return HashCode.Combine(Node, Reference, ReferenceType);
-#pragma warning restore CS0618 // Type or member is obsolete
+#if !NETSTANDARD2_0
+                return HashCode.Combine(Node, ReferenceType);
+#else
+                return HashCode.Combine(Node, ReferenceType, "");
+#endif
             }
 
             public static bool operator ==(NodeAndReference left, NodeAndReference right)
@@ -200,6 +250,11 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<NodeAndReference> OtherReferencedNodes { get; set; } = new List<NodeAndReference>();
         public virtual List<NodeAndReference> OtherReferencingNodes { get; set; } = new List<NodeAndReference>();
+
+        /// <summary>
+        /// Indicates that Properties, DataVariables, OtherReferencedNodes etc. have not been populated. Use to support incremental rendering of the node model graph.
+        /// </summary>
+        public bool ReferencesNotResolved { get; set; }
 
         internal virtual bool UpdateIndices(NodeSetModel model, HashSet<string> updatedNodes)
         {
@@ -239,6 +294,10 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             foreach (var node in this.Methods)
             {
+                if (model.ModelUri == node.Namespace && !model.Methods.Contains(node))
+                {
+                    model.Methods.Add(node);
+                }
                 node.UpdateIndices(model, updatedNodes);
             }
             foreach (var node in this.Properties)
@@ -290,6 +349,13 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class ObjectModel : InstanceModel<ObjectTypeModel>
     {
+        /// <summary>
+        /// 0x0: The Object or View produces no event and has no event history.
+        /// 0x1: The Object or View produces event notifications.
+        /// 0x4: The Object has an event history which may be read.
+        /// 0x8: The Object has an event history which may be updated.
+        /// </summary>
+        public byte? EventNotifier { get; set; }
         /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Objects and ObjectModel for EF
         /// </summary>
@@ -461,6 +527,13 @@ namespace CESMII.OpcUa.NodeSetModel
     public class MethodModel : InstanceModel<MethodModel>
     {
         /// <summary>
+        /// InputArguments are a merged representation of the InputArguments property and any HasArgumentDescription references
+        /// The NodeId will be NULL if there was no ArgumentDescription
+        /// </summary>
+        public List<VariableModel> InputArguments { get; set; }
+        public List<VariableModel> OutputArguments { get; set; }
+
+        /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Methods and MethodModel for EF
         /// </summary>
         public virtual List<NodeModel> NodesWithMethods { get; set; } = new List<NodeModel>();
@@ -526,7 +599,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public class StructureField
         {
             public string Name { get; set; }
-            public string SymbolicName { get;set; }
+            public string SymbolicName { get; set; }
             public virtual BaseTypeModel DataType { get; set; }
             /// <summary>
             /// n > 1: the Value is an array with the specified number of dimensions.
@@ -577,7 +650,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public DataTypeModel Owner { get; set; }
         }
 
-                public class UaEnumField
+        public class UaEnumField
         {
             public string Name { get; set; }
             public string SymbolicName { get; set; }

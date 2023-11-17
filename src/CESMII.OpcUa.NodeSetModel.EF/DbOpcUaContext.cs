@@ -62,7 +62,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             this._nodeSetFactory = nodeSetFactory;
         }
 
-        public override NodeModel GetModelForNode<TNodeModel>(string nodeId)
+        public override TNodeModel GetModelForNode<TNodeModel>(string nodeId)
         {
             var model = base.GetModelForNode<TNodeModel>(nodeId);
             if (model != null) return model;
@@ -101,8 +101,8 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                         // This avoids a database lookup for each referenced node (or the need to pre-fetch all nodes in the EF cache)
                         nodeModelDb = _dbContext.CreateProxy<TNodeModel>(nm =>
                         {
-                            nm.NodeId = nodeId;
                             nm.NodeSet = nodeSet;
+                            nm.NodeId = nodeId;
                         }
                         );
                         _dbContext.Attach(nodeModelDb);
@@ -119,7 +119,11 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                     nodeModelDb?.NodeSet.AllNodesByNodeId.Add(nodeModelDb.NodeId, nodeModelDb);
                 }
             }
-            return nodeModelDb;
+            if (!(nodeModelDb is TNodeModel))
+            {
+                _logger.LogWarning($"Nodemodel {nodeModelDb} is of type {nodeModelDb.GetType()} when type {typeof(TNodeModel)} was requested. Returning null.");
+            }
+            return nodeModelDb as TNodeModel;
         }
 
         public override NodeSetModel GetOrAddNodesetModel(ModelTableEntry model, bool createNew = true)
