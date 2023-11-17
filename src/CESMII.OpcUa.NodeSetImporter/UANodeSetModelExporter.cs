@@ -24,9 +24,13 @@ namespace CESMII.OpcUa.NodeSetModel
     /// </summary>
     public class UANodeSetModelExporter
     {
-        public static string ExportNodeSetAsXml(NodeSetModel nodesetModel, Dictionary<string, NodeSetModel> nodesetModels, Dictionary<string, string> aliases = null, bool encodeJsonScalarsAsString = false)
+        public static string ExportNodeSetAsXml(NodeSetModel nodesetModel, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger = null, Dictionary<string, string> aliases = null, bool encodeJsonScalarsAsValue = false)
         {
-            var exportedNodeSet = ExportNodeSet(nodesetModel, nodesetModels, aliases, encodeJsonScalarsAsString: encodeJsonScalarsAsString);
+            return ExportNodeSetAsXmlAndNodeSet(nodesetModel, nodesetModels, logger, aliases, encodeJsonScalarsAsValue).NodeSetXml;
+        }
+        public static (string NodeSetXml, UANodeSet NodeSet) ExportNodeSetAsXmlAndNodeSet(NodeSetModel nodesetModel, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger = null, Dictionary<string, string> aliases = null, bool encodeJsonScalarsAsValue = false)
+        {
+            var exportedNodeSet = ExportNodeSet(nodesetModel, nodesetModels, logger, aliases, encodeJsonScalarsAsValue: encodeJsonScalarsAsValue);
 
             string exportedNodeSetXml;
             // .Net6 changed the default to no-identation: https://github.com/dotnet/runtime/issues/64885
@@ -84,7 +88,10 @@ namespace CESMII.OpcUa.NodeSetModel
             }
             return exportedNodeSetXml;
         }
-        public static UANodeSet ExportNodeSet(NodeSetModel nodeSetModel, Dictionary<string, NodeSetModel> nodeSetModels, Dictionary<string, string> aliases = null, bool encodeJsonScalarsAsString = false)
+            }
+            return (exportedNodeSetXml, exportedNodeSet);
+        }
+        public static UANodeSet ExportNodeSet(NodeSetModel nodeSetModel, Dictionary<string, NodeSetModel> nodeSetModels, ILogger logger, Dictionary<string, string> aliases = null, bool encodeJsonScalarsAsValue = false)
         {
             if (aliases == null)
             {
