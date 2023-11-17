@@ -225,14 +225,28 @@ namespace CESMII.NodeSetUtilities.Tests
             var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(myNodeSetModel, nodeSetModels);
         }
 
-        private string JsonEncodeVariant(Variant v)
+        [Fact]
+        public async Task HelloEmptyWorld()
         {
-            using (var encoder = new JsonEncoder(ServiceMessageContext.GlobalContext, true))
+            // Set up the importer
+            var importer = new UANodeSetModelImporter(NullLogger.Instance);
+
+            // Read and import the base nodeset
+            var file = Path.Combine(strTestNodeSetDirectory, "opcfoundation.org.UA.NodeSet2.xml");
+            var nodesetXml = File.ReadAllText(file);
+            var baseNodeSets = (await importer.ImportNodeSetModelAsync(nodesetXml)).ToDictionary(n => n.ModelUri);
+
+            // All required models are loaded: now we can use them to build a new model
+
+            var uaBaseModel = baseNodeSets[Namespaces.OpcUa];
+
+            var myNodeSetModel = new NodeSetModel
             {
-                encoder.WriteVariant("Value", v);
-                var jsonValue = encoder.CloseAndReturnText();
-                return jsonValue;
-            }
+                ModelUri = "https://opcua.rocks/UA",
+            };
+
+            myNodeSetModel.UpdateIndices();
+            var exportedNodeSetXml = UANodeSetModelExporter.ExportNodeSetAsXml(myNodeSetModel, baseNodeSets);
         }
     }
 
