@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 
@@ -649,7 +650,7 @@ namespace CESMII.OpcUa.NodeSetModel
             public DataTypeModel Owner { get; set; }
         }
 
-                public class UaEnumField
+        public class UaEnumField
         {
             public string Name { get; set; }
             public string SymbolicName { get; set; }

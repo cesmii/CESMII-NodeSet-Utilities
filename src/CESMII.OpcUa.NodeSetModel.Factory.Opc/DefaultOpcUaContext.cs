@@ -82,10 +82,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual NodeState GetNode(NodeId nodeId)
         {
-            if (_importedNodesByNodeId == null)
-            {
-                _importedNodesByNodeId = _importedNodes.ToDictionary(n => n.NodeId);
-            }
+            _importedNodesByNodeId ??= _importedNodes.ToDictionary(n => n.NodeId);
             NodeState nodeStateDict = null;
             if (nodeId != null)
             {
@@ -101,15 +98,12 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public virtual TNodeModel GetModelForNode<TNodeModel>(string nodeId) where TNodeModel : NodeModel
         {
-            var expandedNodeId = ExpandedNodeId.Parse(nodeId, _systemContext.NamespaceUris);
-            var uaNamespace = GetNamespaceUri(expandedNodeId.NamespaceIndex);
-            if (!_nodesetModels.TryGetValue(uaNamespace, out var nodeSetModel))
+            foreach(var nodeSetModel in _nodesetModels.Values)
             {
-                return null;
-            }
             if (nodeSetModel.AllNodesByNodeId.TryGetValue(nodeId, out var nodeModel))
             {
-                return nodeModel as TNodeModel;
+                    var result = nodeModel as TNodeModel;
+                }
             }
             return null;
         }

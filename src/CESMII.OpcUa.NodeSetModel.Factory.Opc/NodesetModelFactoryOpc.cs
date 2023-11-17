@@ -609,7 +609,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
             else if (node is BaseObjectTypeState objectType)
             {
-                if (objectType.IsAbstract && GetBaseTypes(opcContext, objectType).Any(n => n.NodeId == ObjectTypeIds.BaseInterfaceType))
+                if (GetBaseTypes(opcContext, objectType).Any(n => n.NodeId == ObjectTypeIds.BaseInterfaceType))
                 {
                     nodeModel = Create<InterfaceModelFactoryOpc, InterfaceModel>(opcContext, objectType, customState, recursionDepth);
                 }
@@ -852,14 +852,20 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
             if (uaType.SuperTypeId != null)
             {
-                var superTypeNodeId = new ExpandedNodeId(uaType.SuperTypeId, opcContext.NamespaceUris.GetString(uaType.SuperTypeId.NamespaceIndex)).ToString();
-                var superTypeModel = opcContext.GetModelForNode<BaseTypeModel>(superTypeNodeId);
+                var superTypeNodeId = opcContext.GetModelNodeId(uaType.SuperTypeId);
+                BaseTypeModel superTypeModel = opcContext.GetModelForNode<TBaseTypeModel>(superTypeNodeId);
+                if (superTypeModel == null)
+                {
+                    // Handle cases where the supertype is of a different model class, for example the InterfaceModel for BaseInterfaceType has a supertype ObjectTypeModel, while all other InterfaceModels have a supertype of Interfacemodel
+                    superTypeModel = opcContext.GetModelForNode<BaseTypeModel>(superTypeNodeId);
+                }
                 if (superTypeModel == null)
                 {
                     var superTypeState = opcContext.GetNode(uaType.SuperTypeId) as BaseTypeState;
                     if (superTypeState != null)
                     {
-                        superTypeModel = NodeModelFactoryOpc.Create(opcContext, superTypeState, this._model.CustomState, out _) as BaseTypeModel;
+                        // Always resolve basetypes, regardless of recursionDepth
+                        superTypeModel = NodeModelFactoryOpc.Create(opcContext, superTypeState, this._model.CustomState, out _, 2) as BaseTypeModel;
                         if (superTypeModel == null)
                         {
                             throw new Exception($"Invalid node {superTypeState} is not a Base Type");

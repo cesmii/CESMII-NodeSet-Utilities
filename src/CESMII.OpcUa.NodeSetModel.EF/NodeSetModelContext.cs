@@ -144,6 +144,17 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             {
                 btmSt.OnDelete(DeleteBehavior.Cascade);
             }
+            modelBuilder.Entity<DataTypeModel>()
+                .ToTable("DataTypes");
+            modelBuilder.Entity<ObjectTypeModel>()
+                .ToTable("ObjectTypes");
+            modelBuilder.Entity<InterfaceModel>()
+                .ToTable("Interfaces");
+            modelBuilder.Entity<VariableTypeModel>()
+                .ToTable("VariableTypes");
+            modelBuilder.Entity<ReferenceTypeModel>()
+                .ToTable("ReferenceTypes");
+
             if (!methodArgs)
             {
                 modelBuilder.Entity<MethodModel>()
