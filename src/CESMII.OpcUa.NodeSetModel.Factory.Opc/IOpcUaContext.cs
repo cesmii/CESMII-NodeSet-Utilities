@@ -41,5 +41,6 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         string GetModelBrowseName(QualifiedName browseName);
         QualifiedName GetBrowseNameFromModel(string modelBrowseName);
 
+        Dictionary<string, NodeSetModel> NodeSetModels { get; }
     }
 }

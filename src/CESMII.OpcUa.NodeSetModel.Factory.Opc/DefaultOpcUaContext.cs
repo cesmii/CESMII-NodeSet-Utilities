@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua.Export;
 using CESMII.OpcUa.NodeSetModel.Opc.Extensions;
 using CESMII.OpcUa.NodeSetModel.Export.Opc;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 {
@@ -20,7 +21,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         {
             _importedNodes = new NodeStateCollection();
             _nodesetModels = new Dictionary<string, NodeSetModel>();
-            _logger = logger;
+            _logger = logger ?? NullLogger.Instance;
 
             var namespaceTable = new NamespaceTable();
             namespaceTable.GetIndexOrAppend(Namespaces.OpcUa);
@@ -36,14 +37,13 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
         public DefaultOpcUaContext(Dictionary<string, NodeSetModel> nodesetModels, ILogger logger) : this(logger)
         {
             _nodesetModels = nodesetModels;
-            _logger = logger;
+            _logger = logger ?? NullLogger.Instance;
         }
         public DefaultOpcUaContext(ISystemContext systemContext, NodeStateCollection importedNodes, Dictionary<string, NodeSetModel> nodesetModels, ILogger logger)
+            : this(nodesetModels, logger)
         {
             _systemContext = systemContext;
             _importedNodes = importedNodes;
-            _nodesetModels = nodesetModels;
-            _logger = logger;
         }
 
         public bool ReencodeExtensionsAsJson { get; set; }
@@ -54,9 +54,10 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
         public NamespaceTable NamespaceUris { get => _systemContext.NamespaceUris; }
 
-        ILogger IOpcUaContext.Logger => _logger;
+        public ILogger Logger => _logger;
 
         public bool UseLocalNodeIds { get; set; }
+        public Dictionary<string, NodeSetModel> NodeSetModels => _nodesetModels;
 
         public virtual string GetModelNodeId(NodeId nodeId)
         {
