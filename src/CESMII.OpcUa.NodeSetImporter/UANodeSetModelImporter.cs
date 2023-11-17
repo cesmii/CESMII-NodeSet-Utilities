@@ -105,6 +105,11 @@ namespace CESMII.OpcUa.NodeSetModel
                         foreach (var nodeSetModel in loadedNodesetModels)
                         {
                             nodeSetModel.Identifier = identifier;
+                            nodeSetModel.HeaderComments = resolvedModel.HeaderComment;
+                            if (_opcContext.UseLocalNodeIds)
+                            {
+                                nodeSetModel.NamespaceIndex = _opcContext.NamespaceUris.GetIndex(nodeSetModel.ModelUri);
+                            }
                         }
                         allLoadedNodesetModels.AddRange(loadedNodesetModels);
                     }

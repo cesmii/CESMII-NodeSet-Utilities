@@ -47,6 +47,39 @@ namespace CESMII.OpcUa.NodeSetModel
                         writer.Flush();
                     }
                 }
+                var xmlBytes = ms.ToArray();
+                if (string.IsNullOrEmpty(nodesetModel.HeaderComments))
+                {
+                    exportedNodeSetXml = Encoding.UTF8.GetString(xmlBytes);
+                }
+                else
+                {
+                    int secondLineIndex;
+                    for (secondLineIndex = 0; secondLineIndex < xmlBytes.Length; secondLineIndex++)
+                    {
+                        if (xmlBytes[secondLineIndex] == '\r' && xmlBytes[secondLineIndex+1] == '\n')
+                        {
+                            break;
+                        }
+                    }
+                    secondLineIndex += 2;
+                    if (secondLineIndex < xmlBytes.Length -1)
+                    {
+                        var sb = new StringBuilder();
+                        sb.Append(Encoding.UTF8.GetString(xmlBytes, 0, secondLineIndex));
+                        if (nodesetModel.HeaderComments.EndsWith("\r\n"))
+                        {
+                            sb.Append(nodesetModel.HeaderComments);
+                        }
+                        else
+                        {
+                            sb.AppendLine(nodesetModel.HeaderComments);
+                }
+                        sb.Append(Encoding.UTF8.GetString(xmlBytes, secondLineIndex, xmlBytes.Length - secondLineIndex));
+                        exportedNodeSetXml = sb.ToString();
+                    }
+                    else
+                    {
                 exportedNodeSetXml = Encoding.UTF8.GetString(ms.ToArray());
             }
             return exportedNodeSetXml;

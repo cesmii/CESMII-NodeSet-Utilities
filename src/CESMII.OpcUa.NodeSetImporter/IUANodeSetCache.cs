@@ -34,6 +34,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// The imported NodeSet - use this in your subsequent code
         /// </summary>
         public UANodeSet NodeSet { get; set; }
+        public string HeaderComment { get; set; }
         /// <summary>
         /// File Path to the XML file cache of the NodeSet on the Server
         /// </summary>
@@ -96,7 +97,7 @@ namespace CESMII.OpcUa.NodeSetImporter
         /// <param name="filePath"></param>
         /// <param name="WasNewSet"></param>
         /// <returns>The ModelValue created or found in the results</returns>
-        public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, ModelTableEntry ns, string filePath, bool wasNewFile, ILogger logger = null)
+        public (ModelValue Model, bool Added) AddModelAndDependencies(UANodeSet nodeSet, string headerComment, ModelTableEntry ns, string filePath, bool wasNewFile, ILogger logger = null)
         {
             NodeModelUtils.FixupNodesetVersionFromMetadata(nodeSet, logger);
             bool bAdded = false;
@@ -109,7 +110,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                     // superceded
                 }
 
-                tModel = new ModelValue { NodeSet = nodeSet, NameVersion = new ModelNameAndVersion(ns), FilePath = filePath, NewInThisImport = wasNewFile };
+                tModel = new ModelValue { NodeSet = nodeSet, HeaderComment = headerComment, NameVersion = new ModelNameAndVersion(ns), FilePath = filePath, NewInThisImport = wasNewFile };
                 this.Models.Add(tModel);
                 bAdded = true;
             }

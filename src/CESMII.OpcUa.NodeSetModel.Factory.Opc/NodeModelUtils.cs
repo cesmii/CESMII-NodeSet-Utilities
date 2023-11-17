@@ -337,6 +337,38 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             }
         }
 
+        public static string ReadHeaderComment(string nodeSetXml)
+        {
+            string headerComments = "";
+            using (var nodesetXmlReader = new StringReader(nodeSetXml))
+            {
+                var firstLine = nodesetXmlReader.ReadLine();
+                if (!firstLine.StartsWith("<!--"))
+                {
+                    firstLine = nodesetXmlReader.ReadLine();
+                }
+                if (firstLine.StartsWith("<!--"))
+                {
+                    StringBuilder sbHeaderComment = new();
+                    do
+                    {
+                        sbHeaderComment.AppendLine(firstLine);
+                        firstLine = nodesetXmlReader.ReadLine();
+                    } while (!firstLine.Contains("-->"));
+                    sbHeaderComment.AppendLine(firstLine);
+                    headerComments = sbHeaderComment.ToString();
+            }
+                //var doc = XElement.Load(nodesetXmlReader);
+                //var comments = doc.DescendantNodes().OfType<XComment>();
+                //foreach (XComment comment in comments)
+                //{
+                //    //inline XML Commments are not showing here...only real XML comments (not file comments with /**/)
+                //    //Unfortunately all OPC UA License Comments are not using XML Comments but file-comments and therefore cannot be "preserved" 
+                //}
+            }
+            return headerComments;
+        }
+
         private class PartialTypeTree : ITypeTable
         {
             private DataTypeModel _dataType;

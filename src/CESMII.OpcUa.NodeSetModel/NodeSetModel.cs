@@ -57,6 +57,7 @@ namespace CESMII.OpcUa.NodeSetModel
         public virtual List<ReferenceTypeModel> ReferenceTypes { get; set; } = new List<ReferenceTypeModel>();
 
         public Dictionary<string, NodeModel> AllNodesByNodeId { get; } = new Dictionary<string, NodeModel>();
+        public string HeaderComments { get; set; }
     }
     public class RequiredModelInfo
     {
