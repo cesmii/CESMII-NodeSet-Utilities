@@ -81,6 +81,9 @@ namespace CESMII.OpcUa.NodeSetModel
 
         public virtual List<LocalizedText> Description { get; set; }
         public string Documentation { get; set; }
+        /// <summary>
+        /// Released, Draft, Deprecated
+        /// </summary>
         public string ReleaseStatus { get; set; }
 
         [IgnoreDataMember]
@@ -215,12 +218,9 @@ namespace CESMII.OpcUa.NodeSetModel
 
             public bool Equals(NodeAndReference other)
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 return other is not null &&
                        EqualityComparer<NodeModel>.Default.Equals(Node, other.Node) &&
-                       Reference == other.Reference &&
                        EqualityComparer<NodeModel>.Default.Equals(ReferenceType, other.ReferenceType);
-#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             public override int GetHashCode()
@@ -348,6 +348,13 @@ namespace CESMII.OpcUa.NodeSetModel
 
     public class ObjectModel : InstanceModel<ObjectTypeModel>
     {
+        /// <summary>
+        /// 0x0: The Object or View produces no event and has no event history.
+        /// 0x1: The Object or View produces event notifications.
+        /// 0x4: The Object has an event history which may be read.
+        /// 0x8: The Object has an event history which may be updated.
+        /// </summary>
+        public byte? EventNotifier { get; set; }
         /// <summary>
         /// Not used by the model itself. Captures the many-to-many relationship between NodeModel.Objects and ObjectModel for EF
         /// </summary>

@@ -138,6 +138,7 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
                 _model.Categories.AddRange(opcNode.Categories);
             }
             _model.Documentation = opcNode.NodeSetDocumentation;
+            _model.ReleaseStatus = opcNode.ReleaseStatus.ToString();
 
             if (recursionDepth <= 0)
             {
@@ -832,6 +833,14 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
 
     public class ObjectModelFactoryOpc : InstanceModelFactoryOpc<ObjectModel, ObjectTypeModel, ObjectTypeModelFactoryOpc>
     {
+        protected override void Initialize(IOpcUaContext opcContext, NodeState opcNode, int recursionDepth)
+        {
+            base.Initialize(opcContext, opcNode, recursionDepth);
+            if (opcNode is BaseObjectState objState)
+            {
+                _model.EventNotifier = objState.EventNotifier;
+            }
+        }
     }
 
     public class BaseTypeModelFactoryOpc<TBaseTypeModel> : NodeModelFactoryOpc<TBaseTypeModel> where TBaseTypeModel : BaseTypeModel, new()

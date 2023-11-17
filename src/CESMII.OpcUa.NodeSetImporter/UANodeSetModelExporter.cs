@@ -108,7 +108,6 @@ namespace CESMII.OpcUa.NodeSetModel
 
             var context = new ExportContext(logger, nodeSetModels)
             {
-                Namespaces = new NamespaceTable(new[] { Namespaces.OpcUa }),
                 Aliases = aliases,
                 ReencodeExtensionsAsJson = true,
                 EncodeJsonScalarsAsValue = encodeJsonScalarsAsValue,
@@ -116,8 +115,6 @@ namespace CESMII.OpcUa.NodeSetModel
                 _exportedSoFar = new Dictionary<string, UANode>(),
             };
 
-            // Ensure OPC UA model is the first one (index 0)
-            context.Namespaces = new NamespaceTable(new[] { Namespaces.OpcUa });
             foreach (var nsUri in namespaceUris)
             {
                 context.NamespaceUris.GetIndexOrAppend(nsUri);
