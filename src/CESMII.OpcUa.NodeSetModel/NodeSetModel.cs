@@ -95,6 +95,10 @@ namespace CESMII.OpcUa.NodeSetModel
             {
                 if (_namespace != null)
                 {
+                    if (_namespace == "")
+                    {
+                        return $"nsu={Namespace};{NodeIdIdentifier}";
+                    }
                     return $"nsu={_namespace};{NodeIdIdentifier}";
                 }
                 if (NodeSet.NamespaceIndex == 0)
@@ -110,8 +114,16 @@ namespace CESMII.OpcUa.NodeSetModel
                 {
                     if (nodeIdParts[0].StartsWith("nsu="))
                     {
+                        if (this.GetType().Name.EndsWith("ModelProxy"))
+                        {
                         // For use with EF proxies, we avoid accessing the NodeModel.NodeSet property. Instead save the namespace in a private _namespace variable
                         _namespace = nodeIdParts[0].Substring("nsu=".Length);
+                    }
+                        else
+                        {
+                            // Indicate that we want to use absolute nodeids
+                            _namespace = "";
+                        }
                     }
                     else if (nodeIdParts[0].StartsWith("ns="))
                     {
@@ -133,6 +145,11 @@ namespace CESMII.OpcUa.NodeSetModel
                 }
             }
         }
+        /// <summary>
+        /// null: use local node ids
+        /// empty string: use NodeSet.Namespace and absolute nodeids
+        /// uri: return as absolute nodeid without accessing the NodeSet property
+        /// </summary>
         private string _namespace;
 
         public string NodeIdIdentifier { get; set; }
