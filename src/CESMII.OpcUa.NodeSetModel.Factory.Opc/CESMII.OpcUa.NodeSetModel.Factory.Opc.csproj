@@ -22,7 +22,7 @@
 
 	<ItemGroup>
 	  <PackageReference Include="CsvTextFieldParser" Version="1.2.2" />
-	  <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.4.372.56" />
+	  <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.4.372.76" />
 	  <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
   </ItemGroup>
 
