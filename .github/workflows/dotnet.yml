@@ -9,7 +9,7 @@ on:
 
 jobs:
   dotnet-build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: 🤘 checkout
         uses: actions/checkout@v2
