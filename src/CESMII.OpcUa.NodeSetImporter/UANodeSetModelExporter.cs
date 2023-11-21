@@ -62,13 +62,17 @@ namespace CESMII.OpcUa.NodeSetModel
                     int secondLineIndex;
                     for (secondLineIndex = 0; secondLineIndex < xmlBytes.Length; secondLineIndex++)
                     {
-                        if (xmlBytes[secondLineIndex] == '\r' && xmlBytes[secondLineIndex+1] == '\n')
+                        if (xmlBytes[secondLineIndex] == '\r' || xmlBytes[secondLineIndex] == '\n')
                         {
+                            secondLineIndex++;
+                            if (xmlBytes[secondLineIndex + 1] == '\n')
+                            {
+                                secondLineIndex++;
+                            }
                             break;
                         }
                     }
-                    secondLineIndex += 2;
-                    if (secondLineIndex < xmlBytes.Length -1)
+                    if (secondLineIndex < xmlBytes.Length - 1)
                     {
                         var sb = new StringBuilder();
                         sb.Append(Encoding.UTF8.GetString(xmlBytes, 0, secondLineIndex));
@@ -149,7 +153,7 @@ namespace CESMII.OpcUa.NodeSetModel
                         {
                             // name collision: number them
                             int i;
-                            for(i = 1; i < 10000; i++)
+                            for (i = 1; i < 10000; i++)
                             {
                                 var numberedDisplayName = $"{displayName}_{i}";
                                 if (!usedAliases.ContainsValue(numberedDisplayName))
@@ -302,8 +306,9 @@ namespace CESMII.OpcUa.NodeSetModel
                 }
                 if (result.AdditionalNodes != null)
                 {
-                    result.AdditionalNodes.ForEach(n => {
-                        if (context._exportedSoFar.TryAdd(n.NodeId,  n) || !itemsOrderedSet.Contains(n))
+                    result.AdditionalNodes.ForEach(n =>
+                    {
+                        if (context._exportedSoFar.TryAdd(n.NodeId, n) || !itemsOrderedSet.Contains(n))
                         {
                             itemsOrdered.Add(n);
                             itemsOrderedSet.Add(n);
