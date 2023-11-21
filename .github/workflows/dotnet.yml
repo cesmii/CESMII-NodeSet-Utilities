@@ -71,6 +71,7 @@ jobs:
         run: dotnet test "src/CESMII NodeSet Utilities.sln" --configuration Release --no-build --verbosity normal
       - name: Push NuGet Packages
         # Only publish if the commit was tagged
+        shell: pwsh
         if: steps.gitversion.outputs.VersionSourceSha == steps.gitversion.outputs.Sha
         # this should work, but doesn't:
         #run: dotnet nuget push './bin/**/*.nupkg' -s Source -k ${{secrets.NUGETORG_APIKEY}}
