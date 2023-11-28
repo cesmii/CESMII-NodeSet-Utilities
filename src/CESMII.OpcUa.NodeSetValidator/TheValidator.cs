@@ -670,7 +670,12 @@ namespace CESMII.NodeSetValidator
             }
             retres = ImportNewNodeset(fileList);
             if (!string.IsNullOrEmpty(retres?.ErrorMessage))
-                return FireEventLog($"Validation: Error during Import of the NodeSets Error: {retres}", 3);
+                return FireEventLog($"Validation: Error during Import of the NodeSets Error: {retres}",1, 3);
+            FireEventLog($"The Following NodeSets will be used", 1, 3);
+            foreach (var tns in fileList)
+            {
+                FireEventLog($"{tns}", 3);
+            }    
 
             //Step5: Create the NodeSetModels from the NodeSets
             Dictionary<string, NodeSetModel> NodeSetModels = new();
