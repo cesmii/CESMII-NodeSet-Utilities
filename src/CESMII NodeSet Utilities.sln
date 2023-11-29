@@ -30,8 +30,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetDiff", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeSetDiff", "Tests\NodeSetDiff\NodeSetDiff.csproj", "{ABFD5B3D-704A-47CE-98B1-A1986B44E198}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.NodeSetValidator", "CESMII.OpcUa.NodeSetValidator\CESMII.OpcUa.NodeSetValidator.csproj", "{B826EF1A-4C79-4272-8317-2211A49A9DA1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.CloudLibraryResolver", "CESMII.OpcUa.CloudLibraryResolver\CESMII.OpcUa.CloudLibraryResolver.csproj", "{13A550F9-C8FE-4AA5-8F85-DF0CFBB58E08}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CESMII.OpcUa.CloudLibraryResolver.DependencyInjection", "CESMII.OpcUa.CloudLibraryResolver.DependencyInjection\CESMII.OpcUa.CloudLibraryResolver.DependencyInjection.csproj", "{2B7BF6B8-CA00-4F0A-9D07-2B783B7601B3}"
@@ -89,12 +87,6 @@ Global
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
 		{ABFD5B3D-704A-47CE-98B1-A1986B44E198}.Staging|Any CPU.Build.0 = Debug|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
-		{B826EF1A-4C79-4272-8317-2211A49A9DA1}.Staging|Any CPU.Build.0 = Debug|Any CPU
 		{13A550F9-C8FE-4AA5-8F85-DF0CFBB58E08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{13A550F9-C8FE-4AA5-8F85-DF0CFBB58E08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13A550F9-C8FE-4AA5-8F85-DF0CFBB58E08}.Release|Any CPU.ActiveCfg = Release|Any CPU
