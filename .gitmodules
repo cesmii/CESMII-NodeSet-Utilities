@@ -1,0 +1,3 @@
+[submodule "src/CESMII-Common"]
+	path = src/CESMII-Common
+	url = https://github.com/cesmii/CESMII-Common

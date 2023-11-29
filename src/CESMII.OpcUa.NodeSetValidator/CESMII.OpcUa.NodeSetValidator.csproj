@@ -26,7 +26,7 @@
 
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\..\UAEnergy\src\324 - UANodeSetServer\CESMII\API\CESMII.OpcUa.CloudLibraryResolver\CESMII.OpcUa.CloudLibraryResolver.csproj" />
+	  <ProjectReference Include="..\CESMII.OpcUa.CloudLibraryResolver\CESMII.OpcUa.CloudLibraryResolver.csproj" />
 	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj" />
 	</ItemGroup>
 
