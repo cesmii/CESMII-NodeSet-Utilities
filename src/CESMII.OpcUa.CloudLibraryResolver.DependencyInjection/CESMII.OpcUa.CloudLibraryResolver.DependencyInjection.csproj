@@ -29,7 +29,7 @@
 
 
 	<ItemGroup>
-	  <ProjectReference Include="..\CESMII-Common\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj" />
+	  <ProjectReference Include="..\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj" />
 	  <ProjectReference Include="..\CESMII.OpcUa.CloudLibraryResolver\CESMII.OpcUa.CloudLibraryResolver.csproj" />
 	  <!--<ProjectReference Include="..\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj" />-->
 	</ItemGroup>

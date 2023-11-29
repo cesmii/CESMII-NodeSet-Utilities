@@ -24,7 +24,7 @@
 
 	<ItemGroup>
    	  <!--<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Cloud.Library.Client" Version="*-*" />-->
-	  <ProjectReference Include="..\CESMII-Common\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj"/>
+	  <ProjectReference Include="..\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj"/>
 	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj" />
 	</ItemGroup>
 
