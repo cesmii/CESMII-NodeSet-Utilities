@@ -165,7 +165,7 @@ namespace CESMII.OpcUa.NodeSetImporter
                             if (_results.ErrorMessage.Length > 0) _results.ErrorMessage += ", ";
                             _results.ErrorMessage += string.Join(",", _results.MissingModels);
                         }
-                        if (!string.IsNullOrEmpty(_results.ErrorMessage))
+                        if (!rerun && !string.IsNullOrEmpty(_results.ErrorMessage))
                         {
                             _results.ErrorMessage = $"The following NodeSets are required: " + _results.ErrorMessage;
                             //We must delete newly cached models as they need to be imported again into the backend
@@ -176,6 +176,10 @@ namespace CESMII.OpcUa.NodeSetImporter
 
                     _results.Models = OrderByDependencies(_results.Models); // _results.Models.OrderBy(s => s.Dependencies.Count).ToList();
                 } while (rerun && _results.MissingModels.Any());
+                if (!_results.MissingModels.Any())
+                {
+                    _results.ErrorMessage = null;
+                }
             }
             catch (Exception ex)
             {

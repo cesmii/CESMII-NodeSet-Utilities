@@ -670,7 +670,7 @@ namespace CESMII.NodeSetValidator
             }
             retres = ImportNewNodeset(fileList);
             if (retres==null || !string.IsNullOrEmpty(retres.ErrorMessage))
-                return FireEventLog($"Validation: Error during Import of the NodeSets Error: {retres}",3, 3);
+                return FireEventLog($"Validation: Error during Import of the NodeSets Error: {retres?.ErrorMessage}",3, 3);
             FireEventLog($"The Following NodeSets will be used", 1, 3);
             foreach (var tns in retres.Models)
             {
