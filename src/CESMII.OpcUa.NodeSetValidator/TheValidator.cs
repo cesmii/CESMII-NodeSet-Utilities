@@ -628,7 +628,6 @@ namespace CESMII.NodeSetValidator
         #endregion
 
         //Validation starts here
-
         public virtual UANodeSetImportResult FireEventLog(string text, int severity, int loglevel=0)
         {
             if (loglevel>=MyServerStates.LogLevel)
@@ -675,7 +674,8 @@ namespace CESMII.NodeSetValidator
             foreach (var tns in retres.Models)
             {
                 FireEventLog($"{tns}",1, 3);
-            }    
+            }
+            FireEventLog($"---", 1, 3);
 
             //Step5: Create the NodeSetModels from the NodeSets
             Dictionary<string, NodeSetModel> NodeSetModels = new();
