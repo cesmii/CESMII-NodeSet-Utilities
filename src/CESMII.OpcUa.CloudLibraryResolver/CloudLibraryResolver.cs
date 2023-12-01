@@ -112,9 +112,9 @@ namespace CESMII.OpcUa.NodeSetImporter
                 if (bestMatch == null)
                 {
                     if (missing.PublicationDate==null)
-                        bestMatch = nodesetWithURIAndDate.Where(n => n?.Item1 == missing.ModelUri && (missing.PublicationDate == null || n?.Item2 >= missing.PublicationDate)).OrderByDescending(m => m?.Item2).FirstOrDefault();
+                        bestMatch = nodesetWithURIAndDate.Where(n => n?.Item1 == missing.ModelUri).OrderByDescending(m => m?.Item2).FirstOrDefault();
                     else
-                        bestMatch = nodesetWithURIAndDate.Where(n => n?.Item1 == missing.ModelUri && (missing.PublicationDate == null || n?.Item2 >= missing.PublicationDate)).OrderBy(m => m?.Item2).FirstOrDefault();
+                        bestMatch = nodesetWithURIAndDate.Where(n => n?.Item1 == missing.ModelUri && n?.Item2 >= missing.PublicationDate).OrderBy(m => m?.Item2).FirstOrDefault();
                 }
                 if (bestMatch != null)
                 {

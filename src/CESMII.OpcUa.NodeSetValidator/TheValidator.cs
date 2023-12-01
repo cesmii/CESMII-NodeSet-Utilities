@@ -34,9 +34,9 @@ namespace CESMII.NodeSetValidator
         public bool HasIssues { get { return Warnings > 0 || Errors > 0; } }
     }
 
-    public class TheRemoteUAServer
+    public class RemoteUAServer
     {
-        public TheRemoteUAServer()
+        public RemoteUAServer()
         {
             MyServerStates = new TheUAServerStates();
             m_CertificateValidation = new CertificateValidationEventHandler(CertificateValidator_CertificateValidation);
@@ -60,8 +60,8 @@ namespace CESMII.NodeSetValidator
 
         class MyCertificateValidator : CertificateValidator
         {
-            private readonly TheRemoteUAServer _server;
-            public MyCertificateValidator(TheRemoteUAServer server) : base()
+            private readonly RemoteUAServer _server;
+            public MyCertificateValidator(RemoteUAServer server) : base()
             {
                 _server = server;
             }
