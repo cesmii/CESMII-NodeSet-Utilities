@@ -938,8 +938,8 @@ namespace CESMII.OpcUa.NodeSetModel.Factory.Opc
             InitializeDataTypeInfo(_model, opcContext, variableNode, recursionDepth);
             if (variableNode.AccessLevelEx != 1) _model.AccessLevel = variableNode.AccessLevelEx;
             // deprecated if (variableNode.UserAccessLevel != 1) _model.UserAccessLevel = variableNode.UserAccessLevel;
-            if (variableNode.AccessRestrictions != 0) _model.AccessRestrictions = (ushort)variableNode.AccessRestrictions;
-            if (variableNode.WriteMask != 0) _model.WriteMask = (uint)variableNode.WriteMask;
+            if (variableNode.AccessRestrictions != 0) _model.AccessRestrictions = (ushort)(variableNode.AccessRestrictions == null?0:variableNode.AccessRestrictions); //Fix for latest 1.5.372 UA Core Lib
+            if (variableNode.WriteMask != 0) _model.WriteMask = (uint)variableNode.WriteMask; 
             if (variableNode.UserWriteMask != 0) _model.UserWriteMask = (uint)variableNode.UserWriteMask;
             if (variableNode.MinimumSamplingInterval != 0)
             {

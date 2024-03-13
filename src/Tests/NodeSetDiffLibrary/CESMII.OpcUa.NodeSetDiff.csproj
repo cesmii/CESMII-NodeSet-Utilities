@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="XMLUnit.Core" Version="2.9.0" />
-		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.4.372.76" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.373.121" />
 	</ItemGroup>
 
 </Project>
