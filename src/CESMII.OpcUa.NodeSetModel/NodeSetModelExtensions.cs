@@ -46,7 +46,7 @@ namespace CESMII.OpcUa.NodeSetModel
             }
         }
     }
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NETSTANDARD2_1
     public static class DictionaryExtensions
     {
         public static bool TryAdd<TKey, TValue>(this Dictionary<TKey, TValue> dict, TKey key, TValue value)

@@ -243,7 +243,7 @@ namespace CESMII.OpcUa.NodeSetModel
 
             public override int GetHashCode()
             {
-#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0 && !NETSTANDARD2_1
                 return HashCode.Combine(Node, ReferenceType);
 #else
                 return HashCode.Combine(Node, ReferenceType, "");
