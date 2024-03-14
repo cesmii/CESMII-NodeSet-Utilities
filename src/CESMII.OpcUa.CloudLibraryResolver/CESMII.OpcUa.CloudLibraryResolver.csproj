@@ -5,14 +5,13 @@
 	<LangVersion>latest</LangVersion>
     <Configurations>Debug;Release;Staging</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <IncludeReferencedProjects>true</IncludeReferencedProjects>
 	<PackageIcon>cesmii.png</PackageIcon>
 	<Version>0.2-beta</Version>
 	<Authors>Markus Horstmann</Authors>
 	<Company>CESMII</Company>
 	<Product></Product>
 	<NeutralLanguage>en</NeutralLanguage>
-	<Description>OPC UA Cloud Library Resolver: retrieves node sets from an OPC UA Cloud Library.</Description>
+	<Description>OPC UA Cloud Library Resolver for the CESMII NodeSetImporter.</Description>
 	<Copyright>Copyright © 2022 CESMII</Copyright>
 	<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
   </PropertyGroup>
