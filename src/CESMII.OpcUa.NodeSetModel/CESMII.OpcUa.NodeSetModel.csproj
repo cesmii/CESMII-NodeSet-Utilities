@@ -5,14 +5,14 @@
     <Configurations>Debug;Release;Staging</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageIcon>cesmii.png</PackageIcon>
-	<Version>0.1</Version>
-	<Authors>Markus Horstmann</Authors>
-	<Company>CESMII</Company>
-	<Product></Product>
+  <Version>2.1.2</Version>
+  <Authors>Markus Horstmann</Authors>
+  <Company>CESMII/C-Labs</Company>
+  <Product></Product>
 	<NeutralLanguage>en</NeutralLanguage>
 	<Description>OPC UA Node Set Model: provides a fully populated graph of a node set and its dependencies.</Description>
-	<Copyright>Copyright © 2022 CESMII</Copyright>
-	<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+  <Copyright>Copyright © 2022-2024 CESMII. All rights reserved.</Copyright>
+  <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
 	<LangVersion>Latest</LangVersion>
   </PropertyGroup>
 

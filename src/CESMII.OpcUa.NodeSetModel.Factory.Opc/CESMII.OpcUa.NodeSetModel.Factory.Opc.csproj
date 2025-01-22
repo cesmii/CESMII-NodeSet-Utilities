@@ -6,14 +6,14 @@
 	<LangVersion>latest</LangVersion>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageIcon>cesmii.png</PackageIcon>
-	<Version>0.1</Version>
-	<Authors>Markus Horstmann</Authors>
-	<Company>CESMII</Company>
-	<Product></Product>
+  <Version>2.1.2</Version>
+  <Authors>Markus Horstmann</Authors>
+  <Company>CESMII/C-Labs</Company>
+  <Product></Product>
 	<NeutralLanguage>en</NeutralLanguage>
 	<Description>OPC UA Node Set Model factory: creates a Node Set Model from an OPC UA node set file.</Description>
-	<Copyright>Copyright © 2022 CESMII</Copyright>
-	<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+  <Copyright>Copyright © 2022-2024 CESMII. All rights reserved.</Copyright>
+  <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
   </PropertyGroup>
 
 	<ItemGroup>

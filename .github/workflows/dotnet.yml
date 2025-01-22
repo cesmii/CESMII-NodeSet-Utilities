@@ -12,23 +12,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🤘 checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with: 
           submodules: recursive
           fetch-depth: 0
       - name: ⚙ dotnet
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.13
+        uses: gittools/actions/gitversion/setup@v3.0.0
         with:
           versionSpec: '5.x'
 
       - name: Use GitVersion
         id: gitversion # step id used as reference for output values
-        uses: gittools/actions/gitversion/execute@v0.9.13
+        uses: gittools/actions/gitversion/execute@v3.0.0
 
       - name: Gitversion info
         run: |
