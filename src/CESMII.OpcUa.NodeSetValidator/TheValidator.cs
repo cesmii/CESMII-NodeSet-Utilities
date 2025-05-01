@@ -113,7 +113,7 @@ namespace CESMII.NodeSetValidator
             }
         }
 
-        public async Task<string> Connect(bool logEssentialOnly, TheUAServerStates pStates)
+        public string Connect(bool logEssentialOnly, TheUAServerStates pStates)
         {
             MyServerStates.CloneFrom(pStates);
             bool bConnected = false;
@@ -215,7 +215,7 @@ namespace CESMII.NodeSetValidator
                 application.ApplicationConfiguration = m_configuration;
                 if (!MyServerStates.DisableSecurity)
                 {
-                    await application.CheckApplicationInstanceCertificates(true);
+                    application.CheckApplicationInstanceCertificates(true).GetAwaiter().GetResult();
                 }
 
                 EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(m_configuration);
