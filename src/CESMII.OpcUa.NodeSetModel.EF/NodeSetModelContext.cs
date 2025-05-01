@@ -58,6 +58,7 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             modelBuilder.Entity<NodeModel>()
                 .Ignore(nm => nm.CustomState)
                 .Ignore(nm => nm.ReferencesNotResolved)
+                .Ignore(nm => nm.NodeIdIdentifier)
                 .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
                 ;
             modelBuilder.Entity<NodeModel>()
