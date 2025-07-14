@@ -6,7 +6,7 @@
     <Configurations>Debug;Release;Staging</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageIcon>cesmii.png</PackageIcon>
-  <Version>2.1.2</Version>
+  <Version>2.1.3</Version>
   <Authors>Markus Horstmann</Authors>
   <Company>CESMII/C-Labs</Company>
   <Product></Product>
@@ -23,8 +23,13 @@
 
 	<ItemGroup>
    	  <!--<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Cloud.Library.Client" Version="*-*" />-->
-	  <ProjectReference Include="..\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj"/>
+	  <ProjectReference Include="..\Opc.Ua.Cloud.Library.Client\CESMII.Opc.Ua.Cloud.Library.Client.csproj" />
 	  <ProjectReference Include="..\CESMII.OpcUa.NodeSetImporter\CESMII.OpcUa.NodeSetImporter.csproj" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.376.213" />
 	</ItemGroup>
 
 </Project>
