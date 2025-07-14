@@ -59,7 +59,8 @@ namespace CESMII.OpcUa.NodeSetModel.EF
                 .Ignore(nm => nm.CustomState)
                 .Ignore(nm => nm.ReferencesNotResolved)
                 .Ignore(nm => nm.NodeIdIdentifier)
-                .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explcitly
+    
+                .Property<DateTime?>("NodeSetPublicationDate") // EF tooling does not properly infer the type of this auto-generated property when using it in a foreign key: workaround declare explicitly
                 ;
             modelBuilder.Entity<NodeModel>()
                 .ToTable("Nodes")
@@ -178,7 +179,10 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             }
             modelBuilder.Entity<ReferenceTypeModel>()
                 .ToTable("ReferenceTypes")
-                ;
+                .HasOne(r => r.SuperType)
+                .WithMany()
+                .HasForeignKey(r => r.SuperTypeId)
+            ;
 
             #region NodeSetModel collections
             DeclareNodeSetCollection<ObjectTypeModel>(modelBuilder, nsm => nsm.ObjectTypes, cascadeDelete);

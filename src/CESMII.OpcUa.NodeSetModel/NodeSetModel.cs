@@ -566,6 +566,9 @@ namespace CESMII.OpcUa.NodeSetModel
         /// Whether the reference is symmetric.
         /// </summary>
         public bool Symmetric { get; set; }
+
+        public int Id { get; set; }
+        public int? SuperTypeId { get; set; } // Explicit FK
     }
 
 
