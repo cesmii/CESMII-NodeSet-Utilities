@@ -179,9 +179,9 @@ namespace CESMII.OpcUa.NodeSetModel.EF
             }
             modelBuilder.Entity<ReferenceTypeModel>()
                 .ToTable("ReferenceTypes")
-                .HasOne(r => r.SuperType)
-                .WithMany()
-                .HasForeignKey(r => r.SuperTypeId)
+                .HasOne(r => r.SuperType)                       //CM: Possible Fix for SuperType Problem here
+                .WithMany()                                     //CM: Possible Fix for SuperType Problem here
+                .HasForeignKey(r => r.SuperTypeId)              //CM: Possible Fix for SuperType Problem here
             ;
 
             #region NodeSetModel collections
