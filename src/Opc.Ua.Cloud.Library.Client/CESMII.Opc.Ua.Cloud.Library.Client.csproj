@@ -16,7 +16,7 @@
   <ItemGroup>
     <PackageReference Include="GraphQL.Client" Version="6.1.0" />
     <PackageReference Include="GraphQL.Client.Serializer.Newtonsoft" Version="6.1.0" />
-    <PackageReference Include="GraphQL.Query.Builder" Version="2.0.2" />
+    <PackageReference Include="GraphQL.Query.Builder" Version="2.2.1" />
    
   </ItemGroup>
 
