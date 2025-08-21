@@ -184,8 +184,7 @@ namespace CESMII.NodeSetUtilities.Tests
                     output.WriteLine("Expected Diffs: " + expectedSummary);
                     output.WriteLine("Actual Diffs: " + diffSummary);
                 }
-                //TODO: Temporarily removed to pass the tests for a PR needed for the cloudlib
-                //Assert.True(expectedSummary == diffSummary, $"Diffs not as expected {Path.GetFullPath(summaryDiffFile)} expected {Path.GetFullPath(expectedDiffFile)}");
+                Assert.True(expectedSummary == diffSummary, $"Diffs not as expected {Path.GetFullPath(summaryDiffFile)} expected {Path.GetFullPath(expectedDiffFile)}");
                 output.WriteLine($"Verified export {file}. Diffs: {diffCounts}");
                 if (issueCounts.TryGetValue("Untriaged", out var untriagedIssues) && untriagedIssues > 0)
                 {

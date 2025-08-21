@@ -18,9 +18,9 @@
 
 
 	<ItemGroup>
-		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="1.5.376.213" />
-		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.5.376.213" />
-		<PackageReference Include="System.Text.Json" Version="6.0.10" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Client" Version="1.5.376.244" />
+		<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Symbols" Version="1.5.376.244" />
+		<PackageReference Include="System.Text.Json" Version="9.0.8" />
 	</ItemGroup>
 
 
