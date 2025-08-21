@@ -215,7 +215,7 @@ namespace CESMII.NodeSetValidator
                 application.ApplicationConfiguration = m_configuration;
                 if (!MyServerStates.DisableSecurity)
                 {
-                    application.CheckApplicationInstanceCertificate(true, 0).Wait();
+                    application.CheckApplicationInstanceCertificates(true).GetAwaiter().GetResult();
                 }
 
                 EndpointConfiguration endpointConfiguration = EndpointConfiguration.Create(m_configuration);
